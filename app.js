@@ -1,4 +1,5 @@
 // === CONFIG: reemplaza con tus credenciales de Supabase ===
+const VAPID_PUBLIC = 'BCH9fR4wDcg18fMxzEdRIUhRsqEOOBvUKXyF3HdyyJMwxEQzUr04JAAzw1b29bnUOALUboLH52DvmGv6xXoK6EY';
 const SUPABASE_URL = 'https://zgkcmxfwgxsvtqjteusi.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpna2NteGZ3Z3hzdnRxanRldXNpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NjQ3MTQsImV4cCI6MjA5NzE0MDcxNH0.icft1DynZVyDuIvyef_WxMB3qg20Pa1qYhJjWWU7qCo';
 const EMAIL_DOMAIN = 'familia.local'; // usuario -> usuario@familia.local
@@ -137,3 +138,29 @@ const esc = s => (s || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
 function showMsg(t, isError = true) { const m = document.getElementById('msg'); m.textContent = t; m.className = isError ? 'error' : 'ok'; }
 
 init();
+
+function urlBase64ToUint8Array(base64) {
+  const padding = '='.repeat((4 - base64.length % 4) % 4);
+  const b64 = (base64 + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const raw = atob(b64);
+  return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+}
+
+async function setupPush() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+  const perm = await Notification.requestPermission();
+  if (perm !== 'granted') return;
+
+  const reg = await navigator.serviceWorker.ready;
+  let sub = await reg.pushManager.getSubscription();
+  if (!sub) {
+    sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC)
+    });
+  }
+  // guardar (upsert evita duplicados)
+  await sb.from('push_subscriptions')
+    .upsert({ user_id: currentUser.id, subscription: sub.toJSON() },
+            { onConflict: 'user_id,subscription' });
+}
