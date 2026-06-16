@@ -12,11 +12,51 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
 
 const userToEmail = u => `${u.toLowerCase().trim()}@${EMAIL_DOMAIN}`;
 
+// === NOTIFICACIONES PUSH ===
+function urlBase64ToUint8Array(base64) {
+  const padding = '='.repeat((4 - base64.length % 4) % 4);
+  const b64 = (base64 + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const raw = atob(b64);
+  return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+}
+
+async function setupPush() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+  if (VAPID_PUBLIC.startsWith('TU_')) return; // aún no configuras la clave
+  try {
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') return;
+
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC)
+      });
+    }
+    // guardar (upsert evita duplicados)
+    const { error } = await sb.from('push_subscriptions')
+      .upsert({ user_id: currentUser.id, subscription: sub.toJSON() },
+              { onConflict: 'user_id,subscription' });
+    if (error) console.warn('No se pudo guardar la suscripción:', error);
+    else console.log('Suscripción push guardada ✓');
+  } catch (e) {
+    console.warn('No se pudo configurar push:', e);
+  }
+}
+
 // === AUTH ===
 async function init() {
   const { data } = await sb.auth.getSession();
-  if (data.session) { currentUser = data.session.user; await loadProfile(); renderChats(); }
-  else renderAuth();
+  if (data.session) {
+    currentUser = data.session.user;
+    await loadProfile();
+    renderChats();
+    setupPush();
+  } else {
+    renderAuth();
+  }
 }
 
 async function loadProfile() {
@@ -52,7 +92,10 @@ async function login() {
   const u = val('username'), p = val('password');
   const { data, error } = await sb.auth.signInWithPassword({ email: userToEmail(u), password: p });
   if (error) return showMsg('Usuario o contraseña incorrectos');
-  currentUser = data.user; await loadProfile(); renderChats();
+  currentUser = data.user;
+  await loadProfile();
+  renderChats();
+  setupPush();
 }
 
 async function logout() { await sb.auth.signOut(); location.reload(); }
@@ -138,29 +181,3 @@ const esc = s => (s || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
 function showMsg(t, isError = true) { const m = document.getElementById('msg'); m.textContent = t; m.className = isError ? 'error' : 'ok'; }
 
 init();
-
-function urlBase64ToUint8Array(base64) {
-  const padding = '='.repeat((4 - base64.length % 4) % 4);
-  const b64 = (base64 + padding).replace(/-/g, '+').replace(/_/g, '/');
-  const raw = atob(b64);
-  return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
-}
-
-async function setupPush() {
-  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
-  const perm = await Notification.requestPermission();
-  if (perm !== 'granted') return;
-
-  const reg = await navigator.serviceWorker.ready;
-  let sub = await reg.pushManager.getSubscription();
-  if (!sub) {
-    sub = await reg.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC)
-    });
-  }
-  // guardar (upsert evita duplicados)
-  await sb.from('push_subscriptions')
-    .upsert({ user_id: currentUser.id, subscription: sub.toJSON() },
-            { onConflict: 'user_id,subscription' });
-}
