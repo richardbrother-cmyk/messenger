@@ -223,14 +223,16 @@ async function onAvatarPicked(e) {
     const { error: upErr } = await sb.storage.from('avatars')
       .upload(path, file, { contentType: file.type, upsert: true });
     if (upErr) throw upErr;
-    // URL pública + cache-buster para que se refresque
+    // Guarda la URL LIMPIA en la base (sin ?t=), para que sirva como ícono de push.
     const { data } = sb.storage.from('avatars').getPublicUrl(path);
-    const url = `${data.publicUrl}?t=${Date.now()}`;
-    const { error: updErr } = await sb.from('profiles').update({ avatar_url: url }).eq('id', currentUser.id);
+    const cleanUrl = data.publicUrl;
+    const { error: updErr } = await sb.from('profiles').update({ avatar_url: cleanUrl }).eq('id', currentUser.id);
     if (updErr) throw updErr;
-    currentProfile.avatar_url = url;
+    currentProfile.avatar_url = cleanUrl;
+    // En pantalla usamos cache-buster solo para forzar refresco visual.
+    const displayUrl = `${cleanUrl}?t=${Date.now()}`;
     const prev = document.getElementById('avatarPreview');
-    prev.outerHTML = `<img class="avatar-lg" id="avatarPreview" src="${url}" alt="avatar">`;
+    prev.outerHTML = `<img class="avatar-lg" id="avatarPreview" src="${displayUrl}" alt="avatar">`;
     profileMsg('Foto actualizada ✓');
   } catch (err) {
     profileMsg('Error al subir: ' + err.message, false);
