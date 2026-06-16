@@ -21,3 +21,27 @@ button.link { background: none; color: #4cc9f0; width: auto; padding: .3rem; }
 .composer button { width: auto; }
 .empty, .error, .ok { padding: 1rem; text-align: center; }
 .error { color: #ff6b6b; } .ok { color: #4cc9f0; }
+/* Avatares en listas/encabezado */
+.avatar-img {
+  width: 42px; height: 42px; border-radius: 50%;
+  object-fit: cover; flex-shrink: 0;
+}
+.me { display: flex; align-items: center; gap: .6rem; cursor: pointer; }
+.me .avatar, .me .avatar-img { width: 34px; height: 34px; }
+
+/* Pantalla de perfil */
+.profile { padding: 1.2rem; display: flex; flex-direction: column; gap: .7rem; max-width: 420px; margin: 0 auto; }
+.profile-avatar { display: flex; flex-direction: column; align-items: center; gap: .5rem; margin-bottom: .8rem; }
+.avatar-lg {
+  width: 110px; height: 110px; border-radius: 50%;
+  object-fit: cover; background: #4361ee;
+}
+.avatar-lg.placeholder {
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2.8rem; font-weight: bold; text-transform: uppercase; color: #fff;
+}
+.field-label { font-size: .8rem; color: #8a8aa0; margin-top: .6rem; }
+.profile input { width: 100%; }
+.sep { border: none; border-top: 1px solid #2a2a44; margin: 1.2rem 0 .4rem; }
+.danger { background: #c0392b; }
+.danger:hover { background: #e74c3c; }
