@@ -2,7 +2,7 @@
 //  FAMILIA CHAT — sw.js  (notificaciones personalizadas)
 //  Caché v4. Reemplaza tu sw.js por este.
 // ============================================================
-const CACHE = 'familia-chat-v6';
+const CACHE = 'familia-chat-v7';
 const ASSETS = ['./index.html', './styles.css', './app.js', './manifest.json'];
 
 self.addEventListener('install', e => {
