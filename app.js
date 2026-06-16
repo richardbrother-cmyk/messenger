@@ -21,6 +21,19 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
 
 const userToEmail = u => `${u.toLowerCase().trim()}@${EMAIL_DOMAIN}`;
 
+// === AJUSTE DE ALTURA REAL (arregla compositor cortado / teclado) ===
+// Mide la altura visible real y la expone como variable CSS --app-h.
+function ajustarAltura() {
+  const h = (window.visualViewport?.height) || window.innerHeight;
+  document.documentElement.style.setProperty('--app-h', `${h}px`);
+}
+ajustarAltura();
+window.addEventListener('resize', ajustarAltura);
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', ajustarAltura);
+  window.visualViewport.addEventListener('scroll', ajustarAltura);
+}
+
 // === PUSH ===
 function urlBase64ToUint8Array(base64) {
   const padding = '='.repeat((4 - base64.length % 4) % 4);
@@ -155,7 +168,7 @@ async function renderChats() {
       <button class="link" id="logoutBtn">Salir</button>
     </div>
     <div class="contacts">
-      ${profiles.map(p => `<div class="contact" data-id="${p.id}" data-name="${esc(p.display_name)}">
+      ${profiles.map(p => `<div class="contact" data-id="${p.id}" data-name="${esc(p.display_name)}" data-avatar="${esc(p.avatar_url || '')}">
         ${p.avatar_url
           ? `<img class="avatar-img" src="${esc(p.avatar_url)}" alt="">`
           : `<div class="avatar">${esc((p.display_name||'?')[0])}</div>`}
@@ -164,7 +177,7 @@ async function renderChats() {
   document.getElementById('logoutBtn').onclick = logout;
   document.getElementById('openProfile').onclick = renderProfile;
   document.querySelectorAll('.contact').forEach(c =>
-    c.onclick = () => openChat(c.dataset.id, c.dataset.name));
+    c.onclick = () => openChat(c.dataset.id, c.dataset.name, c.dataset.avatar));
 }
 
 // === PANTALLA DE PERFIL ===
@@ -281,13 +294,25 @@ async function deleteAccount() {
 }
 
 // === CHAT ===
-async function openChat(otherId, otherName) {
+let activeChatName = '';
+async function openChat(otherId, otherName, otherAvatar) {
   activeChat = otherId;
+  activeChatName = otherName;
   pendingFile = null;
+  // si no llegó el avatar, intenta obtenerlo
+  if (otherAvatar === undefined) {
+    const { data } = await sb.from('profiles').select('avatar_url').eq('id', otherId).single();
+    otherAvatar = data?.avatar_url || '';
+  }
+  const avatarHtml = otherAvatar
+    ? `<img class="avatar-img chat-av" src="${esc(otherAvatar)}" alt="">`
+    : `<div class="avatar chat-av">${esc((otherName||'?')[0])}</div>`;
   app.innerHTML = `
     <div class="header">
       <button class="link" id="backBtn">←</button>
-      <span>${esc(otherName)}</span>
+      ${avatarHtml}
+      <span class="chat-title">${esc(otherName)}</span>
+      <button class="link" id="clearBtn" title="Limpiar conversación">🗑️</button>
     </div>
     <div class="messages" id="messages"></div>
     <div id="filePreview" class="file-preview hidden"></div>
@@ -298,6 +323,7 @@ async function openChat(otherId, otherName) {
       <button id="sendBtn">Enviar</button>
     </div>`;
   document.getElementById('backBtn').onclick = () => { unsubscribe(); renderChats(); };
+  document.getElementById('clearBtn').onclick = limpiarConversacion;
   document.getElementById('sendBtn').onclick = sendMessage;
   document.getElementById('attachBtn').onclick = () => document.getElementById('fileInput').click();
   document.getElementById('fileInput').addEventListener('change', onFilePicked);
@@ -306,10 +332,29 @@ async function openChat(otherId, otherName) {
   subscribe();
 }
 
+// Limpiar conversación SOLO PARA MÍ: guarda la fecha y oculta lo anterior.
+async function limpiarConversacion() {
+  if (!confirm('¿Limpiar esta conversación? Solo se ocultará para ti; la otra persona conservará su copia.')) return;
+  const { error } = await sb.from('chat_clears')
+    .upsert({ user_id: currentUser.id, other_id: activeChat, cleared_at: new Date().toISOString() },
+            { onConflict: 'user_id,other_id' });
+  if (error) { alert('No se pudo limpiar: ' + error.message); return; }
+  const box = document.getElementById('messages');
+  if (box) box.innerHTML = '';
+}
+
 async function loadMessages() {
-  const { data } = await sb.from('messages').select('*')
+  // ¿hasta qué fecha limpié este chat? (oculta lo anterior, solo para mí)
+  const { data: clear } = await sb.from('chat_clears')
+    .select('cleared_at').eq('user_id', currentUser.id).eq('other_id', activeChat).maybeSingle();
+  const clearedAt = clear?.cleared_at || null;
+
+  let q = sb.from('messages').select('*')
     .or(`and(sender_id.eq.${currentUser.id},recipient_id.eq.${activeChat}),and(sender_id.eq.${activeChat},recipient_id.eq.${currentUser.id})`)
     .order('created_at');
+  if (clearedAt) q = q.gt('created_at', clearedAt);
+
+  const { data } = await q;
   const box = document.getElementById('messages');
   box.innerHTML = '';
   for (const m of data) box.insertAdjacentHTML('beforeend', renderBubble(m));

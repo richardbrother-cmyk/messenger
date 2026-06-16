@@ -5,14 +5,14 @@ body {
   font-family: system-ui, sans-serif;
   background: #1a1a2e;
   color: #eee;
-  height: 100dvh;
+  height: var(--app-h, 100dvh);
   overflow: hidden;            /* el scroll vive dentro de cada zona */
 }
 
 #app {
   max-width: 600px;
   margin: 0 auto;
-  height: 100dvh;
+  height: var(--app-h, 100dvh);
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -49,6 +49,15 @@ button.link { background: none; color: #4cc9f0; width: auto; padding: .3rem; }
   align-items: center;
   justify-content: center;
 }
+/* Avatar + título dentro del encabezado del chat */
+.header .chat-av { width: 36px; height: 36px; flex-shrink: 0; }
+.header .chat-title {
+  flex: 1 1 auto;
+  margin-left: .2rem;
+  font-weight: 600;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+#clearBtn { font-size: 1.2rem; }
 
 /* === CONTACTOS (scroll propio) === */
 .contacts { flex: 1 1 auto; overflow-y: auto; min-height: 0; -webkit-overflow-scrolling: touch; }
