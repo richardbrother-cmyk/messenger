@@ -156,7 +156,7 @@ async function logout() { await sb.auth.signOut(); location.reload(); }
 // === LISTA DE CONTACTOS ===
 async function renderChats() {
   const { data: profiles } = await sb.from('profiles').select('*').neq('id', currentUser.id).order('display_name');
-  const myAvatar = currentProfile?.avatar_url;
+  const myAvatar = avatarUrl(currentProfile);
   app.innerHTML = `
     <div class="header">
       <div class="me" id="openProfile">
@@ -168,11 +168,14 @@ async function renderChats() {
       <button class="link" id="logoutBtn">Salir</button>
     </div>
     <div class="contacts">
-      ${profiles.map(p => `<div class="contact" data-id="${p.id}" data-name="${esc(p.display_name)}" data-avatar="${esc(p.avatar_url || '')}">
-        ${p.avatar_url
-          ? `<img class="avatar-img" src="${esc(p.avatar_url)}" alt="">`
+      ${profiles.map(p => {
+        const av = avatarUrl(p);
+        return `<div class="contact" data-id="${p.id}" data-name="${esc(p.display_name)}" data-avatar="${esc(av)}">
+        ${av
+          ? `<img class="avatar-img" src="${esc(av)}" alt="">`
           : `<div class="avatar">${esc((p.display_name||'?')[0])}</div>`}
-        <span>${esc(p.display_name)}</span></div>`).join('') || '<p class="empty">Aún no hay otros usuarios.</p>'}
+        <span>${esc(p.display_name)}</span></div>`;
+      }).join('') || '<p class="empty">Aún no hay otros usuarios.</p>'}
     </div>`;
   document.getElementById('logoutBtn').onclick = logout;
   document.getElementById('openProfile').onclick = renderProfile;
@@ -182,7 +185,7 @@ async function renderChats() {
 
 // === PANTALLA DE PERFIL ===
 function renderProfile() {
-  const av = currentProfile?.avatar_url;
+  const av = avatarUrl(currentProfile);
   app.innerHTML = `
     <div class="header">
       <button class="link" id="backBtn">←</button>
@@ -371,10 +374,14 @@ async function subirAvatar(blob) {
     if (upErr) throw upErr;
     const { data } = sb.storage.from('avatars').getPublicUrl(path);
     const cleanUrl = data.publicUrl;
-    const { error: updErr } = await sb.from('profiles').update({ avatar_url: cleanUrl }).eq('id', currentUser.id);
+    const newVersion = Date.now(); // versión nueva = cambia el ?v= al renderizar
+    const { error: updErr } = await sb.from('profiles')
+      .update({ avatar_url: cleanUrl, avatar_version: newVersion })
+      .eq('id', currentUser.id);
     if (updErr) throw updErr;
     currentProfile.avatar_url = cleanUrl;
-    const displayUrl = `${cleanUrl}?t=${Date.now()}`;
+    currentProfile.avatar_version = newVersion;
+    const displayUrl = avatarUrl(currentProfile);
     const prev = document.getElementById('avatarPreview');
     if (prev) prev.outerHTML = `<img class="avatar-lg" id="avatarPreview" src="${displayUrl}" alt="avatar">`;
     profileMsg('Foto actualizada ✓');
@@ -430,10 +437,10 @@ async function openChat(otherId, otherName, otherAvatar) {
   activeChat = otherId;
   activeChatName = otherName;
   pendingFile = null;
-  // si no llegó el avatar, intenta obtenerlo
+  // si no llegó el avatar, intenta obtenerlo (con versión para evitar caché)
   if (otherAvatar === undefined) {
-    const { data } = await sb.from('profiles').select('avatar_url').eq('id', otherId).single();
-    otherAvatar = data?.avatar_url || '';
+    const { data } = await sb.from('profiles').select('avatar_url, avatar_version').eq('id', otherId).single();
+    otherAvatar = avatarUrl(data);
   }
   const avatarHtml = otherAvatar
     ? `<img class="avatar-img chat-av" src="${esc(otherAvatar)}" alt="">`
@@ -600,6 +607,13 @@ function unsubscribe() { if (channel) { sb.removeChannel(channel); channel = nul
 const val = id => document.getElementById(id).value;
 const esc = s => (s || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+// Arma la URL del avatar con ?v=version para evitar caché del navegador.
+// Recibe el objeto de perfil (con avatar_url y avatar_version).
+function avatarUrl(profile) {
+  if (!profile?.avatar_url) return '';
+  const v = profile.avatar_version || 0;
+  return `${profile.avatar_url}?v=${v}`;
+}
 function showMsg(t, isError = true) { const m = document.getElementById('msg'); m.textContent = t; m.className = isError ? 'error' : 'ok'; }
 function formatSize(bytes) {
   if (!bytes) return '';
