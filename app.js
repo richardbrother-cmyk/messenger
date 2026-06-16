@@ -1,6 +1,6 @@
 // === CONFIG: reemplaza con tus credenciales de Supabase ===
-const SUPABASE_URL = 'https://TU-PROYECTO.supabase.co';
-const SUPABASE_KEY = 'TU-ANON-KEY';
+const SUPABASE_URL = 'https://zgkcmxfwgxsvtqjteusi.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpna2NteGZ3Z3hzdnRxanRldXNpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NjQ3MTQsImV4cCI6MjA5NzE0MDcxNH0.icft1DynZVyDuIvyef_WxMB3qg20Pa1qYhJjWWU7qCo';
 const EMAIL_DOMAIN = 'familia.local'; // usuario -> usuario@familia.local
 
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
