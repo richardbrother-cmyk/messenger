@@ -1,5 +1,5 @@
 // ============================================================
-//  FAMILIA CHAT — app.js  (COMPLETO: push + adjuntos + abrir-chat)
+//  FAMILIA CHAT — app.js  (push + adjuntos + PERFIL + fix clic)
 //  Reemplaza TODO tu app.js por este.
 // ============================================================
 
@@ -8,18 +8,20 @@ const VAPID_PUBLIC = 'BFG1DmrLliLlDmMFJ7r67yJmgffaZBO5zi9ig0HSEwx41Xf6ip1lte_R9I
 const SUPABASE_URL = 'https://zgkcmxfwgxsvtqjteusi.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpna2NteGZ3Z3hzdnRxanRldXNpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NjQ3MTQsImV4cCI6MjA5NzE0MDcxNH0.icft1DynZVyDuIvyef_WxMB3qg20Pa1qYhJjWWU7qCo';
 const EMAIL_DOMAIN = 'familia.local';
-const MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MB
+const MAX_FILE_BYTES = 10 * 1024 * 1024;   // 10 MB adjuntos
+const MAX_AVATAR_BYTES = 2 * 1024 * 1024;  // 2 MB avatar
 
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const app = document.getElementById('app');
 let currentUser = null, currentProfile = null, activeChat = null, channel = null;
 let pendingFile = null;
+let pendingChat = null; // { id, name } chat a abrir cuando haya sesión
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
 
 const userToEmail = u => `${u.toLowerCase().trim()}@${EMAIL_DOMAIN}`;
 
-// === NOTIFICACIONES PUSH ===
+// === PUSH ===
 function urlBase64ToUint8Array(base64) {
   const padding = '='.repeat((4 - base64.length % 4) % 4);
   const b64 = (base64 + padding).replace(/-/g, '+').replace(/_/g, '/');
@@ -44,40 +46,41 @@ async function setupPush() {
       .upsert({ user_id: currentUser.id, subscription: sub.toJSON() },
               { onConflict: 'user_id,subscription' });
     if (error) console.warn('No se pudo guardar la suscripción:', error);
-    else console.log('Suscripción push guardada ✓');
-  } catch (e) {
-    console.warn('No se pudo configurar push:', e);
-  }
+  } catch (e) { console.warn('Push:', e); }
 }
 
-// === ABRIR CHAT DESDE NOTIFICACIÓN ===
-// (a) app abierta: el SW manda un postMessage
+// === ABRIR CHAT DESDE NOTIFICACIÓN (robusto) ===
+// Resuelve el nombre desde la BD si no viene, y reintenta hasta tener sesión.
+async function abrirChatPorId(senderId, senderName) {
+  if (!senderId) return;
+  // espera a que haya sesión
+  let intentos = 0;
+  while (!currentUser && intentos < 40) { await sleep(150); intentos++; }
+  if (!currentUser) { pendingChat = { id: senderId, name: senderName }; return; }
+  // si no vino el nombre, búscalo
+  let nombre = senderName;
+  if (!nombre || nombre === 'Chat') {
+    const { data } = await sb.from('profiles').select('display_name').eq('id', senderId).single();
+    nombre = data?.display_name || 'Chat';
+  }
+  openChat(senderId, nombre);
+}
+
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.addEventListener('message', (event) => {
     if (event.data?.type === 'open-chat' && event.data.senderId) {
-      const tryOpen = () => {
-        if (currentUser) openChat(event.data.senderId, event.data.senderName || 'Chat');
-        else setTimeout(tryOpen, 300);
-      };
-      tryOpen();
+      abrirChatPorId(event.data.senderId, event.data.senderName);
     }
   });
 }
-// (b) app abierta desde cero con ?chat=... en la URL
+
 function abrirChatDesdeURL() {
   const params = new URLSearchParams(location.search);
   const chatId = params.get('chat');
   const chatName = params.get('name');
   if (!chatId) return;
-  const tryOpen = () => {
-    if (currentUser) {
-      openChat(chatId, chatName || 'Chat');
-      history.replaceState({}, '', location.pathname);
-    } else {
-      setTimeout(tryOpen, 300);
-    }
-  };
-  tryOpen();
+  history.replaceState({}, '', location.pathname); // limpia la URL
+  abrirChatPorId(chatId, chatName);
 }
 
 // === AUTH ===
@@ -88,6 +91,7 @@ async function init() {
     await loadProfile();
     renderChats();
     setupPush();
+    if (pendingChat) { abrirChatPorId(pendingChat.id, pendingChat.name); pendingChat = null; }
     abrirChatDesdeURL();
   } else {
     renderAuth();
@@ -131,7 +135,7 @@ async function login() {
   await loadProfile();
   renderChats();
   setupPush();
-  abrirChatDesdeURL();
+  if (pendingChat) { abrirChatPorId(pendingChat.id, pendingChat.name); pendingChat = null; }
 }
 
 async function logout() { await sb.auth.signOut(); location.reload(); }
@@ -139,19 +143,139 @@ async function logout() { await sb.auth.signOut(); location.reload(); }
 // === LISTA DE CONTACTOS ===
 async function renderChats() {
   const { data: profiles } = await sb.from('profiles').select('*').neq('id', currentUser.id).order('display_name');
+  const myAvatar = currentProfile?.avatar_url;
   app.innerHTML = `
     <div class="header">
-      <span>Hola, ${esc(currentProfile.display_name)}</span>
+      <div class="me" id="openProfile">
+        ${myAvatar
+          ? `<img class="avatar-img" src="${esc(myAvatar)}" alt="yo">`
+          : `<div class="avatar">${esc((currentProfile.display_name||'?')[0])}</div>`}
+        <span>Hola, ${esc(currentProfile.display_name)}</span>
+      </div>
       <button class="link" id="logoutBtn">Salir</button>
     </div>
     <div class="contacts">
       ${profiles.map(p => `<div class="contact" data-id="${p.id}" data-name="${esc(p.display_name)}">
-        <div class="avatar">${esc(p.display_name[0] || '?')}</div>
+        ${p.avatar_url
+          ? `<img class="avatar-img" src="${esc(p.avatar_url)}" alt="">`
+          : `<div class="avatar">${esc((p.display_name||'?')[0])}</div>`}
         <span>${esc(p.display_name)}</span></div>`).join('') || '<p class="empty">Aún no hay otros usuarios.</p>'}
     </div>`;
   document.getElementById('logoutBtn').onclick = logout;
+  document.getElementById('openProfile').onclick = renderProfile;
   document.querySelectorAll('.contact').forEach(c =>
     c.onclick = () => openChat(c.dataset.id, c.dataset.name));
+}
+
+// === PANTALLA DE PERFIL ===
+function renderProfile() {
+  const av = currentProfile?.avatar_url;
+  app.innerHTML = `
+    <div class="header">
+      <button class="link" id="backBtn">←</button>
+      <span>Mi perfil</span>
+    </div>
+    <div class="profile">
+      <div class="profile-avatar">
+        ${av ? `<img class="avatar-lg" id="avatarPreview" src="${esc(av)}" alt="avatar">`
+             : `<div class="avatar-lg placeholder" id="avatarPreview">${esc((currentProfile.display_name||'?')[0])}</div>`}
+        <button class="link" id="changePhoto">Cambiar foto</button>
+        <input id="avatarInput" type="file" accept="image/*" hidden>
+      </div>
+
+      <label class="field-label">Nombre</label>
+      <input id="newName" value="${esc(currentProfile.display_name || '')}" placeholder="Tu nombre">
+      <button id="saveName">Guardar nombre</button>
+
+      <label class="field-label">Cambiar contraseña</label>
+      <input id="newPass" type="password" placeholder="Nueva contraseña">
+      <button id="savePass">Actualizar contraseña</button>
+
+      <hr class="sep">
+      <button id="deleteAccount" class="danger">Eliminar mi cuenta</button>
+
+      <p id="profileMsg" class="ok"></p>
+    </div>`;
+
+  document.getElementById('backBtn').onclick = renderChats;
+  document.getElementById('changePhoto').onclick = () => document.getElementById('avatarInput').click();
+  document.getElementById('avatarInput').addEventListener('change', onAvatarPicked);
+  document.getElementById('saveName').onclick = saveName;
+  document.getElementById('savePass').onclick = savePassword;
+  document.getElementById('deleteAccount').onclick = deleteAccount;
+}
+
+function profileMsg(t, ok = true) {
+  const m = document.getElementById('profileMsg');
+  if (m) { m.textContent = t; m.className = ok ? 'ok' : 'error'; }
+}
+
+async function onAvatarPicked(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (!file.type.startsWith('image/')) return profileMsg('Debe ser una imagen', false);
+  if (file.size > MAX_AVATAR_BYTES) return profileMsg('Máximo 2 MB', false);
+  profileMsg('Subiendo foto…');
+  try {
+    const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+    const path = `${currentUser.id}/avatar.${ext}`;
+    // upsert: reemplaza la foto anterior
+    const { error: upErr } = await sb.storage.from('avatars')
+      .upload(path, file, { contentType: file.type, upsert: true });
+    if (upErr) throw upErr;
+    // URL pública + cache-buster para que se refresque
+    const { data } = sb.storage.from('avatars').getPublicUrl(path);
+    const url = `${data.publicUrl}?t=${Date.now()}`;
+    const { error: updErr } = await sb.from('profiles').update({ avatar_url: url }).eq('id', currentUser.id);
+    if (updErr) throw updErr;
+    currentProfile.avatar_url = url;
+    const prev = document.getElementById('avatarPreview');
+    prev.outerHTML = `<img class="avatar-lg" id="avatarPreview" src="${url}" alt="avatar">`;
+    profileMsg('Foto actualizada ✓');
+  } catch (err) {
+    profileMsg('Error al subir: ' + err.message, false);
+  }
+}
+
+async function saveName() {
+  const name = document.getElementById('newName').value.trim();
+  if (!name) return profileMsg('El nombre no puede estar vacío', false);
+  const { error } = await sb.from('profiles').update({ display_name: name }).eq('id', currentUser.id);
+  if (error) return profileMsg('Error: ' + error.message, false);
+  currentProfile.display_name = name;
+  profileMsg('Nombre actualizado ✓');
+}
+
+async function savePassword() {
+  const pass = document.getElementById('newPass').value;
+  if (pass.length < 6) return profileMsg('La contraseña debe tener al menos 6 caracteres', false);
+  const { error } = await sb.auth.updateUser({ password: pass });
+  if (error) return profileMsg('Error: ' + error.message, false);
+  document.getElementById('newPass').value = '';
+  profileMsg('Contraseña actualizada ✓');
+}
+
+async function deleteAccount() {
+  const sure = confirm('¿Eliminar tu cuenta? Se borrarán TODOS tus mensajes y archivos. Esta acción no se puede deshacer.');
+  if (!sure) return;
+  const sure2 = confirm('Última confirmación: esto es permanente. ¿Continuar?');
+  if (!sure2) return;
+  profileMsg('Eliminando cuenta…');
+  try {
+    const { data: sess } = await sb.auth.getSession();
+    const token = sess.session?.access_token;
+    const resp = await fetch(`${SUPABASE_URL}/functions/v1/delete-account`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+    });
+    const out = await resp.json();
+    if (!resp.ok || out.error) throw new Error(out.error || 'fallo al eliminar');
+    alert('Tu cuenta fue eliminada.');
+    await sb.auth.signOut();
+    location.reload();
+  } catch (err) {
+    profileMsg('No se pudo eliminar: ' + err.message, false);
+  }
 }
 
 // === CHAT ===
@@ -197,12 +321,9 @@ function renderBubble(m) {
   if (m.attachment_path) {
     const isImage = (m.attachment_type || '').startsWith('image/');
     if (isImage) {
-      inner += `<div class="attach-img" data-path="${esc(m.attachment_path)}">
-                  <span class="loading">Cargando imagen…</span></div>`;
+      inner += `<div class="attach-img" data-path="${esc(m.attachment_path)}"><span class="loading">Cargando imagen…</span></div>`;
     } else {
-      inner += `<a class="attach-file" data-path="${esc(m.attachment_path)}" href="#">
-                  📄 ${esc(m.attachment_name || 'archivo')}
-                  <small>${formatSize(m.attachment_size)}</small></a>`;
+      inner += `<a class="attach-file" data-path="${esc(m.attachment_path)}" href="#">📄 ${esc(m.attachment_name || 'archivo')} <small>${formatSize(m.attachment_size)}</small></a>`;
     }
   }
   if (m.content) inner += `<div class="text">${esc(m.content)}</div>`;
@@ -216,9 +337,7 @@ async function hydrateAttachments(box) {
     if (data?.signedUrl) {
       el.innerHTML = `<img src="${data.signedUrl}" alt="adjunto" loading="lazy">`;
       el.querySelector('img').onclick = () => window.open(data.signedUrl, '_blank');
-    } else {
-      el.innerHTML = '<span class="loading">No disponible</span>';
-    }
+    } else { el.innerHTML = '<span class="loading">No disponible</span>'; }
   }
   for (const el of box.querySelectorAll('.attach-file')) {
     const path = el.dataset.path;
@@ -232,15 +351,12 @@ function onFilePicked(e) {
   if (!file) return;
   if (file.size > MAX_FILE_BYTES) {
     alert(`El archivo supera el máximo de 10 MB (pesa ${formatSize(file.size)}).`);
-    e.target.value = '';
-    return;
+    e.target.value = ''; return;
   }
   pendingFile = file;
   const preview = document.getElementById('filePreview');
   preview.classList.remove('hidden');
-  preview.innerHTML = `
-    <span>📎 ${esc(file.name)} <small>${formatSize(file.size)}</small></span>
-    <button id="cancelFile" class="link">✕</button>`;
+  preview.innerHTML = `<span>📎 ${esc(file.name)} <small>${formatSize(file.size)}</small></span><button id="cancelFile" class="link">✕</button>`;
   document.getElementById('cancelFile').onclick = clearPendingFile;
 }
 
@@ -256,7 +372,6 @@ async function sendMessage() {
   const input = document.getElementById('msgInput');
   const content = input.value.trim();
   if (!content && !pendingFile) return;
-
   const sendBtn = document.getElementById('sendBtn');
   sendBtn.disabled = true;
 
@@ -269,27 +384,20 @@ async function sendMessage() {
         .upload(path, pendingFile, { contentType: pendingFile.type || 'application/octet-stream' });
       if (upErr) throw upErr;
       attachment = {
-        attachment_path: path,
-        attachment_name: pendingFile.name,
-        attachment_type: pendingFile.type || 'application/octet-stream',
-        attachment_size: pendingFile.size
+        attachment_path: path, attachment_name: pendingFile.name,
+        attachment_type: pendingFile.type || 'application/octet-stream', attachment_size: pendingFile.size
       };
     } catch (err) {
       alert('No se pudo subir el archivo: ' + err.message);
-      sendBtn.disabled = false;
-      return;
+      sendBtn.disabled = false; return;
     }
   }
 
   input.value = '';
-  const row = {
-    sender_id: currentUser.id,
-    recipient_id: activeChat,
-    content: content || null,
-    ...(attachment || {})
-  };
-  await sb.from('messages').insert(row);
-
+  await sb.from('messages').insert({
+    sender_id: currentUser.id, recipient_id: activeChat,
+    content: content || null, ...(attachment || {})
+  });
   clearPendingFile();
   sendBtn.disabled = false;
 }
@@ -313,11 +421,11 @@ function unsubscribe() { if (channel) { sb.removeChannel(channel); channel = nul
 // === HELPERS ===
 const val = id => document.getElementById(id).value;
 const esc = s => (s || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const sleep = ms => new Promise(r => setTimeout(r, ms));
 function showMsg(t, isError = true) { const m = document.getElementById('msg'); m.textContent = t; m.className = isError ? 'error' : 'ok'; }
 function formatSize(bytes) {
   if (!bytes) return '';
-  const u = ['B', 'KB', 'MB', 'GB'];
-  let i = 0, n = bytes;
+  const u = ['B', 'KB', 'MB', 'GB']; let i = 0, n = bytes;
   while (n >= 1024 && i < u.length - 1) { n /= 1024; i++; }
   return `${n.toFixed(n < 10 && i > 0 ? 1 : 0)} ${u[i]}`;
 }
