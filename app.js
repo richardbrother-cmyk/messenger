@@ -228,24 +228,155 @@ async function onAvatarPicked(e) {
   if (!file) return;
   if (!file.type.startsWith('image/')) return profileMsg('Debe ser una imagen', false);
   if (file.size > MAX_AVATAR_BYTES) return profileMsg('Máximo 2 MB', false);
+  // En vez de subir directo, abrir el editor de recorte
+  abrirEditorRecorte(file);
+}
+
+// === EDITOR DE RECORTE CIRCULAR (arrastrar + zoom slider/pinch) ===
+function abrirEditorRecorte(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    const img = new Image();
+    img.onload = () => montarEditor(img);
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function montarEditor(img) {
+  const SIZE = 300;        // tamaño del lienzo de edición (px en pantalla)
+  const OUT = 400;         // tamaño final de salida (px)
+
+  const overlay = document.createElement('div');
+  overlay.className = 'crop-overlay';
+  overlay.innerHTML = `
+    <div class="crop-box">
+      <p class="crop-title">Ajusta tu foto</p>
+      <div class="crop-stage" style="width:${SIZE}px;height:${SIZE}px;">
+        <canvas id="cropCanvas" width="${SIZE}" height="${SIZE}"></canvas>
+        <div class="crop-ring"></div>
+      </div>
+      <input id="cropZoom" type="range" min="1" max="4" step="0.01" value="1">
+      <div class="crop-actions">
+        <button class="secondary" id="cropCancel">Cancelar</button>
+        <button id="cropSave">Guardar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+
+  const canvas = document.getElementById('cropCanvas');
+  const ctx = canvas.getContext('2d');
+
+  // Estado de la vista: escala y desplazamiento
+  const baseScale = Math.max(SIZE / img.width, SIZE / img.height); // cubre el lienzo
+  let zoom = 1;
+  let scale = baseScale * zoom;
+  let ox = (SIZE - img.width * scale) / 2;   // offset x
+  let oy = (SIZE - img.height * scale) / 2;  // offset y
+
+  function clamp() {
+    scale = baseScale * zoom;
+    const w = img.width * scale, h = img.height * scale;
+    // que la imagen siempre cubra el lienzo
+    if (ox > 0) ox = 0;
+    if (oy > 0) oy = 0;
+    if (ox < SIZE - w) ox = SIZE - w;
+    if (oy < SIZE - h) oy = SIZE - h;
+  }
+
+  function draw() {
+    clamp();
+    ctx.clearRect(0, 0, SIZE, SIZE);
+    ctx.drawImage(img, ox, oy, img.width * scale, img.height * scale);
+  }
+  draw();
+
+  // --- Arrastrar (un dedo / mouse) ---
+  let dragging = false, lastX = 0, lastY = 0;
+  function start(x, y) { dragging = true; lastX = x; lastY = y; }
+  function move(x, y) {
+    if (!dragging) return;
+    ox += x - lastX; oy += y - lastY;
+    lastX = x; lastY = y; draw();
+  }
+  function end() { dragging = false; }
+
+  canvas.addEventListener('mousedown', e => start(e.clientX, e.clientY));
+  window.addEventListener('mousemove', e => move(e.clientX, e.clientY));
+  window.addEventListener('mouseup', end);
+
+  // --- Touch: arrastrar (1 dedo) + pellizco (2 dedos) ---
+  let pinchDist = 0, pinchZoom = 1;
+  canvas.addEventListener('touchstart', e => {
+    if (e.touches.length === 1) start(e.touches[0].clientX, e.touches[0].clientY);
+    else if (e.touches.length === 2) {
+      pinchDist = dist(e.touches);
+      pinchZoom = zoom;
+    }
+  }, { passive: false });
+
+  canvas.addEventListener('touchmove', e => {
+    e.preventDefault();
+    if (e.touches.length === 1) {
+      move(e.touches[0].clientX, e.touches[0].clientY);
+    } else if (e.touches.length === 2) {
+      const d = dist(e.touches);
+      zoom = Math.min(4, Math.max(1, pinchZoom * (d / pinchDist)));
+      document.getElementById('cropZoom').value = zoom;
+      draw();
+    }
+  }, { passive: false });
+
+  canvas.addEventListener('touchend', end);
+
+  function dist(t) {
+    const dx = t[0].clientX - t[1].clientX, dy = t[0].clientY - t[1].clientY;
+    return Math.hypot(dx, dy);
+  }
+
+  // --- Slider de zoom ---
+  document.getElementById('cropZoom').addEventListener('input', e => {
+    // mantener el centro al hacer zoom
+    const cx = SIZE / 2, cy = SIZE / 2;
+    const imgCx = (cx - ox) / scale, imgCy = (cy - oy) / scale;
+    zoom = parseFloat(e.target.value);
+    scale = baseScale * zoom;
+    ox = cx - imgCx * scale;
+    oy = cy - imgCy * scale;
+    draw();
+  });
+
+  // --- Cancelar / Guardar ---
+  document.getElementById('cropCancel').onclick = () => overlay.remove();
+  document.getElementById('cropSave').onclick = () => {
+    // Render final: recorta el lienzo a OUT x OUT (la porción visible)
+    const out = document.createElement('canvas');
+    out.width = OUT; out.height = OUT;
+    const octx = out.getContext('2d');
+    const ratio = OUT / SIZE;
+    octx.drawImage(img, ox * ratio, oy * ratio, img.width * scale * ratio, img.height * scale * ratio);
+    out.toBlob(blob => {
+      overlay.remove();
+      subirAvatar(blob);
+    }, 'image/jpeg', 0.9);
+  };
+}
+
+async function subirAvatar(blob) {
   profileMsg('Subiendo foto…');
   try {
-    const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
-    const path = `${currentUser.id}/avatar.${ext}`;
-    // upsert: reemplaza la foto anterior
+    const path = `${currentUser.id}/avatar.jpg`;
     const { error: upErr } = await sb.storage.from('avatars')
-      .upload(path, file, { contentType: file.type, upsert: true });
+      .upload(path, blob, { contentType: 'image/jpeg', upsert: true });
     if (upErr) throw upErr;
-    // Guarda la URL LIMPIA en la base (sin ?t=), para que sirva como ícono de push.
     const { data } = sb.storage.from('avatars').getPublicUrl(path);
     const cleanUrl = data.publicUrl;
     const { error: updErr } = await sb.from('profiles').update({ avatar_url: cleanUrl }).eq('id', currentUser.id);
     if (updErr) throw updErr;
     currentProfile.avatar_url = cleanUrl;
-    // En pantalla usamos cache-buster solo para forzar refresco visual.
     const displayUrl = `${cleanUrl}?t=${Date.now()}`;
     const prev = document.getElementById('avatarPreview');
-    prev.outerHTML = `<img class="avatar-lg" id="avatarPreview" src="${displayUrl}" alt="avatar">`;
+    if (prev) prev.outerHTML = `<img class="avatar-lg" id="avatarPreview" src="${displayUrl}" alt="avatar">`;
     profileMsg('Foto actualizada ✓');
   } catch (err) {
     profileMsg('Error al subir: ' + err.message, false);

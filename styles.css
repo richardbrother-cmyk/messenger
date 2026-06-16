@@ -132,6 +132,33 @@ button.link { background: none; color: #4cc9f0; width: auto; padding: .3rem; }
 .attach-file:hover { background: rgba(255,255,255,.15); }
 .bubble .text { margin-top: .1rem; }
 
+/* === Editor de recorte de avatar === */
+.crop-overlay {
+  position: fixed; inset: 0; z-index: 1000;
+  background: rgba(0,0,0,.75);
+  display: flex; align-items: center; justify-content: center;
+  padding: 1rem;
+}
+.crop-box {
+  background: #16213e; border-radius: 16px; padding: 1.2rem;
+  display: flex; flex-direction: column; align-items: center; gap: 1rem;
+  max-width: 92vw;
+}
+.crop-title { font-weight: 600; }
+.crop-stage { position: relative; border-radius: 10px; overflow: hidden; touch-action: none; }
+.crop-stage canvas { display: block; background: #000; cursor: grab; }
+.crop-stage canvas:active { cursor: grabbing; }
+/* Anillo que marca el área circular visible */
+.crop-ring {
+  position: absolute; inset: 0; pointer-events: none;
+  box-shadow: 0 0 0 9999px rgba(0,0,0,.45);
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,.8);
+}
+#cropZoom { width: 100%; }
+.crop-actions { display: flex; gap: .6rem; width: 100%; }
+.crop-actions button { flex: 1; }
+
 /* === Ajustes específicos para pantallas chicas === */
 @media (max-width: 480px) {
   .bubble { max-width: 82%; }
