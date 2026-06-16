@@ -30,7 +30,7 @@ self.addEventListener('push', e => {
     self.registration.showNotification(data.title, {
       body: data.body,
       icon: data.icon || 'icon-192.png',
-      badge: 'icon-192.png',
+      badge: 'badge-96.png',
       vibrate: [200, 100, 200],          // patrón de vibración
       tag: data.senderId || 'familia',   // agrupa por remitente
       renotify: true,                    // vibra aunque ya haya una del mismo tag
