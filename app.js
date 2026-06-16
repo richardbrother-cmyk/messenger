@@ -1,5 +1,5 @@
 // === CONFIG: reemplaza con tus credenciales de Supabase ===
-const VAPID_PUBLIC = 'BCH9fR4wDcg18fMxzEdRIUhRsqEOOBvUKXyF3HdyyJMwxEQzUr04JAAzw1b29bnUOALUboLH52DvmGv6xXoK6EY';
+const VAPID_PUBLIC = 'BFG1DmrLliLlDmMFJ7r67yJmgffaZBO5zi9ig0HSEwx41Xf6ip1lte_R9IeY9Nx-i5E3A0H2DnhACHyd3SEm9Pc';
 const SUPABASE_URL = 'https://zgkcmxfwgxsvtqjteusi.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpna2NteGZ3Z3hzdnRxanRldXNpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NjQ3MTQsImV4cCI6MjA5NzE0MDcxNH0.icft1DynZVyDuIvyef_WxMB3qg20Pa1qYhJjWWU7qCo';
 const EMAIL_DOMAIN = 'familia.local'; // usuario -> usuario@familia.local
