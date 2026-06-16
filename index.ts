@@ -1,27 +1,34 @@
 // ============================================================
-//  Edge Function: send-push  (versión con logs de depuración)
-//  Reemplaza tu index.ts, redespliega, y revisa los Logs.
+//  Edge Function: send-push  (DIAGNÓSTICO en la respuesta)
+//  Esta versión devuelve el resultado en el cuerpo del curl,
+//  así no dependes de la vista de Logs.
 // ============================================================
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import webpush from 'npm:web-push@3.6.7';
 
-const VAPID_PUBLIC = Deno.env.get('VAPID_PUBLIC')!;
-const VAPID_PRIVATE = Deno.env.get('VAPID_PRIVATE')!;
+const VAPID_PUBLIC = Deno.env.get('VAPID_PUBLIC') ?? '';
+const VAPID_PRIVATE = Deno.env.get('VAPID_PRIVATE') ?? '';
 
-console.log('VAPID_PUBLIC (primeros 12):', VAPID_PUBLIC?.slice(0, 12));
-console.log('VAPID_PRIVATE presente:', !!VAPID_PRIVATE);
+webpush.setVapidDetails('mailto:hb.ricardo@outlook.com', VAPID_PUBLIC, VAPID_PRIVATE);
 
-webpush.setVapidDetails('mailto:tu-correo@ejemplo.com', VAPID_PUBLIC, VAPID_PRIVATE);
+function json(obj: unknown, status = 200) {
+  return new Response(JSON.stringify(obj, null, 2), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
 
 Deno.serve(async (req) => {
+  const diag: Record<string, unknown> = {
+    vapid_public_prefix: VAPID_PUBLIC.slice(0, 16),
+    vapid_private_present: VAPID_PRIVATE.length > 0,
+  };
   try {
     const payload = await req.json();
     const msg = payload.record;
-    console.log('Mensaje recibido para recipient:', msg?.recipient_id);
+    diag.recipient = msg?.recipient_id ?? null;
 
-    if (!msg?.recipient_id) {
-      return new Response('payload inválido', { status: 200 });
-    }
+    if (!msg?.recipient_id) return json({ ...diag, error: 'payload inválido' });
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
@@ -34,12 +41,10 @@ Deno.serve(async (req) => {
     const { data: subs, error: subsErr } = await supabase
       .from('push_subscriptions').select('subscription').eq('user_id', msg.recipient_id);
 
-    if (subsErr) console.error('Error leyendo suscripciones:', subsErr);
-    console.log('Suscripciones encontradas:', subs?.length ?? 0);
+    diag.subs_error = subsErr?.message ?? null;
+    diag.subs_count = subs?.length ?? 0;
 
-    if (!subs?.length) {
-      return new Response('no subs', { status: 200 });
-    }
+    if (!subs?.length) return json({ ...diag, result: 'no subs' });
 
     let body: string;
     if (msg.content) body = String(msg.content).slice(0, 120);
@@ -53,26 +58,26 @@ Deno.serve(async (req) => {
       url: './index.html',
     });
 
-    let okCount = 0, failCount = 0;
-    await Promise.all(
-      subs.map(async (row) => {
-        try {
-          await webpush.sendNotification(row.subscription, notification);
-          okCount++;
-        } catch (err) {
-          failCount++;
-          console.error('FALLO PUSH — statusCode:', err?.statusCode, '| body:', err?.body, '| msg:', err?.message);
-          if (err?.statusCode === 410 || err?.statusCode === 404) {
-            await supabase.from('push_subscriptions').delete().eq('subscription', row.subscription);
-          }
+    const results: unknown[] = [];
+    for (const row of subs) {
+      try {
+        await webpush.sendNotification(row.subscription, notification);
+        results.push({ ok: true });
+      } catch (err) {
+        results.push({
+          ok: false,
+          statusCode: err?.statusCode ?? null,
+          body: err?.body ?? null,
+          message: err?.message ?? String(err),
+        });
+        if (err?.statusCode === 410 || err?.statusCode === 404) {
+          await supabase.from('push_subscriptions').delete().eq('subscription', row.subscription);
         }
-      }),
-    );
+      }
+    }
 
-    console.log(`Resultado: ${okCount} enviados, ${failCount} fallidos`);
-    return new Response('ok', { status: 200 });
+    return json({ ...diag, results });
   } catch (e) {
-    console.error('Fallo en send-push:', e);
-    return new Response('error', { status: 200 });
+    return json({ ...diag, fatal: String(e) });
   }
 });
