@@ -90,8 +90,42 @@ button.link { background: none; color: #4cc9f0; width: auto; padding: .3rem; }
   padding-bottom: calc(.6rem + env(safe-area-inset-bottom));
   background: #16213e;
 }
-.composer input { flex: 1; font-size: 16px; padding: .7rem .9rem; }
-.composer button { width: auto; min-height: 44px; }
+/* === COMPOSITOR (fijo abajo, respeta el área segura) === */
+.composer {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .6rem .6rem;
+  padding-bottom: calc(.6rem + env(safe-area-inset-bottom));
+  background: #16213e;
+}
+.composer input {
+  flex: 1 1 auto;
+  min-width: 0;              /* clave: permite que el input se encoja en vez de empujar */
+  font-size: 16px;
+  padding: .7rem .9rem;
+}
+.composer button {
+  flex: 0 0 auto;            /* los botones no se encogen ni se desbordan */
+  width: auto;
+  min-height: 44px;
+}
+/* Botones de ícono (emoji/adjuntar) más compactos para ganar espacio */
+.icon-btn {
+  flex: 0 0 auto;
+  width: auto;
+  background: #2a2a44;
+  font-size: 1.25rem;
+  padding: .5rem .55rem;
+  min-height: 44px;
+}
+/* En pantallas muy chicas, el botón Enviar como ícono para que quepa */
+@media (max-width: 380px) {
+  .composer { gap: .3rem; }
+  .icon-btn { padding: .5rem .45rem; font-size: 1.15rem; }
+  #sendBtn { padding: .7rem .8rem; }
+}
 
 .empty, .error, .ok { padding: 1rem; text-align: center; }
 .error { color: #ff6b6b; } .ok { color: #4cc9f0; }
