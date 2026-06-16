@@ -1,62 +1,31 @@
 /* ============================================================
    FAMILIA CHAT — estilos de adjuntos
-   AÑADE este bloque al FINAL de tu styles.css existente.
+   AÑADE este bloque al FINAL de tu styles.css
+   (solo si no lo agregaste antes).
    ============================================================ */
 
-.icon-btn {
-  width: auto;
-  background: #2a2a44;
-  font-size: 1.2rem;
-  padding: .5rem .7rem;
-}
-
+.icon-btn { width: auto; background: #2a2a44; font-size: 1.2rem; padding: .5rem .7rem; }
 .composer { align-items: center; }
 
-/* Barra de previsualización del archivo elegido (antes de enviar) */
 .file-preview {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: .5rem;
-  padding: .6rem 1rem;
-  background: #16213e;
-  border-top: 1px solid #2a2a44;
-  font-size: .9rem;
+  display: flex; justify-content: space-between; align-items: center; gap: .5rem;
+  padding: .6rem 1rem; background: #16213e; border-top: 1px solid #2a2a44; font-size: .9rem;
 }
 .file-preview.hidden { display: none; }
 .file-preview small { color: #8a8aa0; margin-left: .3rem; }
 
-/* Imagen adjunta dentro de la burbuja */
 .attach-img img {
-  max-width: 220px;
-  max-height: 260px;
-  border-radius: 10px;
-  display: block;
-  cursor: pointer;
-  margin-bottom: .3rem;
+  max-width: 220px; max-height: 260px; border-radius: 10px;
+  display: block; cursor: pointer; margin-bottom: .3rem;
 }
-.attach-img .loading {
-  display: inline-block;
-  padding: 1rem;
-  font-size: .85rem;
-  opacity: .7;
-}
+.attach-img .loading { display: inline-block; padding: 1rem; font-size: .85rem; opacity: .7; }
 
-/* Archivo no-imagen (descargable) */
 .attach-file {
-  display: flex;
-  align-items: center;
-  gap: .4rem;
-  padding: .5rem .7rem;
-  margin-bottom: .3rem;
-  background: rgba(255,255,255,.08);
-  border-radius: 10px;
-  color: #fff;
-  text-decoration: none;
-  font-size: .9rem;
+  display: flex; align-items: center; gap: .4rem; padding: .5rem .7rem; margin-bottom: .3rem;
+  background: rgba(255,255,255,.08); border-radius: 10px; color: #fff;
+  text-decoration: none; font-size: .9rem;
 }
 .attach-file small { color: #cdd; opacity: .8; }
 .attach-file:hover { background: rgba(255,255,255,.15); }
 
-/* Texto que acompaña a un adjunto */
 .bubble .text { margin-top: .1rem; }
