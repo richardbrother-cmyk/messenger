@@ -16,6 +16,11 @@ const app = document.getElementById('app');
 let currentUser = null, currentProfile = null, activeChat = null, channel = null;
 let pendingFile = null;
 let pendingChat = null; // { id, name } chat a abrir cuando haya sesión
+let activeIsGroup = false; // si la conversación abierta es un grupo
+let memberNames = {};      // cache id->nombre para mostrar autores en grupos
+
+// Emojis más usados para el selector simple
+const EMOJIS = ['😀','😂','🥰','😍','😘','😎','🤔','😴','😭','😡','👍','👎','👏','🙏','💪','🔥','🎉','❤️','💔','✨','⭐','🌟','💯','✅','❌','🤣','😅','😉','😊','🙂','😇','🤗','🤩','😋','😜','🤪','😏','🥺','😩','😤','👋','🤝','✌️','🤞','👌','🙌','💀','👀','💩','🥳','😱','😬','🤯','🫶','💕','💖','🎂','🍕','☕','🌹'];
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
 
@@ -153,10 +158,19 @@ async function login() {
 
 async function logout() { await sb.auth.signOut(); location.reload(); }
 
-// === LISTA DE CONTACTOS ===
+// === LISTA DE CONTACTOS Y GRUPOS ===
 async function renderChats() {
   const { data: profiles } = await sb.from('profiles').select('*').neq('id', currentUser.id).order('display_name');
+  // grupos donde soy miembro
+  const { data: myMemberships } = await sb.from('group_members').select('group_id').eq('user_id', currentUser.id);
+  const groupIds = (myMemberships || []).map(m => m.group_id);
+  let groups = [];
+  if (groupIds.length) {
+    const { data: gs } = await sb.from('groups').select('*').in('id', groupIds).order('name');
+    groups = gs || [];
+  }
   const myAvatar = avatarUrl(currentProfile);
+
   app.innerHTML = `
     <div class="header">
       <div class="me" id="openProfile">
@@ -168,6 +182,19 @@ async function renderChats() {
       <button class="link" id="logoutBtn">Salir</button>
     </div>
     <div class="contacts">
+      <div class="section-head">
+        <span>Grupos</span>
+        <button class="link" id="newGroupBtn" title="Crear grupo">＋</button>
+      </div>
+      ${groups.map(g => {
+        const av = avatarUrl(g);
+        return `<div class="contact group" data-gid="${g.id}" data-name="${esc(g.name)}" data-avatar="${esc(av)}">
+          ${av ? `<img class="avatar-img" src="${esc(av)}" alt="">`
+               : `<div class="avatar group-av">${esc((g.name||'?')[0])}</div>`}
+          <span>${esc(g.name)}</span></div>`;
+      }).join('') || '<p class="empty small">Sin grupos todavía.</p>'}
+
+      <div class="section-head"><span>Contactos</span></div>
       ${profiles.map(p => {
         const av = avatarUrl(p);
         return `<div class="contact" data-id="${p.id}" data-name="${esc(p.display_name)}" data-avatar="${esc(av)}">
@@ -175,12 +202,68 @@ async function renderChats() {
           ? `<img class="avatar-img" src="${esc(av)}" alt="">`
           : `<div class="avatar">${esc((p.display_name||'?')[0])}</div>`}
         <span>${esc(p.display_name)}</span></div>`;
-      }).join('') || '<p class="empty">Aún no hay otros usuarios.</p>'}
+      }).join('') || '<p class="empty small">Aún no hay otros usuarios.</p>'}
     </div>`;
+
   document.getElementById('logoutBtn').onclick = logout;
   document.getElementById('openProfile').onclick = renderProfile;
-  document.querySelectorAll('.contact').forEach(c =>
+  document.getElementById('newGroupBtn').onclick = renderCreateGroup;
+  document.querySelectorAll('.contact:not(.group)').forEach(c =>
     c.onclick = () => openChat(c.dataset.id, c.dataset.name, c.dataset.avatar));
+  document.querySelectorAll('.contact.group').forEach(c =>
+    c.onclick = () => openGroup(c.dataset.gid, c.dataset.name, c.dataset.avatar));
+}
+
+// === CREAR GRUPO ===
+async function renderCreateGroup() {
+  const { data: profiles } = await sb.from('profiles').select('*').neq('id', currentUser.id).order('display_name');
+  app.innerHTML = `
+    <div class="header">
+      <button class="link" id="backBtn">←</button>
+      <span class="chat-title">Nuevo grupo</span>
+    </div>
+    <div class="profile">
+      <label class="field-label">Nombre del grupo</label>
+      <input id="groupName" placeholder="Ej. Familia">
+      <label class="field-label">Miembros</label>
+      <div class="member-list">
+        ${profiles.map(p => `
+          <label class="member-row">
+            <input type="checkbox" class="memberChk" value="${p.id}" data-name="${esc(p.display_name)}">
+            ${avatarUrl(p) ? `<img class="avatar-img sm" src="${esc(avatarUrl(p))}">`
+                           : `<div class="avatar sm">${esc((p.display_name||'?')[0])}</div>`}
+            <span>${esc(p.display_name)}</span>
+          </label>`).join('') || '<p class="empty small">No hay otros usuarios para agregar.</p>'}
+      </div>
+      <button id="createGroupBtn">Crear grupo</button>
+      <p id="groupMsg" class="error"></p>
+    </div>`;
+  document.getElementById('backBtn').onclick = renderChats;
+  document.getElementById('createGroupBtn').onclick = crearGrupo;
+}
+
+async function crearGrupo() {
+  const name = document.getElementById('groupName').value.trim();
+  const checks = [...document.querySelectorAll('.memberChk:checked')];
+  const msg = document.getElementById('groupMsg');
+  if (!name) { msg.textContent = 'Ponle un nombre al grupo'; return; }
+  if (checks.length === 0) { msg.textContent = 'Elige al menos un miembro'; return; }
+  msg.className = 'ok'; msg.textContent = 'Creando…';
+  try {
+    // crear grupo
+    const { data: g, error: gErr } = await sb.from('groups')
+      .insert({ name, created_by: currentUser.id }).select().single();
+    if (gErr) throw gErr;
+    // agregar miembros (yo + seleccionados)
+    const miembros = [{ group_id: g.id, user_id: currentUser.id }];
+    for (const c of checks) miembros.push({ group_id: g.id, user_id: c.value });
+    const { error: mErr } = await sb.from('group_members').insert(miembros);
+    if (mErr) throw mErr;
+    renderChats();
+  } catch (err) {
+    msg.className = 'error';
+    msg.textContent = 'Error: ' + err.message;
+  }
 }
 
 // === PANTALLA DE PERFIL ===
@@ -431,13 +514,52 @@ async function deleteAccount() {
   }
 }
 
-// === CHAT ===
+// === CHAT (1-a-1 y GRUPO) ===
 let activeChatName = '';
+
+// Construye el HTML común del chat (header + mensajes + compositor con emojis)
+function chatShell(titleHtml, withClear) {
+  return `
+    <div class="header">
+      <button class="link" id="backBtn">←</button>
+      ${titleHtml}
+      ${withClear ? `<button class="link" id="clearBtn" title="Limpiar conversación">🗑️</button>` : ''}
+    </div>
+    <div class="messages" id="messages"></div>
+    <div id="emojiPanel" class="emoji-panel hidden">
+      ${EMOJIS.map(e => `<button class="emoji" type="button">${e}</button>`).join('')}
+    </div>
+    <div id="filePreview" class="file-preview hidden"></div>
+    <div class="composer">
+      <button id="emojiBtn" class="icon-btn" title="Emojis">😀</button>
+      <button id="attachBtn" class="icon-btn" title="Adjuntar">📎</button>
+      <input id="fileInput" type="file" hidden>
+      <input id="msgInput" placeholder="Mensaje..." autocomplete="off">
+      <button id="sendBtn">Enviar</button>
+    </div>`;
+}
+
+function wireComposer() {
+  document.getElementById('sendBtn').onclick = sendMessage;
+  document.getElementById('attachBtn').onclick = () => document.getElementById('fileInput').click();
+  document.getElementById('fileInput').addEventListener('change', onFilePicked);
+  document.getElementById('msgInput').addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(); });
+  // Emojis
+  const panel = document.getElementById('emojiPanel');
+  document.getElementById('emojiBtn').onclick = () => panel.classList.toggle('hidden');
+  panel.querySelectorAll('.emoji').forEach(b =>
+    b.onclick = () => {
+      const input = document.getElementById('msgInput');
+      input.value += b.textContent;
+      input.focus();
+    });
+}
+
 async function openChat(otherId, otherName, otherAvatar) {
   activeChat = otherId;
   activeChatName = otherName;
+  activeIsGroup = false;
   pendingFile = null;
-  // si no llegó el avatar, intenta obtenerlo (con versión para evitar caché)
   if (otherAvatar === undefined) {
     const { data } = await sb.from('profiles').select('avatar_url, avatar_version').eq('id', otherId).single();
     otherAvatar = avatarUrl(data);
@@ -445,32 +567,74 @@ async function openChat(otherId, otherName, otherAvatar) {
   const avatarHtml = otherAvatar
     ? `<img class="avatar-img chat-av" src="${esc(otherAvatar)}" alt="">`
     : `<div class="avatar chat-av">${esc((otherName||'?')[0])}</div>`;
-  app.innerHTML = `
-    <div class="header">
-      <button class="link" id="backBtn">←</button>
-      ${avatarHtml}
-      <span class="chat-title">${esc(otherName)}</span>
-      <button class="link" id="clearBtn" title="Limpiar conversación">🗑️</button>
-    </div>
-    <div class="messages" id="messages"></div>
-    <div id="filePreview" class="file-preview hidden"></div>
-    <div class="composer">
-      <button id="attachBtn" class="icon-btn" title="Adjuntar">📎</button>
-      <input id="fileInput" type="file" hidden>
-      <input id="msgInput" placeholder="Mensaje..." autocomplete="off">
-      <button id="sendBtn">Enviar</button>
-    </div>`;
+  app.innerHTML = chatShell(`${avatarHtml}<span class="chat-title">${esc(otherName)}</span>`, true);
   document.getElementById('backBtn').onclick = () => { unsubscribe(); renderChats(); };
   document.getElementById('clearBtn').onclick = limpiarConversacion;
-  document.getElementById('sendBtn').onclick = sendMessage;
-  document.getElementById('attachBtn').onclick = () => document.getElementById('fileInput').click();
-  document.getElementById('fileInput').addEventListener('change', onFilePicked);
-  document.getElementById('msgInput').addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(); });
+  wireComposer();
   await loadMessages();
   subscribe();
 }
 
-// Limpiar conversación SOLO PARA MÍ: guarda la fecha y oculta lo anterior.
+async function openGroup(groupId, groupName, groupAvatar) {
+  activeChat = groupId;
+  activeChatName = groupName;
+  activeIsGroup = true;
+  pendingFile = null;
+  // cargar nombres de miembros para mostrar autores
+  memberNames = {};
+  const { data: members } = await sb.from('group_members').select('user_id').eq('group_id', groupId);
+  const ids = (members || []).map(m => m.user_id);
+  if (ids.length) {
+    const { data: profs } = await sb.from('profiles').select('id, display_name').in('id', ids);
+    for (const p of profs || []) memberNames[p.id] = p.display_name;
+  }
+  const avatarHtml = groupAvatar
+    ? `<img class="avatar-img chat-av" src="${esc(groupAvatar)}" alt="">`
+    : `<div class="avatar chat-av group-av">${esc((groupName||'?')[0])}</div>`;
+  app.innerHTML = chatShell(
+    `${avatarHtml}<span class="chat-title">${esc(groupName)}</span>
+     <button class="link" id="groupInfoBtn" title="Info del grupo">ⓘ</button>`, false);
+  document.getElementById('backBtn').onclick = () => { unsubscribe(); renderChats(); };
+  document.getElementById('groupInfoBtn').onclick = () => renderGroupInfo(groupId, groupName);
+  wireComposer();
+  await loadMessages();
+  subscribe();
+}
+
+async function renderGroupInfo(groupId, groupName) {
+  const { data: members } = await sb.from('group_members').select('user_id').eq('group_id', groupId);
+  const ids = (members || []).map(m => m.user_id);
+  let profs = [];
+  if (ids.length) { const { data } = await sb.from('profiles').select('*').in('id', ids); profs = data || []; }
+  const { data: g } = await sb.from('groups').select('created_by').eq('id', groupId).single();
+  const soyCreador = g?.created_by === currentUser.id;
+
+  app.innerHTML = `
+    <div class="header">
+      <button class="link" id="backBtn">←</button>
+      <span class="chat-title">${esc(groupName)}</span>
+    </div>
+    <div class="profile">
+      <label class="field-label">Miembros (${profs.length})</label>
+      <div class="member-list">
+        ${profs.map(p => `<div class="member-row">
+          ${avatarUrl(p) ? `<img class="avatar-img sm" src="${esc(avatarUrl(p))}">`
+                         : `<div class="avatar sm">${esc((p.display_name||'?')[0])}</div>`}
+          <span>${esc(p.display_name)}${p.id === currentUser.id ? ' (yo)' : ''}</span>
+        </div>`).join('')}
+      </div>
+      <button id="leaveGroup" class="danger">Salir del grupo</button>
+      <p id="giMsg" class="ok"></p>
+    </div>`;
+  document.getElementById('backBtn').onclick = () => openGroup(groupId, groupName, undefined);
+  document.getElementById('leaveGroup').onclick = async () => {
+    if (!confirm('¿Salir de este grupo? Dejarás de recibir sus mensajes.')) return;
+    await sb.from('group_members').delete().eq('group_id', groupId).eq('user_id', currentUser.id);
+    renderChats();
+  };
+}
+
+// Limpiar conversación SOLO PARA MÍ (solo chats 1-a-1)
 async function limpiarConversacion() {
   if (!confirm('¿Limpiar esta conversación? Solo se ocultará para ti; la otra persona conservará su copia.')) return;
   const { error } = await sb.from('chat_clears')
@@ -482,16 +646,16 @@ async function limpiarConversacion() {
 }
 
 async function loadMessages() {
-  // ¿hasta qué fecha limpié este chat? (oculta lo anterior, solo para mí)
-  const { data: clear } = await sb.from('chat_clears')
-    .select('cleared_at').eq('user_id', currentUser.id).eq('other_id', activeChat).maybeSingle();
-  const clearedAt = clear?.cleared_at || null;
-
-  let q = sb.from('messages').select('*')
-    .or(`and(sender_id.eq.${currentUser.id},recipient_id.eq.${activeChat}),and(sender_id.eq.${activeChat},recipient_id.eq.${currentUser.id})`)
-    .order('created_at');
-  if (clearedAt) q = q.gt('created_at', clearedAt);
-
+  let q = sb.from('messages').select('*').order('created_at');
+  if (activeIsGroup) {
+    q = q.eq('group_id', activeChat);
+  } else {
+    const { data: clear } = await sb.from('chat_clears')
+      .select('cleared_at').eq('user_id', currentUser.id).eq('other_id', activeChat).maybeSingle();
+    const clearedAt = clear?.cleared_at || null;
+    q = q.or(`and(sender_id.eq.${currentUser.id},recipient_id.eq.${activeChat}),and(sender_id.eq.${activeChat},recipient_id.eq.${currentUser.id})`);
+    if (clearedAt) q = q.gt('created_at', clearedAt);
+  }
   const { data } = await q;
   const box = document.getElementById('messages');
   box.innerHTML = '';
@@ -503,6 +667,11 @@ async function loadMessages() {
 function renderBubble(m) {
   const mine = m.sender_id === currentUser.id;
   let inner = '';
+  // En grupos, mostrar el autor encima (solo si no es mío)
+  if (activeIsGroup && !mine) {
+    const autor = memberNames[m.sender_id] || 'Alguien';
+    inner += `<div class="author">${esc(autor)}</div>`;
+  }
   if (m.attachment_path) {
     const isImage = (m.attachment_type || '').startsWith('image/');
     if (isImage) {
@@ -579,10 +748,18 @@ async function sendMessage() {
   }
 
   input.value = '';
-  await sb.from('messages').insert({
-    sender_id: currentUser.id, recipient_id: activeChat,
-    content: content || null, ...(attachment || {})
-  });
+  const panel = document.getElementById('emojiPanel');
+  if (panel) panel.classList.add('hidden');
+
+  const row = {
+    sender_id: currentUser.id,
+    content: content || null,
+    ...(attachment || {})
+  };
+  if (activeIsGroup) row.group_id = activeChat;
+  else row.recipient_id = activeChat;
+
+  await sb.from('messages').insert(row);
   clearPendingFile();
   sendBtn.disabled = false;
 }
@@ -591,8 +768,13 @@ function subscribe() {
   channel = sb.channel('msgs-' + activeChat)
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
       const m = payload.new;
-      const relevant = (m.sender_id === currentUser.id && m.recipient_id === activeChat) ||
-                       (m.sender_id === activeChat && m.recipient_id === currentUser.id);
+      let relevant;
+      if (activeIsGroup) {
+        relevant = m.group_id === activeChat;
+      } else {
+        relevant = (m.sender_id === currentUser.id && m.recipient_id === activeChat) ||
+                   (m.sender_id === activeChat && m.recipient_id === currentUser.id);
+      }
       if (!relevant) return;
       const box = document.getElementById('messages');
       box.insertAdjacentHTML('beforeend', renderBubble(m));

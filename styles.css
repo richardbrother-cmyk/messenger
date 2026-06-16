@@ -132,6 +132,45 @@ button.link { background: none; color: #4cc9f0; width: auto; padding: .3rem; }
 .attach-file:hover { background: rgba(255,255,255,.15); }
 .bubble .text { margin-top: .1rem; }
 
+/* === Grupos, emojis, miembros === */
+.section-head {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: .6rem 1rem .3rem; font-size: .78rem; color: #8a8aa0;
+  text-transform: uppercase; letter-spacing: .04em;
+}
+.section-head .link { font-size: 1.5rem; color: #4cc9f0; min-width: 36px; min-height: 36px; }
+.empty.small { padding: .5rem 1rem; font-size: .85rem; opacity: .7; text-align: left; }
+.group-av { background: #5a3fb8; }
+
+/* Autor en burbujas de grupo */
+.bubble .author { font-size: .72rem; color: #4cc9f0; margin-bottom: .15rem; font-weight: 600; }
+
+/* Lista de miembros (crear grupo / info) */
+.member-list { display: flex; flex-direction: column; gap: .2rem; max-height: 50vh; overflow-y: auto; }
+.member-row { display: flex; align-items: center; gap: .6rem; padding: .5rem .3rem; cursor: pointer; }
+.member-row input[type="checkbox"] { width: 20px; height: 20px; }
+.avatar.sm, .avatar-img.sm { width: 32px; height: 32px; font-size: .9rem; }
+
+/* Panel de emojis */
+.emoji-panel {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: .2rem;
+  padding: .6rem;
+  background: #1c1c30;
+  border-top: 1px solid #2a2a44;
+  max-height: 40vh;
+  overflow-y: auto;
+}
+.emoji-panel.hidden { display: none; }
+.emoji {
+  background: none; border: none; font-size: 1.6rem; padding: .25rem;
+  cursor: pointer; border-radius: 8px; min-height: auto;
+}
+.emoji:hover { background: #2a2a44; }
+#groupInfoBtn { font-size: 1.3rem; }
+
 /* === Editor de recorte de avatar === */
 .crop-overlay {
   position: fixed; inset: 0; z-index: 1000;
