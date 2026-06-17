@@ -705,20 +705,43 @@ async function enviarNotaVoz(blob, dur) {
     const { error: upErr } = await sb.storage.from('attachments')
       .upload(path, blob, { contentType: blob.type });
     if (upErr) throw upErr;
+    // tipo de audio robusto: si el blob no trae un audio/* claro, forzar uno
+    let tipo = blob.type;
+    if (!tipo || !tipo.startsWith('audio')) tipo = ext === 'm4a' ? 'audio/mp4' : 'audio/webm';
     const row = {
       sender_id: currentUser.id,
       content: null,
       attachment_path: path,
       attachment_name: `Nota de voz (${Math.floor(dur/60)}:${String(dur%60).padStart(2,'0')})`,
-      attachment_type: blob.type.startsWith('audio') ? blob.type : 'audio/webm',
+      attachment_type: tipo,
       attachment_size: blob.size
     };
     if (activeIsGroup) row.group_id = activeChat;
     else row.recipient_id = activeChat;
-    await sb.from('messages').insert(row);
+    const { data, error } = await sb.from('messages').insert(row).select().single();
+    if (error) throw error;
+    pintarMensajePropio(data); // se ve de inmediato, sin esperar al realtime
   } catch (err) {
     alert('No se pudo enviar la nota de voz: ' + err.message);
   }
+}
+
+// Pinta un mensaje propio recién insertado si no está ya en pantalla
+function pintarMensajePropio(m) {
+  if (!m) return;
+  // ¿pertenece a la conversación abierta?
+  const pertenece = activeIsGroup
+    ? m.group_id === activeChat
+    : (m.recipient_id === activeChat || m.sender_id === activeChat);
+  if (!pertenece) return;
+  if (document.querySelector(`.bubble[data-id="${m.id}"]`)) return; // ya está (realtime se adelantó)
+  msgCache[m.id] = m;
+  const box = document.getElementById('messages');
+  if (!box) return;
+  box.insertAdjacentHTML('beforeend', renderBubble(m));
+  box.scrollTop = box.scrollHeight;
+  hydrateAttachments(box);
+  attachLongPress(box);
 }
 
 // === "ESTÁ ESCRIBIENDO…" ===
@@ -1070,8 +1093,10 @@ function renderBubble(m) {
   }
   if (m.attachment_path) {
     const type = m.attachment_type || '';
+    const path = m.attachment_path || '';
     const isImage = type.startsWith('image/');
-    const isAudio = type.startsWith('audio/');
+    // audio por mime O por extensión (blinda notas con tipo mal guardado)
+    const isAudio = type.startsWith('audio/') || /\.(webm|m4a|mp3|ogg|wav|aac)$/i.test(path) || /voz/i.test(path);
     if (isImage) {
       inner += `<div class="attach-img" data-path="${esc(m.attachment_path)}"><span class="loading">Cargando imagen…</span></div>`;
     } else if (isAudio) {
@@ -1337,7 +1362,8 @@ async function reenviarMensaje(m, destType, destId) {
       }
     } catch (e) { console.warn('No se pudo copiar el archivo al reenviar:', e); }
   }
-  await sb.from('messages').insert(row);
+  const { data } = await sb.from('messages').insert(row).select().single();
+  if (data) pintarMensajePropio(data);
 }
 
 async function hydrateAttachments(box) {
@@ -1445,7 +1471,8 @@ async function sendMessage() {
     row.reply_author = replyingTo.author;
   }
 
-  await sb.from('messages').insert(row);
+  const { data: inserted } = await sb.from('messages').insert(row).select().single();
+  if (inserted) pintarMensajePropio(inserted);
   cancelarRespuesta();
   clearPendingFile();
   sendBtn.disabled = false;
@@ -1472,6 +1499,7 @@ function subscribe() {
                    (m.sender_id === activeChat && m.recipient_id === currentUser.id);
       }
       if (!relevant) return;
+      if (document.querySelector(`.bubble[data-id="${m.id}"]`)) return; // ya pintado (yo lo envié)
       msgCache[m.id] = m;
       const box = document.getElementById('messages');
       box.insertAdjacentHTML('beforeend', renderBubble(m));
