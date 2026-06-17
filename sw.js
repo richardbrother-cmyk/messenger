@@ -1,8 +1,8 @@
 // ============================================================
-//  FAMILIA CHAT — sw.js  (notificaciones personalizadas)
-//  Caché v4. Reemplaza tu sw.js por este.
+//  FAMILIA CHAT — sw.js  (v5: notificaciones + badge de no leídos)
+//  Reemplaza tu sw.js por este.
 // ============================================================
-const CACHE = 'familia-chat-v7';
+const CACHE = 'familia-chat-v5';
 const ASSETS = ['./index.html', './styles.css', './app.js', './manifest.json'];
 
 self.addEventListener('install', e => {
@@ -26,21 +26,31 @@ self.addEventListener('push', e => {
   let data = { title: 'Familia Chat', body: 'Nuevo mensaje' };
   try { data = e.data.json(); } catch {}
 
-  e.waitUntil(
-    self.registration.showNotification(data.title, {
+  const acciones = (async () => {
+    // Badge: número real de no leídos que mandó la Edge Function
+    try {
+      if (typeof data.badge === 'number' && self.registration.setAppBadge) {
+        if (data.badge > 0) await self.registration.setAppBadge(data.badge);
+        else if (self.registration.clearAppBadge) await self.registration.clearAppBadge();
+      }
+    } catch (_) {}
+
+    await self.registration.showNotification(data.title, {
       body: data.body,
       icon: data.icon || 'icon-192.png',
       badge: 'badge-96.png',
-      vibrate: [200, 100, 200],          // patrón de vibración
-      tag: data.senderId || 'familia',   // agrupa por remitente
-      renotify: true,                    // vibra aunque ya haya una del mismo tag
+      vibrate: [200, 100, 200],
+      tag: data.senderId || 'familia',
+      renotify: true,
       data: {
         senderId: data.senderId || null,
         senderName: data.senderName || null,
         url: './index.html'
       }
-    })
-  );
+    });
+  })();
+
+  e.waitUntil(acciones);
 });
 
 // === Al tocar: abrir la app y, si se puede, ese chat ===
@@ -51,7 +61,6 @@ self.addEventListener('notificationclick', e => {
 
   e.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
-      // Si la app ya está abierta, enfócala y dile qué chat abrir
       for (const c of list) {
         if ('focus' in c) {
           c.focus();
@@ -59,7 +68,6 @@ self.addEventListener('notificationclick', e => {
           return;
         }
       }
-      // Si no está abierta, ábrela con el chat en la URL
       const url = senderId
         ? `./index.html?chat=${senderId}&name=${encodeURIComponent(senderName || '')}`
         : './index.html';

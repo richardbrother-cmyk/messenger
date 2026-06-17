@@ -362,6 +362,23 @@ button.link { background: none; color: #4cc9f0; width: auto; padding: .3rem; }
 }
 .voice-label { font-size: .85rem; opacity: .9; }
 
+/* === Flechita de menú (hover en web) === */
+.bubble { position: relative; }
+.bubble-menu-btn {
+  position: absolute; top: 2px; right: 2px;
+  width: 22px; height: 22px; padding: 0;
+  border: none; border-radius: 6px;
+  background: rgba(0,0,0,.35); color: #fff;
+  font-size: .9rem; line-height: 1; cursor: pointer;
+  opacity: 0; transition: opacity .12s;
+  min-height: auto;
+}
+.bubble:hover .bubble-menu-btn { opacity: 1; }
+/* En pantallas táctiles (sin hover real) la ocultamos: ahí se usa mantener presionado */
+@media (hover: none) {
+  .bubble-menu-btn { display: none; }
+}
+
 /* === Selección múltiple === */
 .sel-bar {
   flex: 0 0 auto;

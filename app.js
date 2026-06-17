@@ -1134,7 +1134,7 @@ function renderBubble(m) {
   }
   if (meta) inner += `<div class="meta">${meta}</div>`;
 
-  return `<div class="bubble ${mine ? 'mine' : 'theirs'}" data-id="${m.id}">${inner}</div>`;
+  return `<div class="bubble ${mine ? 'mine' : 'theirs'}" data-id="${m.id}">${inner}<button class="bubble-menu-btn" title="Acciones">▾</button></div>`;
 }
 
 // Detecta "mantener presionado" (y clic derecho en escritorio) sobre burbujas
@@ -1150,6 +1150,15 @@ function attachLongPress(box) {
 
   box.querySelectorAll('.bubble').forEach(el => {
     const id = el.dataset.id;
+    // Flechita ▾ (visible en hover en web): abre el menú
+    const menuBtn = el.querySelector('.bubble-menu-btn');
+    if (menuBtn) {
+      menuBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (modoSeleccion) { toggleSeleccion(parseInt(id), el); return; }
+        if (id) abrirMenuMensaje(parseInt(id));
+      });
+    }
     // En modo selección, un tap marca/desmarca
     el.addEventListener('click', (e) => {
       if (!modoSeleccion) return;
