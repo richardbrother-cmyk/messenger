@@ -246,6 +246,29 @@ button.link { background: none; color: #4cc9f0; width: auto; padding: .3rem; }
 .fwd-item { display: flex; align-items: center; gap: .6rem; padding: .6rem .4rem; border-radius: 8px; cursor: pointer; }
 .fwd-item:hover { background: #2a2a44; }
 
+/* === Buscar en conversación === */
+.search-bar {
+  flex: 0 0 auto;
+  display: flex; align-items: center; gap: .3rem;
+  padding: .5rem .8rem;
+  background: #1c1c30; border-bottom: 1px solid #2a2a44;
+}
+.search-bar.hidden { display: none; }
+.search-bar input { flex: 1 1 auto; min-width: 0; font-size: 16px; padding: .55rem .8rem; }
+.search-bar .link { font-size: 1.1rem; min-width: 38px; min-height: 38px; }
+.search-count { font-size: .8rem; color: #8a8aa0; white-space: nowrap; padding: 0 .3rem; }
+.bubble .text mark { background: #ffd54a; color: #1a1a2e; border-radius: 3px; padding: 0 1px; }
+.bubble.search-active { outline: 2px solid #4cc9f0; }
+
+/* Resaltado breve al saltar a un mensaje desde una cita */
+.bubble.flash { animation: flashHi 1.2s ease; }
+@keyframes flashHi {
+  0%   { box-shadow: 0 0 0 3px #4cc9f0; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+/* La cita es clicable */
+.bubble .quote { cursor: pointer; }
+
 /* === Editor de recorte de avatar === */
 .crop-overlay {
   position: fixed; inset: 0; z-index: 1000;

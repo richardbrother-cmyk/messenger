@@ -525,7 +525,15 @@ function chatShell(titleHtml, withClear) {
     <div class="header">
       <button class="link" id="backBtn">←</button>
       ${titleHtml}
+      <button class="link" id="searchBtn" title="Buscar">🔍</button>
       ${withClear ? `<button class="link" id="clearBtn" title="Limpiar conversación">🗑️</button>` : ''}
+    </div>
+    <div id="searchBar" class="search-bar hidden">
+      <input id="searchInput" placeholder="Buscar en la conversación…" autocomplete="off">
+      <span id="searchCount" class="search-count"></span>
+      <button class="link" id="searchPrev" title="Anterior">▲</button>
+      <button class="link" id="searchNext" title="Siguiente">▼</button>
+      <button class="link" id="searchClose">✕</button>
     </div>
     <div class="messages" id="messages"></div>
     <div id="emojiPanel" class="emoji-panel hidden">
@@ -555,13 +563,88 @@ function wireComposer() {
       input.value += b.textContent;
       input.focus();
     });
+  // Búsqueda en conversación
+  document.getElementById('searchBtn').onclick = abrirBusqueda;
+}
+
+// === BUSCAR EN CONVERSACIÓN ===
+let searchMatches = [], searchIdx = -1;
+
+function abrirBusqueda() {
+  const bar = document.getElementById('searchBar');
+  bar.classList.remove('hidden');
+  const input = document.getElementById('searchInput');
+  input.value = '';
+  input.focus();
+  document.getElementById('searchInput').oninput = (e) => ejecutarBusqueda(e.target.value);
+  document.getElementById('searchNext').onclick = () => moverBusqueda(1);
+  document.getElementById('searchPrev').onclick = () => moverBusqueda(-1);
+  document.getElementById('searchClose').onclick = cerrarBusqueda;
+}
+
+function cerrarBusqueda() {
+  document.getElementById('searchBar').classList.add('hidden');
+  limpiarResaltado();
+  searchMatches = []; searchIdx = -1;
+  document.getElementById('searchCount').textContent = '';
+}
+
+function limpiarResaltado() {
+  document.querySelectorAll('.bubble .text mark').forEach(m => {
+    const parent = m.parentNode;
+    parent.replaceChild(document.createTextNode(m.textContent), m);
+    parent.normalize();
+  });
+  document.querySelectorAll('.bubble.search-active').forEach(b => b.classList.remove('search-active'));
+}
+
+function ejecutarBusqueda(term) {
+  limpiarResaltado();
+  searchMatches = []; searchIdx = -1;
+  const q = term.trim().toLowerCase();
+  const countEl = document.getElementById('searchCount');
+  if (!q) { countEl.textContent = ''; return; }
+
+  document.querySelectorAll('.bubble').forEach(bubble => {
+    const textEl = bubble.querySelector('.text');
+    if (!textEl) return;
+    const txt = textEl.textContent;
+    if (txt.toLowerCase().includes(q)) {
+      // resaltar todas las apariciones dentro de esta burbuja
+      const regex = new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+      textEl.innerHTML = esc(txt).replace(regex, '<mark>$1</mark>');
+      searchMatches.push(bubble);
+    }
+  });
+
+  if (searchMatches.length) {
+    searchIdx = 0;
+    irABusqueda();
+  }
+  countEl.textContent = searchMatches.length ? `1/${searchMatches.length}` : 'Sin resultados';
+}
+
+function moverBusqueda(dir) {
+  if (!searchMatches.length) return;
+  searchIdx = (searchIdx + dir + searchMatches.length) % searchMatches.length;
+  irABusqueda();
+  document.getElementById('searchCount').textContent = `${searchIdx + 1}/${searchMatches.length}`;
+}
+
+function irABusqueda() {
+  document.querySelectorAll('.bubble.search-active').forEach(b => b.classList.remove('search-active'));
+  const el = searchMatches[searchIdx];
+  if (el) {
+    el.classList.add('search-active');
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
 }
 
 async function openChat(otherId, otherName, otherAvatar) {
   activeChat = otherId;
   activeChatName = otherName;
   activeIsGroup = false;
-  pendingFile = null; replyingTo = null;
+  pendingFile = null; replyingTo = null; searchMatches = []; searchIdx = -1;
   if (otherAvatar === undefined) {
     const { data } = await sb.from('profiles').select('avatar_url, avatar_version').eq('id', otherId).single();
     otherAvatar = avatarUrl(data);
@@ -581,7 +664,7 @@ async function openGroup(groupId, groupName, groupAvatar) {
   activeChat = groupId;
   activeChatName = groupName;
   activeIsGroup = true;
-  pendingFile = null; replyingTo = null;
+  pendingFile = null; replyingTo = null; searchMatches = []; searchIdx = -1;
   // cargar nombres de miembros para mostrar autores
   memberNames = {};
   const { data: members } = await sb.from('group_members').select('user_id').eq('group_id', groupId);
@@ -674,7 +757,7 @@ function renderBubble(m) {
   let inner = '';
   // Cita del mensaje al que responde
   if (m.reply_to && (m.reply_preview || m.reply_author)) {
-    inner += `<div class="quote">
+    inner += `<div class="quote" data-target="${m.reply_to || ''}">
       <span class="quote-author">${esc(m.reply_author || '')}</span>
       <span class="quote-text">${esc(m.reply_preview || '')}</span>
     </div>`;
@@ -717,7 +800,29 @@ function attachLongPress(box) {
       const id = el.dataset.id;
       if (id) abrirMenuMensaje(parseInt(id));
     });
+    // tocar la cita salta al mensaje original
+    const quote = el.querySelector('.quote');
+    if (quote && quote.dataset.target) {
+      quote.addEventListener('click', (e) => {
+        e.stopPropagation();
+        cancel(); // evita que se dispare el long-press
+        saltarAMensaje(quote.dataset.target);
+      });
+    }
   });
+}
+
+// Hace scroll y resalta brevemente el mensaje destino de una cita
+function saltarAMensaje(targetId) {
+  const box = document.getElementById('messages');
+  const target = box?.querySelector(`.bubble[data-id="${targetId}"]`);
+  if (!target) {
+    // el original está más arriba de lo cargado o fue limpiado
+    return;
+  }
+  target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  target.classList.add('flash');
+  setTimeout(() => target.classList.remove('flash'), 1200);
 }
 
 // Menú flotante con Responder / Reenviar
