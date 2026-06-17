@@ -287,6 +287,18 @@ button.link { background: none; color: #4cc9f0; width: auto; padding: .3rem; }
 }
 .typing-ind.hidden { display: none; }
 
+/* === Contador de no leídos === */
+.contact .contact-name { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.unread-badge {
+  flex: 0 0 auto;
+  background: #4cc9f0; color: #16213e;
+  font-size: .72rem; font-weight: 700;
+  min-width: 20px; height: 20px; padding: 0 6px;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+}
+.contact.has-unread .contact-name { font-weight: 700; }
+
 /* === Editor de recorte de avatar === */
 .crop-overlay {
   position: fixed; inset: 0; z-index: 1000;

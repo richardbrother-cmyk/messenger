@@ -178,6 +178,24 @@ async function renderChats() {
   }
   const myAvatar = avatarUrl(currentProfile);
 
+  // === No leídos por contacto: mensajes hacia mí, sin leer, no borrados ===
+  const unread = {};
+  const { data: pendientes } = await sb.from('messages')
+    .select('sender_id')
+    .eq('recipient_id', currentUser.id)
+    .is('read_at', null)
+    .is('deleted_at', null);
+  for (const row of (pendientes || [])) {
+    unread[row.sender_id] = (unread[row.sender_id] || 0) + 1;
+  }
+
+  // Ordenar contactos: primero los que tienen no leídos (más arriba), luego alfabético
+  const contactos = [...(profiles || [])].sort((a, b) => {
+    const ua = unread[a.id] || 0, ub = unread[b.id] || 0;
+    if (ua !== ub) return ub - ua;                       // más no leídos primero
+    return (a.display_name || '').localeCompare(b.display_name || '');
+  });
+
   app.innerHTML = `
     <div class="header">
       <div class="me" id="openProfile">
@@ -202,13 +220,15 @@ async function renderChats() {
       }).join('') || '<p class="empty small">Sin grupos todavía.</p>'}
 
       <div class="section-head"><span>Contactos</span></div>
-      ${profiles.map(p => {
+      ${contactos.map(p => {
         const av = avatarUrl(p);
-        return `<div class="contact" data-id="${p.id}" data-name="${esc(p.display_name)}" data-avatar="${esc(av)}">
+        const n = unread[p.id] || 0;
+        return `<div class="contact ${n ? 'has-unread' : ''}" data-id="${p.id}" data-name="${esc(p.display_name)}" data-avatar="${esc(av)}">
         ${av
           ? `<img class="avatar-img" src="${esc(av)}" alt="">`
           : `<div class="avatar">${esc((p.display_name||'?')[0])}</div>`}
-        <span>${esc(p.display_name)}</span></div>`;
+        <span class="contact-name">${esc(p.display_name)}</span>
+        ${n ? `<span class="unread-badge">${n > 99 ? '99+' : n}</span>` : ''}</div>`;
       }).join('') || '<p class="empty small">Aún no hay otros usuarios.</p>'}
     </div>`;
 
