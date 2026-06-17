@@ -1487,7 +1487,7 @@ function subscribe() {
     const par = [currentUser.id, activeChat].sort();
     canalNombre = 'd' + hashCorto(par[0] + par[1]);
   }
-  channel = sb.channel(canalNombre, { config: { broadcast: { self: false } } })
+  channel = sb.channel(canalNombre)
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
       const m = payload.new;
       let relevant;
