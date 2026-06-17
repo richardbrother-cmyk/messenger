@@ -36,6 +36,11 @@ function ajustarAltura() {
 }
 ajustarAltura();
 window.addEventListener('resize', ajustarAltura);
+
+// Al volver a primer plano, si tengo un chat abierto, marcar leídos
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') marcarLeidos();
+});
 if (window.visualViewport) {
   window.visualViewport.addEventListener('resize', ajustarAltura);
   window.visualViewport.addEventListener('scroll', ajustarAltura);
@@ -784,8 +789,11 @@ async function loadMessages() {
 }
 
 // Marca como leídos los mensajes que me envió el otro (solo 1-a-1)
+// SOLO si la app está visible y tengo esa conversación abierta.
 async function marcarLeidos() {
   if (activeIsGroup) return;
+  if (document.visibilityState !== 'visible') return; // app en segundo plano: no marcar
+  if (!document.getElementById('messages')) return;   // no estoy dentro de un chat
   await sb.from('messages')
     .update({ read_at: new Date().toISOString() })
     .eq('sender_id', activeChat)
@@ -1120,7 +1128,16 @@ async function sendMessage() {
 }
 
 function subscribe() {
-  channel = sb.channel('msgs-' + activeChat)
+  // Nombre de canal COMPARTIDO: en grupo es el group_id; en 1-a-1 son
+  // los dos ids ordenados, para que ambos usuarios usen el MISMO canal.
+  let canalNombre;
+  if (activeIsGroup) {
+    canalNombre = 'grp-' + activeChat;
+  } else {
+    const par = [currentUser.id, activeChat].sort();
+    canalNombre = 'dm-' + par[0] + '-' + par[1];
+  }
+  channel = sb.channel(canalNombre, { config: { broadcast: { self: false } } })
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
       const m = payload.new;
       let relevant;
