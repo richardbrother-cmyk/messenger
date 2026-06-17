@@ -269,6 +269,24 @@ button.link { background: none; color: #4cc9f0; width: auto; padding: .3rem; }
 /* La cita es clicable */
 .bubble .quote { cursor: pointer; }
 
+/* === Palomitas, editado, eliminado, escribiendo === */
+.bubble .meta {
+  display: flex; align-items: center; justify-content: flex-end; gap: .3rem;
+  margin-top: .15rem; font-size: .68rem; opacity: .75;
+}
+.ticks { letter-spacing: -2px; }
+.ticks.read { color: #4cc9f0; opacity: 1; }
+.edited { font-style: italic; opacity: .7; }
+.bubble.deleted { opacity: .7; }
+.bubble.deleted em { opacity: .8; }
+
+.typing-ind {
+  flex: 0 0 auto;
+  padding: .3rem 1rem .5rem;
+  font-size: .82rem; color: #4cc9f0; font-style: italic;
+}
+.typing-ind.hidden { display: none; }
+
 /* === Editor de recorte de avatar === */
 .crop-overlay {
   position: fixed; inset: 0; z-index: 1000;

@@ -565,10 +565,40 @@ function wireComposer() {
     });
   // Búsqueda en conversación
   document.getElementById('searchBtn').onclick = abrirBusqueda;
+  // "Está escribiendo…": emite señal al teclear (máx 1 cada 2s)
+  document.getElementById('msgInput').addEventListener('input', emitirEscribiendo);
 }
 
-// === BUSCAR EN CONVERSACIÓN ===
-let searchMatches = [], searchIdx = -1;
+// === "ESTÁ ESCRIBIENDO…" ===
+let typingLastSent = 0, typingHideTimer = null;
+
+function emitirEscribiendo() {
+  const ahora = Date.now();
+  if (ahora - typingLastSent < 2000) return; // no spamear
+  typingLastSent = ahora;
+  if (channel) {
+    channel.send({
+      type: 'broadcast',
+      event: 'typing',
+      payload: { userId: currentUser.id, name: currentProfile?.display_name || 'Alguien' }
+    });
+  }
+}
+
+function mostrarEscribiendo(nombre) {
+  let el = document.getElementById('typingInd');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'typingInd';
+    el.className = 'typing-ind';
+    const box = document.getElementById('messages');
+    box?.parentNode.insertBefore(el, box.nextSibling);
+  }
+  el.textContent = activeIsGroup ? `${nombre} está escribiendo…` : 'escribiendo…';
+  el.classList.remove('hidden');
+  clearTimeout(typingHideTimer);
+  typingHideTimer = setTimeout(() => el?.classList.add('hidden'), 3000);
+}
 
 function abrirBusqueda() {
   const bar = document.getElementById('searchBar');
@@ -750,10 +780,28 @@ async function loadMessages() {
   box.scrollTop = box.scrollHeight;
   hydrateAttachments(box);
   attachLongPress(box);
+  marcarLeidos(); // marca como leídos los mensajes del otro
+}
+
+// Marca como leídos los mensajes que me envió el otro (solo 1-a-1)
+async function marcarLeidos() {
+  if (activeIsGroup) return;
+  await sb.from('messages')
+    .update({ read_at: new Date().toISOString() })
+    .eq('sender_id', activeChat)
+    .eq('recipient_id', currentUser.id)
+    .is('read_at', null);
 }
 
 function renderBubble(m) {
   const mine = m.sender_id === currentUser.id;
+
+  // Mensaje eliminado: muestra placeholder, sin contenido
+  if (m.deleted_at) {
+    return `<div class="bubble ${mine ? 'mine' : 'theirs'} deleted" data-id="${m.id}">
+      <div class="text"><em>🚫 Mensaje eliminado</em></div></div>`;
+  }
+
   let inner = '';
   // Cita del mensaje al que responde
   if (m.reply_to && (m.reply_preview || m.reply_author)) {
@@ -776,6 +824,16 @@ function renderBubble(m) {
     }
   }
   if (m.content) inner += `<div class="text">${esc(m.content)}</div>`;
+
+  // Pie del mensaje: "editado" + palomitas (solo mis mensajes 1-a-1)
+  let meta = '';
+  if (m.edited_at) meta += `<span class="edited">editado</span>`;
+  if (mine && !activeIsGroup) {
+    const tick = m.read_at ? '<span class="ticks read">✓✓</span>' : '<span class="ticks">✓✓</span>';
+    meta += tick;
+  }
+  if (meta) inner += `<div class="meta">${meta}</div>`;
+
   return `<div class="bubble ${mine ? 'mine' : 'theirs'}" data-id="${m.id}">${inner}</div>`;
 }
 
@@ -825,16 +883,19 @@ function saltarAMensaje(targetId) {
   setTimeout(() => target.classList.remove('flash'), 1200);
 }
 
-// Menú flotante con Responder / Reenviar
+// Menú flotante con Responder / Reenviar / Editar / Borrar
 function abrirMenuMensaje(msgId) {
   const m = msgCache[msgId];
-  if (!m) return;
+  if (!m || m.deleted_at) return;
+  const mine = m.sender_id === currentUser.id;
   const overlay = document.createElement('div');
   overlay.className = 'msg-menu-overlay';
   overlay.innerHTML = `
     <div class="msg-menu">
       <button id="mmReply">↩️ Responder</button>
       <button id="mmForward">↪️ Reenviar</button>
+      ${mine && m.content ? `<button id="mmEdit">✏️ Editar</button>` : ''}
+      ${mine ? `<button id="mmDelete" class="danger">🗑️ Borrar</button>` : ''}
       <button id="mmCancel" class="secondary">Cancelar</button>
     </div>`;
   document.body.appendChild(overlay);
@@ -843,6 +904,34 @@ function abrirMenuMensaje(msgId) {
   document.getElementById('mmCancel').onclick = close;
   document.getElementById('mmReply').onclick = () => { close(); iniciarRespuesta(m); };
   document.getElementById('mmForward').onclick = () => { close(); abrirReenviar(m); };
+  const editBtn = document.getElementById('mmEdit');
+  if (editBtn) editBtn.onclick = () => { close(); editarMensaje(m); };
+  const delBtn = document.getElementById('mmDelete');
+  if (delBtn) delBtn.onclick = () => { close(); borrarMensaje(m); };
+}
+
+// --- EDITAR ---
+async function editarMensaje(m) {
+  const nuevo = prompt('Editar mensaje:', m.content || '');
+  if (nuevo === null) return;            // canceló
+  const texto = nuevo.trim();
+  if (!texto || texto === m.content) return;
+  const { error } = await sb.from('messages')
+    .update({ content: texto, edited_at: new Date().toISOString() })
+    .eq('id', m.id);
+  if (error) { alert('No se pudo editar: ' + error.message); return; }
+  // el UPDATE en realtime refrescará la burbuja
+}
+
+// --- BORRAR (suave) ---
+async function borrarMensaje(m) {
+  if (!confirm('¿Borrar este mensaje para todos?')) return;
+  const { error } = await sb.from('messages')
+    .update({ deleted_at: new Date().toISOString(), content: null,
+              attachment_path: null, attachment_name: null,
+              attachment_type: null, attachment_size: null })
+    .eq('id', m.id);
+  if (error) { alert('No se pudo borrar: ' + error.message); return; }
 }
 
 // --- RESPONDER ---
@@ -1048,10 +1137,43 @@ function subscribe() {
       box.scrollTop = box.scrollHeight;
       hydrateAttachments(box);
       attachLongPress(box);
-    }).subscribe();
+      // si me lo enviaron a mí, marcarlo leído (estoy viendo el chat)
+      if (!activeIsGroup && m.sender_id === activeChat) marcarLeidos();
+    })
+    // UPDATE: palomitas (read_at), ediciones y borrados en vivo
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages' }, payload => {
+      const m = payload.new;
+      let relevant;
+      if (activeIsGroup) relevant = m.group_id === activeChat;
+      else relevant = (m.sender_id === currentUser.id && m.recipient_id === activeChat) ||
+                      (m.sender_id === activeChat && m.recipient_id === currentUser.id);
+      if (!relevant) return;
+      msgCache[m.id] = m;
+      // re-renderiza esa burbuja en su sitio
+      const old = document.querySelector(`.bubble[data-id="${m.id}"]`);
+      if (old) {
+        const tmp = document.createElement('div');
+        tmp.innerHTML = renderBubble(m);
+        const nuevo = tmp.firstElementChild;
+        old.replaceWith(nuevo);
+        const box = document.getElementById('messages');
+        hydrateAttachments(box);
+        attachLongPress(box);
+      }
+    })
+    // "Está escribiendo…" — señal efímera (no se guarda en base)
+    .on('broadcast', { event: 'typing' }, ({ payload }) => {
+      if (payload.userId === currentUser.id) return; // no a mí mismo
+      mostrarEscribiendo(payload.name);
+    })
+    .subscribe();
 }
 
-function unsubscribe() { if (channel) { sb.removeChannel(channel); channel = null; } }
+function unsubscribe() {
+  if (channel) { sb.removeChannel(channel); channel = null; }
+  document.getElementById('typingInd')?.remove();
+  clearTimeout(typingHideTimer);
+}
 
 // === HELPERS ===
 const val = id => document.getElementById(id).value;
