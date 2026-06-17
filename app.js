@@ -1479,14 +1479,14 @@ async function sendMessage() {
 }
 
 function subscribe() {
-  // Nombre de canal COMPARTIDO: en grupo es el group_id; en 1-a-1 son
-  // los dos ids ordenados, para que ambos usuarios usen el MISMO canal.
+  // Nombre de canal COMPARTIDO y CORTO. Concatenar dos UUIDs da un topic
+  // muy largo que rompe postgres_changes; usamos un hash corto y estable.
   let canalNombre;
   if (activeIsGroup) {
-    canalNombre = 'grp-' + activeChat;
+    canalNombre = 'g' + hashCorto(activeChat);
   } else {
     const par = [currentUser.id, activeChat].sort();
-    canalNombre = 'dm-' + par[0] + '-' + par[1];
+    canalNombre = 'd' + hashCorto(par[0] + par[1]);
   }
   channel = sb.channel(canalNombre, { config: { broadcast: { self: false } } })
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
@@ -1553,6 +1553,15 @@ function unsubscribe() {
 const val = id => document.getElementById(id).value;
 const esc = s => (s || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+// Hash corto y estable (para nombres de canal): convierte un texto largo
+// en un número compacto en base36. Mismo input => mismo output en ambos lados.
+function hashCorto(str) {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) {
+    h = (h * 31 + str.charCodeAt(i)) | 0;
+  }
+  return Math.abs(h).toString(36);
+}
 // Arma la URL del avatar con ?v=version para evitar caché del navegador.
 // Recibe el objeto de perfil (con avatar_url y avatar_version).
 function avatarUrl(profile) {
