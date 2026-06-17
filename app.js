@@ -23,6 +23,7 @@ let msgCache = {};         // id -> mensaje (para reenviar/citar sin re-consulta
 let reactionsCache = {};   // msgId -> [{user_id, emoji}]
 let modoSeleccion = false;
 let seleccionados = new Set();
+let listaChannel = null;   // canal de realtime para la lista de contactos
 
 // Emojis más usados para el selector simple
 const EMOJIS = ['😀','😂','🥰','😍','😘','😎','🤔','😴','😭','😡','👍','👎','👏','🙏','💪','🔥','🎉','❤️','💔','✨','⭐','🌟','💯','✅','❌','🤣','😅','😉','😊','🙂','😇','🤗','🤩','😋','😜','🤪','😏','🥺','😩','😤','👋','🤝','✌️','🤞','👌','🙌','💀','👀','💩','🥳','😱','😬','🤯','🫶','💕','💖','🎂','🍕','☕','🌹'];
@@ -170,6 +171,11 @@ async function logout() { await sb.auth.signOut(); location.reload(); }
 
 // === LISTA DE CONTACTOS Y GRUPOS ===
 async function renderChats() {
+  activeChat = null;        // ya no estoy dentro de un chat
+  activeIsGroup = false;
+  // Suscribe la LISTA al realtime: si llega un mensaje para mí mientras
+  // estoy en la lista, recalcula los contadores sin entrar/salir.
+  suscribirLista();
   const { data: profiles } = await sb.from('profiles').select('*').neq('id', currentUser.id).order('display_name');
   // grupos donde soy miembro
   const { data: myMemberships } = await sb.from('group_members').select('group_id').eq('user_id', currentUser.id);
@@ -1696,8 +1702,33 @@ async function sendMessage() {
   sendBtn.disabled = false;
 }
 
-function subscribe() {
-  // Nombre de canal COMPARTIDO y CORTO. Concatenar dos UUIDs da un topic
+// Realtime para la LISTA de contactos: refresca contadores al llegar mensajes
+let listaRefreshTimer = null;
+function refrescarListaPronto() {
+  clearTimeout(listaRefreshTimer);
+  listaRefreshTimer = setTimeout(() => { if (!activeChat) renderChats(); }, 400);
+}
+
+function suscribirLista() {
+  cancelarLista();
+  listaChannel = sb.channel('lista-' + currentUser.id)
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
+      const m = payload.new;
+      if (m.recipient_id === currentUser.id && m.sender_id !== currentUser.id) {
+        refrescarListaPronto();
+      }
+    })
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages' }, () => {
+      refrescarListaPronto();
+    })
+    .subscribe();
+}
+
+function cancelarLista() {
+  if (listaChannel) { sb.removeChannel(listaChannel); listaChannel = null; }
+}
+
+function subscribe() {  // Nombre de canal COMPARTIDO y CORTO. Concatenar dos UUIDs da un topic
   // muy largo que rompe postgres_changes; usamos un hash corto y estable.
   let canalNombre;
   if (activeIsGroup) {
