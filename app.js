@@ -1197,7 +1197,7 @@ function abrirMenuMensaje(msgId) {
       <button id="mmReply">↩️ Responder</button>
       <button id="mmForward">↪️ Reenviar</button>
       ${mine && m.content ? `<button id="mmEdit">✏️ Editar</button>` : ''}
-      ${mine ? `<button id="mmDelete" class="danger">🗑️ Borrar</button>` : ''}
+      <button id="mmDelete" class="danger">🗑️ Borrar</button>
       <button id="mmCancel" class="secondary">Cancelar</button>
     </div>`;
   document.body.appendChild(overlay);
