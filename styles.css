@@ -112,9 +112,10 @@ button.link { background: none; color: #4cc9f0; width: auto; padding: .3rem; }
 }
 /* En pantallas muy chicas, el botón Enviar como ícono para que quepa */
 @media (max-width: 380px) {
-  .composer { gap: .3rem; }
-  .icon-btn { padding: .5rem .45rem; font-size: 1.15rem; }
-  #sendBtn { padding: .7rem .8rem; }
+  .composer { gap: .25rem; padding: .5rem .4rem; }
+  .icon-btn { padding: .45rem .35rem; font-size: 1.1rem; }
+  #sendBtn { padding: .6rem .6rem; font-size: .9rem; }
+  .composer input { padding: .6rem .6rem; }
 }
 
 .empty, .error, .ok { padding: 1rem; text-align: center; }
@@ -298,6 +299,67 @@ button.link { background: none; color: #4cc9f0; width: auto; padding: .3rem; }
   display: flex; align-items: center; justify-content: center;
 }
 .contact.has-unread .contact-name { font-weight: 700; }
+
+/* === Reacciones === */
+/* Chips bajo la burbuja */
+.reacts { display: flex; flex-wrap: wrap; gap: .25rem; margin-top: .3rem; }
+.react-chip {
+  background: rgba(0,0,0,.25); border-radius: 12px;
+  padding: .05rem .4rem; font-size: .8rem; line-height: 1.4;
+}
+.react-chip.mine { background: #4cc9f0; color: #16213e; }
+
+/* Fila de reacción rápida en el menú de mensaje */
+.react-row {
+  display: flex; gap: .2rem; justify-content: space-around;
+  padding: .3rem; margin-bottom: .3rem;
+  background: #1c1c30; border-radius: 12px;
+}
+.react-emoji {
+  background: none; border: none; font-size: 1.6rem; padding: .3rem;
+  cursor: pointer; border-radius: 8px; min-height: auto; width: auto;
+}
+.react-emoji:hover { background: #2a2a44; }
+.react-emoji.more { font-size: 1.2rem; }
+
+/* Rejilla de "más emojis" para reaccionar */
+.react-grid {
+  display: grid; grid-template-columns: repeat(8, 1fr); gap: .2rem;
+  max-height: 50vh; overflow-y: auto; margin-bottom: .5rem;
+}
+
+/* === Notas de voz === */
+/* Indicador mientras se graba */
+.rec-indicator {
+  flex: 0 0 auto;
+  display: flex; align-items: center; gap: .5rem;
+  padding: .6rem 1rem;
+  background: #2a1c1c; border-top: 1px solid #4a2a2a;
+  font-size: .85rem;
+}
+.rec-indicator.hidden { display: none; }
+.rec-indicator.cancel { background: #4a1c1c; }
+.rec-indicator.cancel .rec-hint::before { content: '✋ Suelta para CANCELAR'; }
+.rec-indicator.cancel .rec-hint { font-size: 0; }
+.rec-dot { width: 12px; height: 12px; border-radius: 50%; background: #ff4b4b; animation: pulse 1s infinite; }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
+.rec-hint { color: #8a8aa0; font-size: .78rem; margin-left: auto; }
+
+/* Botón de micrófono activo */
+#micBtn:active { background: #ff4b4b; }
+
+/* Reproductor de nota de voz en la burbuja */
+.voice-note {
+  display: flex; align-items: center; gap: .5rem;
+  padding: .4rem .6rem; margin-bottom: .2rem;
+  background: rgba(255,255,255,.08); border-radius: 12px;
+  min-width: 180px;
+}
+.voice-play {
+  background: none; border: none; font-size: 1.5rem;
+  cursor: pointer; padding: 0; width: auto; min-height: auto;
+}
+.voice-label { font-size: .85rem; opacity: .9; }
 
 /* === Editor de recorte de avatar === */
 .crop-overlay {

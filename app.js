@@ -20,6 +20,7 @@ let activeIsGroup = false; // si la conversación abierta es un grupo
 let memberNames = {};      // cache id->nombre para mostrar autores en grupos
 let replyingTo = null;     // { id, preview, author } mensaje al que respondo
 let msgCache = {};         // id -> mensaje (para reenviar/citar sin re-consultar)
+let reactionsCache = {};   // msgId -> [{user_id, emoji}]
 
 // Emojis más usados para el selector simple
 const EMOJIS = ['😀','😂','🥰','😍','😘','😎','🤔','😴','😭','😡','👍','👎','👏','🙏','💪','🔥','🎉','❤️','💔','✨','⭐','🌟','💯','✅','❌','🤣','😅','😉','😊','🙂','😇','🤗','🤩','😋','😜','🤪','😏','🥺','😩','😤','👋','🤝','✌️','🤞','👌','🙌','💀','👀','💩','🥳','😱','😬','🤯','🫶','💕','💖','🎂','🍕','☕','🌹'];
@@ -346,17 +347,17 @@ async function onAvatarPicked(e) {
 }
 
 // === EDITOR DE RECORTE CIRCULAR (arrastrar + zoom slider/pinch) ===
-function abrirEditorRecorte(file) {
+function abrirEditorRecorte(file, onDone) {
   const reader = new FileReader();
   reader.onload = () => {
     const img = new Image();
-    img.onload = () => montarEditor(img);
+    img.onload = () => montarEditor(img, onDone || subirAvatar);
     img.src = reader.result;
   };
   reader.readAsDataURL(file);
 }
 
-function montarEditor(img) {
+function montarEditor(img, onDone) {
   const SIZE = 300;        // tamaño del lienzo de edición (px en pantalla)
   const OUT = 400;         // tamaño final de salida (px)
 
@@ -470,7 +471,7 @@ function montarEditor(img) {
     octx.drawImage(img, ox * ratio, oy * ratio, img.width * scale * ratio, img.height * scale * ratio);
     out.toBlob(blob => {
       overlay.remove();
-      subirAvatar(blob);
+      onDone(blob);
     }, 'image/jpeg', 0.9);
   };
 }
@@ -570,7 +571,13 @@ function chatShell(titleHtml, withClear) {
       <button id="attachBtn" class="icon-btn" title="Adjuntar">📎</button>
       <input id="fileInput" type="file" hidden>
       <input id="msgInput" placeholder="Mensaje..." autocomplete="off">
+      <button id="micBtn" class="icon-btn" title="Mantén presionado para grabar">🎤</button>
       <button id="sendBtn">Enviar</button>
+    </div>
+    <div id="recIndicator" class="rec-indicator hidden">
+      <span class="rec-dot"></span>
+      <span id="recTime">0:00</span>
+      <span class="rec-hint">Suelta para enviar · desliza fuera para cancelar</span>
     </div>`;
 }
 
@@ -592,6 +599,126 @@ function wireComposer() {
   document.getElementById('searchBtn').onclick = abrirBusqueda;
   // "Está escribiendo…": emite señal al teclear (máx 1 cada 2s)
   document.getElementById('msgInput').addEventListener('input', emitirEscribiendo);
+  // Notas de voz: mantener presionado el micrófono
+  wireMicrofono();
+}
+
+// === NOTAS DE VOZ ===
+let mediaRecorder = null, audioChunks = [], recTimer = null, recStart = 0;
+let recCancelada = false, recMime = '';
+
+function wireMicrofono() {
+  const mic = document.getElementById('micBtn');
+  if (!mic) return;
+
+  const empezar = (e) => { e.preventDefault(); iniciarGrabacion(); };
+  const terminar = (e) => { e.preventDefault(); detenerGrabacion(false); };
+  // deslizar el dedo fuera del botón cancela
+  const mover = (e) => {
+    if (!mediaRecorder || mediaRecorder.state !== 'recording') return;
+    const t = e.touches ? e.touches[0] : e;
+    const r = mic.getBoundingClientRect();
+    const fuera = t.clientX < r.left - 60 || t.clientX > r.right + 60 || t.clientY < r.top - 80;
+    if (fuera) marcarCancelacion(true);
+    else marcarCancelacion(false);
+  };
+
+  mic.addEventListener('touchstart', empezar, { passive: false });
+  mic.addEventListener('touchend', terminar);
+  mic.addEventListener('touchmove', mover, { passive: false });
+  // soporte mouse (escritorio)
+  mic.addEventListener('mousedown', empezar);
+  window.addEventListener('mouseup', (e) => { if (mediaRecorder?.state === 'recording') terminar(e); });
+}
+
+function marcarCancelacion(cancel) {
+  recCancelada = cancel;
+  const ind = document.getElementById('recIndicator');
+  if (ind) ind.classList.toggle('cancel', cancel);
+}
+
+async function iniciarGrabacion() {
+  if (mediaRecorder && mediaRecorder.state === 'recording') return;
+  if (!navigator.mediaDevices?.getUserMedia) {
+    alert('Tu navegador no permite grabar audio.');
+    return;
+  }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    // detectar formato soportado (Android suele preferir webm/opus)
+    recMime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus'
+            : MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm'
+            : MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4'
+            : '';
+    mediaRecorder = new MediaRecorder(stream, recMime ? { mimeType: recMime } : undefined);
+    audioChunks = [];
+    recCancelada = false;
+    mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunks.push(e.data); };
+    mediaRecorder.onstop = () => {
+      stream.getTracks().forEach(t => t.stop()); // libera el micrófono
+      finalizarGrabacion();
+    };
+    mediaRecorder.start();
+    recStart = Date.now();
+    mostrarIndicadorRec();
+  } catch (err) {
+    if (err.name === 'NotAllowedError') alert('Necesitas dar permiso de micrófono.');
+    else alert('No se pudo iniciar la grabación: ' + err.message);
+  }
+}
+
+function detenerGrabacion(cancelar) {
+  if (cancelar) recCancelada = true;
+  if (mediaRecorder && mediaRecorder.state === 'recording') {
+    mediaRecorder.stop(); // dispara onstop -> finalizarGrabacion
+  }
+  ocultarIndicadorRec();
+}
+
+function mostrarIndicadorRec() {
+  const ind = document.getElementById('recIndicator');
+  ind?.classList.remove('hidden', 'cancel');
+  recTimer = setInterval(() => {
+    const s = Math.floor((Date.now() - recStart) / 1000);
+    const el = document.getElementById('recTime');
+    if (el) el.textContent = `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+    if (s >= 300) detenerGrabacion(false); // tope 5 min
+  }, 250);
+}
+
+function ocultarIndicadorRec() {
+  document.getElementById('recIndicator')?.classList.add('hidden');
+  clearInterval(recTimer);
+}
+
+async function finalizarGrabacion() {
+  const dur = Math.round((Date.now() - recStart) / 1000);
+  if (recCancelada || dur < 1 || !audioChunks.length) return; // muy corta o cancelada
+  const blob = new Blob(audioChunks, { type: recMime || 'audio/webm' });
+  await enviarNotaVoz(blob, dur);
+}
+
+async function enviarNotaVoz(blob, dur) {
+  try {
+    const ext = (recMime.includes('mp4')) ? 'm4a' : 'webm';
+    const path = `${currentUser.id}/${Date.now()}-voz.${ext}`;
+    const { error: upErr } = await sb.storage.from('attachments')
+      .upload(path, blob, { contentType: blob.type });
+    if (upErr) throw upErr;
+    const row = {
+      sender_id: currentUser.id,
+      content: null,
+      attachment_path: path,
+      attachment_name: `Nota de voz (${Math.floor(dur/60)}:${String(dur%60).padStart(2,'0')})`,
+      attachment_type: blob.type.startsWith('audio') ? blob.type : 'audio/webm',
+      attachment_size: blob.size
+    };
+    if (activeIsGroup) row.group_id = activeChat;
+    else row.recipient_id = activeChat;
+    await sb.from('messages').insert(row);
+  } catch (err) {
+    alert('No se pudo enviar la nota de voz: ' + err.message);
+  }
 }
 
 // === "ESTÁ ESCRIBIENDO…" ===
@@ -746,15 +873,26 @@ async function renderGroupInfo(groupId, groupName) {
   const ids = (members || []).map(m => m.user_id);
   let profs = [];
   if (ids.length) { const { data } = await sb.from('profiles').select('*').in('id', ids); profs = data || []; }
-  const { data: g } = await sb.from('groups').select('created_by').eq('id', groupId).single();
-  const soyCreador = g?.created_by === currentUser.id;
+  const { data: g } = await sb.from('groups').select('*').eq('id', groupId).single();
+  const gAvatar = avatarUrl(g);
 
   app.innerHTML = `
     <div class="header">
       <button class="link" id="backBtn">←</button>
-      <span class="chat-title">${esc(groupName)}</span>
+      <span class="chat-title">Info del grupo</span>
     </div>
     <div class="profile">
+      <div class="profile-avatar">
+        ${gAvatar ? `<img class="avatar-lg" id="gAvatarPreview" src="${esc(gAvatar)}" alt="grupo">`
+                  : `<div class="avatar-lg placeholder group-av" id="gAvatarPreview">${esc((g.name||'?')[0])}</div>`}
+        <button class="link" id="changeGroupPhoto">Cambiar foto</button>
+        <input id="groupAvatarInput" type="file" accept="image/*" hidden>
+      </div>
+
+      <label class="field-label">Nombre del grupo</label>
+      <input id="gName" value="${esc(g.name || '')}" placeholder="Nombre del grupo">
+      <button id="saveGroupName">Guardar nombre</button>
+
       <label class="field-label">Miembros (${profs.length})</label>
       <div class="member-list">
         ${profs.map(p => `<div class="member-row">
@@ -763,15 +901,65 @@ async function renderGroupInfo(groupId, groupName) {
           <span>${esc(p.display_name)}${p.id === currentUser.id ? ' (yo)' : ''}</span>
         </div>`).join('')}
       </div>
+
+      <hr class="sep">
       <button id="leaveGroup" class="danger">Salir del grupo</button>
       <p id="giMsg" class="ok"></p>
     </div>`;
-  document.getElementById('backBtn').onclick = () => openGroup(groupId, groupName, undefined);
+
+  document.getElementById('backBtn').onclick = () => openGroup(groupId, g.name, undefined);
+  document.getElementById('saveGroupName').onclick = () => guardarNombreGrupo(groupId);
+  document.getElementById('changeGroupPhoto').onclick = () => document.getElementById('groupAvatarInput').click();
+  document.getElementById('groupAvatarInput').addEventListener('change', (e) => onGroupAvatarPicked(e, groupId));
   document.getElementById('leaveGroup').onclick = async () => {
     if (!confirm('¿Salir de este grupo? Dejarás de recibir sus mensajes.')) return;
     await sb.from('group_members').delete().eq('group_id', groupId).eq('user_id', currentUser.id);
     renderChats();
   };
+}
+
+function giMsg(t, ok = true) {
+  const m = document.getElementById('giMsg');
+  if (m) { m.textContent = t; m.className = ok ? 'ok' : 'error'; }
+}
+
+async function guardarNombreGrupo(groupId) {
+  const name = document.getElementById('gName').value.trim();
+  if (!name) return giMsg('El nombre no puede estar vacío', false);
+  const { error } = await sb.from('groups').update({ name }).eq('id', groupId);
+  if (error) return giMsg('Error: ' + error.message, false);
+  giMsg('Nombre actualizado ✓');
+}
+
+// Reusa el editor de recorte; al guardar sube a 'avatars' en carpeta del usuario
+function onGroupAvatarPicked(e, groupId) {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (!file.type.startsWith('image/')) return giMsg('Debe ser una imagen', false);
+  if (file.size > MAX_AVATAR_BYTES) return giMsg('Máximo 2 MB', false);
+  abrirEditorRecorte(file, (blob) => subirAvatarGrupo(blob, groupId));
+}
+
+async function subirAvatarGrupo(blob, groupId) {
+  giMsg('Subiendo foto…');
+  try {
+    // se guarda en la carpeta del usuario (la policy de storage exige uid),
+    // con nombre que incluye el grupo
+    const path = `${currentUser.id}/group-${groupId}.jpg`;
+    const { error: upErr } = await sb.storage.from('avatars')
+      .upload(path, blob, { contentType: 'image/jpeg', upsert: true });
+    if (upErr) throw upErr;
+    const { data } = sb.storage.from('avatars').getPublicUrl(path);
+    const newVersion = Date.now();
+    const { error: updErr } = await sb.from('groups')
+      .update({ avatar_url: data.publicUrl, avatar_version: newVersion }).eq('id', groupId);
+    if (updErr) throw updErr;
+    giMsg('Foto del grupo actualizada ✓');
+    const prev = document.getElementById('gAvatarPreview');
+    if (prev) prev.outerHTML = `<img class="avatar-lg" id="gAvatarPreview" src="${data.publicUrl}?v=${newVersion}" alt="grupo">`;
+  } catch (err) {
+    giMsg('Error al subir: ' + err.message, false);
+  }
 }
 
 // Limpiar conversación SOLO PARA MÍ (solo chats 1-a-1)
@@ -806,6 +994,43 @@ async function loadMessages() {
   hydrateAttachments(box);
   attachLongPress(box);
   marcarLeidos(); // marca como leídos los mensajes del otro
+  await cargarReacciones();
+  for (const id of Object.keys(msgCache)) repintarReacciones(id);
+}
+
+// === REACCIONES ===
+async function cargarReacciones() {
+  const ids = Object.keys(msgCache).map(Number);
+  reactionsCache = {};
+  if (!ids.length) return;
+  const { data } = await sb.from('message_reactions').select('*').in('message_id', ids);
+  for (const r of (data || [])) {
+    (reactionsCache[r.message_id] = reactionsCache[r.message_id] || []).push(r);
+  }
+}
+
+// Pinta/actualiza el bloque de reacciones bajo una burbuja
+function repintarReacciones(msgId) {
+  const bubble = document.querySelector(`.bubble[data-id="${msgId}"]`);
+  if (!bubble) return;
+  const reacts = reactionsCache[msgId] || [];
+  let cont = bubble.querySelector('.reacts');
+  if (!reacts.length) { if (cont) cont.remove(); return; }
+  // agrupar por emoji con conteo
+  const counts = {};
+  let mine = null;
+  for (const r of reacts) {
+    counts[r.emoji] = (counts[r.emoji] || 0) + 1;
+    if (r.user_id === currentUser.id) mine = r.emoji;
+  }
+  const html = Object.entries(counts).map(([e, n]) =>
+    `<span class="react-chip ${mine === e ? 'mine' : ''}">${e}${n > 1 ? ' ' + n : ''}</span>`).join('');
+  if (!cont) {
+    cont = document.createElement('div');
+    cont.className = 'reacts';
+    bubble.appendChild(cont);
+  }
+  cont.innerHTML = html;
 }
 
 // Marca como leídos los mensajes que me envió el otro (solo 1-a-1)
@@ -844,9 +1069,16 @@ function renderBubble(m) {
     inner += `<div class="author">${esc(autor)}</div>`;
   }
   if (m.attachment_path) {
-    const isImage = (m.attachment_type || '').startsWith('image/');
+    const type = m.attachment_type || '';
+    const isImage = type.startsWith('image/');
+    const isAudio = type.startsWith('audio/');
     if (isImage) {
       inner += `<div class="attach-img" data-path="${esc(m.attachment_path)}"><span class="loading">Cargando imagen…</span></div>`;
+    } else if (isAudio) {
+      inner += `<div class="voice-note" data-path="${esc(m.attachment_path)}">
+        <button class="voice-play" type="button">▶️</button>
+        <span class="voice-label">🎙️ ${esc(m.attachment_name || 'Nota de voz')}</span>
+      </div>`;
     } else {
       inner += `<a class="attach-file" data-path="${esc(m.attachment_path)}" href="#">📄 ${esc(m.attachment_name || 'archivo')} <small>${formatSize(m.attachment_size)}</small></a>`;
     }
@@ -911,7 +1143,10 @@ function saltarAMensaje(targetId) {
   setTimeout(() => target.classList.remove('flash'), 1200);
 }
 
-// Menú flotante con Responder / Reenviar / Editar / Borrar
+// Emojis rápidos para reaccionar (los primeros del set) + acceso a más
+const REACT_QUICK = ['❤️','👍','😂','😮','😢','🙏'];
+
+// Menú flotante con Reacciones + Responder / Reenviar / Editar / Borrar
 function abrirMenuMensaje(msgId) {
   const m = msgCache[msgId];
   if (!m || m.deleted_at) return;
@@ -920,6 +1155,10 @@ function abrirMenuMensaje(msgId) {
   overlay.className = 'msg-menu-overlay';
   overlay.innerHTML = `
     <div class="msg-menu">
+      <div class="react-row">
+        ${REACT_QUICK.map(e => `<button class="react-emoji" data-e="${e}">${e}</button>`).join('')}
+        <button class="react-emoji more" id="reactMore">➕</button>
+      </div>
       <button id="mmReply">↩️ Responder</button>
       <button id="mmForward">↪️ Reenviar</button>
       ${mine && m.content ? `<button id="mmEdit">✏️ Editar</button>` : ''}
@@ -936,6 +1175,48 @@ function abrirMenuMensaje(msgId) {
   if (editBtn) editBtn.onclick = () => { close(); editarMensaje(m); };
   const delBtn = document.getElementById('mmDelete');
   if (delBtn) delBtn.onclick = () => { close(); borrarMensaje(m); };
+  // Reacciones rápidas
+  overlay.querySelectorAll('.react-emoji[data-e]').forEach(b =>
+    b.onclick = () => { close(); reaccionar(m.id, b.dataset.e); });
+  // "Más" emojis: abre una rejilla con todo el set
+  document.getElementById('reactMore').onclick = () => {
+    close();
+    abrirSelectorReaccion(m.id);
+  };
+}
+
+function abrirSelectorReaccion(msgId) {
+  const overlay = document.createElement('div');
+  overlay.className = 'msg-menu-overlay';
+  overlay.innerHTML = `
+    <div class="msg-menu">
+      <div class="react-grid">
+        ${EMOJIS.map(e => `<button class="emoji" data-e="${e}">${e}</button>`).join('')}
+      </div>
+      <button id="rsCancel" class="secondary">Cancelar</button>
+    </div>`;
+  document.body.appendChild(overlay);
+  const close = () => overlay.remove();
+  overlay.onclick = (e) => { if (e.target === overlay) close(); };
+  document.getElementById('rsCancel').onclick = close;
+  overlay.querySelectorAll('.emoji[data-e]').forEach(b =>
+    b.onclick = () => { close(); reaccionar(msgId, b.dataset.e); });
+}
+
+// Aplica/cambia/quita mi reacción a un mensaje
+async function reaccionar(msgId, emoji) {
+  // si ya tenía la misma reacción, la quito (toggle)
+  const mis = reactionsCache[msgId]?.find(r => r.user_id === currentUser.id);
+  if (mis && mis.emoji === emoji) {
+    await sb.from('message_reactions').delete()
+      .eq('message_id', msgId).eq('user_id', currentUser.id);
+  } else {
+    await sb.from('message_reactions')
+      .upsert({ message_id: msgId, user_id: currentUser.id, emoji },
+              { onConflict: 'message_id,user_id' });
+  }
+  await cargarReacciones();
+  repintarReacciones(msgId);
 }
 
 // --- EDITAR ---
@@ -1073,6 +1354,29 @@ async function hydrateAttachments(box) {
     const { data } = await sb.storage.from('attachments').createSignedUrl(path, 3600);
     if (data?.signedUrl) { el.href = data.signedUrl; el.target = '_blank'; }
   }
+  // Notas de voz: cargar URL y enganchar play/pausa
+  for (const el of box.querySelectorAll('.voice-note')) {
+    if (el.dataset.ready) continue;       // ya enganchada
+    const path = el.dataset.path;
+    const { data } = await sb.storage.from('attachments').createSignedUrl(path, 3600);
+    if (!data?.signedUrl) continue;
+    el.dataset.ready = '1';
+    const audio = new Audio(data.signedUrl);
+    const btn = el.querySelector('.voice-play');
+    btn.onclick = () => {
+      // pausa cualquier otra nota que esté sonando
+      document.querySelectorAll('.voice-note').forEach(otra => {
+        if (otra !== el && otra._audio && !otra._audio.paused) {
+          otra._audio.pause();
+          otra.querySelector('.voice-play').textContent = '▶️';
+        }
+      });
+      if (audio.paused) { audio.play(); btn.textContent = '⏸️'; }
+      else { audio.pause(); btn.textContent = '▶️'; }
+    };
+    audio.onended = () => { btn.textContent = '▶️'; };
+    el._audio = audio;
+  }
 }
 
 function onFilePicked(e) {
@@ -1202,6 +1506,11 @@ function subscribe() {
     .on('broadcast', { event: 'typing' }, ({ payload }) => {
       if (payload.userId === currentUser.id) return; // no a mí mismo
       mostrarEscribiendo(payload.name);
+    })
+    // Reacciones en vivo: al cambiar message_reactions, recargar y repintar
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'message_reactions' }, async () => {
+      await cargarReacciones();
+      for (const id of Object.keys(msgCache)) repintarReacciones(id);
     })
     .subscribe();
 }
