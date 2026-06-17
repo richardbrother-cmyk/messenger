@@ -21,6 +21,8 @@ let memberNames = {};      // cache id->nombre para mostrar autores en grupos
 let replyingTo = null;     // { id, preview, author } mensaje al que respondo
 let msgCache = {};         // id -> mensaje (para reenviar/citar sin re-consultar)
 let reactionsCache = {};   // msgId -> [{user_id, emoji}]
+let modoSeleccion = false;
+let seleccionados = new Set();
 
 // Emojis más usados para el selector simple
 const EMOJIS = ['😀','😂','🥰','😍','😘','😎','🤔','😴','😭','😡','👍','👎','👏','🙏','💪','🔥','🎉','❤️','💔','✨','⭐','🌟','💯','✅','❌','🤣','😅','😉','😊','🙂','😇','🤗','🤩','😋','😜','🤪','😏','🥺','😩','😤','👋','🤝','✌️','🤞','👌','🙌','💀','👀','💩','🥳','😱','😬','🤯','🫶','💕','💖','🎂','🍕','☕','🌹'];
@@ -189,6 +191,9 @@ async function renderChats() {
   for (const row of (pendientes || [])) {
     unread[row.sender_id] = (unread[row.sender_id] || 0) + 1;
   }
+  // Badge de la app = suma total de no leídos
+  const totalNoLeidos = Object.values(unread).reduce((a, b) => a + b, 0);
+  actualizarBadge(totalNoLeidos);
 
   // Ordenar contactos: primero los que tienen no leídos (más arriba), luego alfabético
   const contactos = [...(profiles || [])].sort((a, b) => {
@@ -848,7 +853,7 @@ async function openChat(otherId, otherName, otherAvatar) {
   activeChat = otherId;
   activeChatName = otherName;
   activeIsGroup = false;
-  pendingFile = null; replyingTo = null; searchMatches = []; searchIdx = -1;
+  pendingFile = null; replyingTo = null; searchMatches = []; searchIdx = -1; modoSeleccion = false; seleccionados.clear();
   if (otherAvatar === undefined) {
     const { data } = await sb.from('profiles').select('avatar_url, avatar_version').eq('id', otherId).single();
     otherAvatar = avatarUrl(data);
@@ -868,7 +873,7 @@ async function openGroup(groupId, groupName, groupAvatar) {
   activeChat = groupId;
   activeChatName = groupName;
   activeIsGroup = true;
-  pendingFile = null; replyingTo = null; searchMatches = []; searchIdx = -1;
+  pendingFile = null; replyingTo = null; searchMatches = []; searchIdx = -1; modoSeleccion = false; seleccionados.clear();
   // cargar nombres de miembros para mostrar autores
   memberNames = {};
   const { data: members } = await sb.from('group_members').select('user_id').eq('group_id', groupId);
@@ -1144,24 +1149,187 @@ function attachLongPress(box) {
   const cancel = () => { if (timer) { clearTimeout(timer); timer = null; } };
 
   box.querySelectorAll('.bubble').forEach(el => {
+    const id = el.dataset.id;
+    // En modo selección, un tap marca/desmarca
+    el.addEventListener('click', (e) => {
+      if (!modoSeleccion) return;
+      e.stopPropagation();
+      toggleSeleccion(parseInt(id), el);
+    });
     el.addEventListener('touchstart', () => start(el), { passive: true });
     el.addEventListener('touchend', cancel);
     el.addEventListener('touchmove', cancel);
     // escritorio: clic derecho
     el.addEventListener('contextmenu', (e) => {
       e.preventDefault();
-      const id = el.dataset.id;
+      if (modoSeleccion) return;
       if (id) abrirMenuMensaje(parseInt(id));
     });
     // tocar la cita salta al mensaje original
     const quote = el.querySelector('.quote');
     if (quote && quote.dataset.target) {
       quote.addEventListener('click', (e) => {
+        if (modoSeleccion) return;
         e.stopPropagation();
-        cancel(); // evita que se dispare el long-press
+        cancel();
         saltarAMensaje(quote.dataset.target);
       });
     }
+  });
+}
+
+// === MODO SELECCIÓN MÚLTIPLE ===
+function entrarModoSeleccion(primerId) {
+  modoSeleccion = true;
+  seleccionados = new Set();
+  if (primerId) {
+    seleccionados.add(primerId);
+    document.querySelector(`.bubble[data-id="${primerId}"]`)?.classList.add('selected');
+  }
+  mostrarBarraSeleccion();
+}
+
+function salirModoSeleccion() {
+  modoSeleccion = false;
+  seleccionados.clear();
+  document.querySelectorAll('.bubble.selected').forEach(b => b.classList.remove('selected'));
+  document.getElementById('selBar')?.remove();
+}
+
+function toggleSeleccion(id, el) {
+  if (seleccionados.has(id)) { seleccionados.delete(id); el.classList.remove('selected'); }
+  else { seleccionados.add(id); el.classList.add('selected'); }
+  if (seleccionados.size === 0) { salirModoSeleccion(); return; }
+  actualizarBarraSeleccion();
+}
+
+function mostrarBarraSeleccion() {
+  let bar = document.getElementById('selBar');
+  if (!bar) {
+    bar = document.createElement('div');
+    bar.id = 'selBar';
+    bar.className = 'sel-bar';
+    const header = app.querySelector('.header');
+    header.insertAdjacentElement('afterend', bar);
+  }
+  actualizarBarraSeleccion();
+}
+
+function actualizarBarraSeleccion() {
+  const bar = document.getElementById('selBar');
+  if (!bar) return;
+  bar.innerHTML = `
+    <button class="link" id="selCancel">✕</button>
+    <span class="sel-count">${seleccionados.size} seleccionado(s)</span>
+    <button class="link" id="selCopy" title="Copiar">📋</button>
+    <button class="link" id="selForward" title="Reenviar">↪️</button>
+    <button class="link" id="selDelete" title="Eliminar">🗑️</button>`;
+  document.getElementById('selCancel').onclick = salirModoSeleccion;
+  document.getElementById('selCopy').onclick = copiarSeleccionados;
+  document.getElementById('selForward').onclick = reenviarSeleccionados;
+  document.getElementById('selDelete').onclick = eliminarSeleccionados;
+}
+
+// Devuelve los mensajes seleccionados ordenados por fecha
+function mensajesSeleccionados() {
+  return [...seleccionados]
+    .map(id => msgCache[id])
+    .filter(Boolean)
+    .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+}
+
+async function copiarSeleccionados() {
+  const txt = mensajesSeleccionados()
+    .map(m => m.content || (m.attachment_name || '[adjunto]'))
+    .join('\n');
+  try {
+    await navigator.clipboard.writeText(txt);
+    alert('Copiado al portapapeles ✓');
+  } catch (_) {
+    alert('No se pudo copiar en este navegador.');
+  }
+  salirModoSeleccion();
+}
+
+async function reenviarSeleccionados() {
+  const msgs = mensajesSeleccionados();
+  if (!msgs.length) return;
+  // reusa el diálogo de reenviar; al elegir destino, reenvía todos
+  abrirReenviarMultiple(msgs);
+}
+
+async function eliminarSeleccionados() {
+  const msgs = mensajesSeleccionados();
+  if (!msgs.length) return;
+  const todosMios = msgs.every(m => m.sender_id === currentUser.id);
+  const overlay = document.createElement('div');
+  overlay.className = 'msg-menu-overlay';
+  overlay.innerHTML = `
+    <div class="msg-menu">
+      <p class="del-title">¿Eliminar ${msgs.length} mensaje(s)?</p>
+      <button id="delMe">Eliminar para mí</button>
+      ${todosMios ? `<button id="delAll" class="danger">Eliminar para todos</button>` : ''}
+      <button id="delCancel" class="secondary">Cancelar</button>
+    </div>`;
+  document.body.appendChild(overlay);
+  const close = () => overlay.remove();
+  overlay.onclick = (e) => { if (e.target === overlay) close(); };
+  document.getElementById('delCancel').onclick = close;
+  document.getElementById('delMe').onclick = async () => {
+    close();
+    const filas = msgs.map(m => ({ message_id: m.id, user_id: currentUser.id }));
+    await sb.from('message_hides').upsert(filas, { onConflict: 'message_id,user_id' });
+    msgs.forEach(m => document.querySelector(`.bubble[data-id="${m.id}"]`)?.remove());
+    salirModoSeleccion();
+  };
+  const allBtn = document.getElementById('delAll');
+  if (allBtn) allBtn.onclick = async () => {
+    close();
+    for (const m of msgs) {
+      await sb.from('messages')
+        .update({ deleted_at: new Date().toISOString(), content: null,
+                  attachment_path: null, attachment_name: null,
+                  attachment_type: null, attachment_size: null })
+        .eq('id', m.id);
+    }
+    salirModoSeleccion();
+  };
+}
+
+// Reenvío múltiple: elegir un destino y mandar todos los mensajes
+async function abrirReenviarMultiple(msgs) {
+  const { data: profiles } = await sb.from('profiles').select('id, display_name, avatar_url, avatar_version').neq('id', currentUser.id).order('display_name');
+  const { data: myMem } = await sb.from('group_members').select('group_id').eq('user_id', currentUser.id);
+  const gids = (myMem || []).map(x => x.group_id);
+  let groups = [];
+  if (gids.length) { const { data } = await sb.from('groups').select('id, name, avatar_url, avatar_version').in('id', gids); groups = data || []; }
+
+  const overlay = document.createElement('div');
+  overlay.className = 'fwd-overlay';
+  overlay.innerHTML = `
+    <div class="fwd-box">
+      <p class="crop-title">Reenviar ${msgs.length} mensaje(s) a…</p>
+      <div class="fwd-list">
+        ${groups.map(g => `<div class="fwd-item" data-type="group" data-id="${g.id}">
+          ${avatarUrl(g) ? `<img class="avatar-img sm" src="${esc(avatarUrl(g))}">` : `<div class="avatar sm group-av">${esc((g.name||'?')[0])}</div>`}
+          <span>${esc(g.name)}</span></div>`).join('')}
+        ${profiles.map(p => `<div class="fwd-item" data-type="user" data-id="${p.id}">
+          ${avatarUrl(p) ? `<img class="avatar-img sm" src="${esc(avatarUrl(p))}">` : `<div class="avatar sm">${esc((p.display_name||'?')[0])}</div>`}
+          <span>${esc(p.display_name)}</span></div>`).join('')}
+      </div>
+      <button id="fwdCancel" class="secondary">Cancelar</button>
+    </div>`;
+  document.body.appendChild(overlay);
+  const close = () => overlay.remove();
+  overlay.onclick = (e) => { if (e.target === overlay) close(); };
+  document.getElementById('fwdCancel').onclick = close;
+  overlay.querySelectorAll('.fwd-item').forEach(it => {
+    it.onclick = async () => {
+      for (const m of msgs) await reenviarMensaje(m, it.dataset.type, it.dataset.id);
+      close();
+      salirModoSeleccion();
+      alert('Mensajes reenviados ✓');
+    };
   });
 }
 
@@ -1196,6 +1364,7 @@ function abrirMenuMensaje(msgId) {
       </div>
       <button id="mmReply">↩️ Responder</button>
       <button id="mmForward">↪️ Reenviar</button>
+      <button id="mmSelect">☑️ Seleccionar</button>
       ${mine && m.content ? `<button id="mmEdit">✏️ Editar</button>` : ''}
       <button id="mmDelete" class="danger">🗑️ Borrar</button>
       <button id="mmCancel" class="secondary">Cancelar</button>
@@ -1210,6 +1379,7 @@ function abrirMenuMensaje(msgId) {
   if (editBtn) editBtn.onclick = () => { close(); editarMensaje(m); };
   const delBtn = document.getElementById('mmDelete');
   if (delBtn) delBtn.onclick = () => { close(); borrarMensaje(m); };
+  document.getElementById('mmSelect').onclick = () => { close(); entrarModoSeleccion(m.id); };
   // Reacciones rápidas
   overlay.querySelectorAll('.react-emoji[data-e]').forEach(b =>
     b.onclick = () => { close(); reaccionar(m.id, b.dataset.e); });
@@ -1595,6 +1765,13 @@ function unsubscribe() {
 const val = id => document.getElementById(id).value;
 const esc = s => (s || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+// Pone el número de no leídos en el ícono de la app (PWA instalada).
+function actualizarBadge(n) {
+  try {
+    if (n > 0 && navigator.setAppBadge) navigator.setAppBadge(n);
+    else if (navigator.clearAppBadge) navigator.clearAppBadge();
+  } catch (_) { /* navegador sin soporte: ignorar */ }
+}
 // Hash corto y estable (para nombres de canal): convierte un texto largo
 // en un número compacto en base36. Mismo input => mismo output en ambos lados.
 function hashCorto(str) {
