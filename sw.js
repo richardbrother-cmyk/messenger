@@ -2,7 +2,7 @@
 //  FAMILIA CHAT — sw.js  (v5: notificaciones + badge de no leídos)
 //  Reemplaza tu sw.js por este.
 // ============================================================
-const CACHE = 'familia-chat-v5';
+const CACHE = 'familia-chat-v7';
 const ASSETS = ['./index.html', './styles.css', './app.js', './manifest.json'];
 
 self.addEventListener('install', e => {
