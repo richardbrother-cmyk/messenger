@@ -1007,11 +1007,22 @@ async function loadMessages() {
     if (clearedAt) q = q.gt('created_at', clearedAt);
   }
   const { data } = await q;
+
+  // Mensajes que oculté "para mí" (no se muestran en mi vista)
+  let ocultos = new Set();
+  const ids0 = (data || []).map(m => m.id);
+  if (ids0.length) {
+    const { data: hides } = await sb.from('message_hides')
+      .select('message_id').eq('user_id', currentUser.id).in('message_id', ids0);
+    ocultos = new Set((hides || []).map(h => h.message_id));
+  }
+  const visibles = (data || []).filter(m => !ocultos.has(m.id));
+
   msgCache = {};
-  for (const m of data) msgCache[m.id] = m;
+  for (const m of visibles) msgCache[m.id] = m;
   const box = document.getElementById('messages');
   box.innerHTML = '';
-  for (const m of data) box.insertAdjacentHTML('beforeend', renderBubble(m));
+  for (const m of visibles) box.insertAdjacentHTML('beforeend', renderBubble(m));
   box.scrollTop = box.scrollHeight;
   hydrateAttachments(box);
   attachLongPress(box);
@@ -1258,13 +1269,42 @@ async function editarMensaje(m) {
 
 // --- BORRAR (suave) ---
 async function borrarMensaje(m) {
-  if (!confirm('¿Borrar este mensaje para todos?')) return;
-  const { error } = await sb.from('messages')
-    .update({ deleted_at: new Date().toISOString(), content: null,
-              attachment_path: null, attachment_name: null,
-              attachment_type: null, attachment_size: null })
-    .eq('id', m.id);
-  if (error) { alert('No se pudo borrar: ' + error.message); return; }
+  const mine = m.sender_id === currentUser.id;
+  // Diálogo con opciones: "para mí" siempre; "para todos" solo si es mío
+  const overlay = document.createElement('div');
+  overlay.className = 'msg-menu-overlay';
+  overlay.innerHTML = `
+    <div class="msg-menu">
+      <p class="del-title">¿Eliminar mensaje?</p>
+      <button id="delMe">Eliminar para mí</button>
+      ${mine ? `<button id="delAll" class="danger">Eliminar para todos</button>` : ''}
+      <button id="delCancel" class="secondary">Cancelar</button>
+    </div>`;
+  document.body.appendChild(overlay);
+  const close = () => overlay.remove();
+  overlay.onclick = (e) => { if (e.target === overlay) close(); };
+  document.getElementById('delCancel').onclick = close;
+
+  // Eliminar para mí: lo oculto solo en mi vista
+  document.getElementById('delMe').onclick = async () => {
+    close();
+    const { error } = await sb.from('message_hides')
+      .upsert({ message_id: m.id, user_id: currentUser.id }, { onConflict: 'message_id,user_id' });
+    if (error) { alert('No se pudo eliminar: ' + error.message); return; }
+    document.querySelector(`.bubble[data-id="${m.id}"]`)?.remove();
+  };
+
+  // Eliminar para todos: borrado suave (lo ve borrado todo el mundo)
+  const allBtn = document.getElementById('delAll');
+  if (allBtn) allBtn.onclick = async () => {
+    close();
+    const { error } = await sb.from('messages')
+      .update({ deleted_at: new Date().toISOString(), content: null,
+                attachment_path: null, attachment_name: null,
+                attachment_type: null, attachment_size: null })
+      .eq('id', m.id);
+    if (error) { alert('No se pudo borrar: ' + error.message); return; }
+  };
 }
 
 // --- RESPONDER ---

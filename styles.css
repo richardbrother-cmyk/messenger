@@ -232,6 +232,7 @@ button.link { background: none; color: #4cc9f0; width: auto; padding: .3rem; }
   width: 100%; max-width: 360px;
 }
 .msg-menu button { width: 100%; text-align: left; padding: .9rem 1rem; font-size: 1rem; }
+.del-title { padding: .3rem 1rem .5rem; font-weight: 600; opacity: .85; }
 
 .fwd-overlay {
   position: fixed; inset: 0; z-index: 1100;
