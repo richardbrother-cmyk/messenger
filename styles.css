@@ -85,16 +85,6 @@ button.link { background: none; color: #4cc9f0; width: auto; padding: .3rem; }
   flex: 0 0 auto;
   display: flex;
   align-items: center;
-  gap: .5rem;
-  padding: .6rem .8rem;
-  padding-bottom: calc(.6rem + env(safe-area-inset-bottom));
-  background: #16213e;
-}
-/* === COMPOSITOR (fijo abajo, respeta el área segura) === */
-.composer {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
   gap: .4rem;
   padding: .6rem .6rem;
   padding-bottom: calc(.6rem + env(safe-area-inset-bottom));
@@ -204,6 +194,57 @@ button.link { background: none; color: #4cc9f0; width: auto; padding: .3rem; }
 }
 .emoji:hover { background: #2a2a44; }
 #groupInfoBtn { font-size: 1.3rem; }
+
+/* === Responder / Reenviar === */
+.bubble .quote {
+  border-left: 3px solid #4cc9f0;
+  background: rgba(0,0,0,.18);
+  border-radius: 6px;
+  padding: .3rem .5rem;
+  margin-bottom: .3rem;
+  font-size: .82rem;
+  display: flex; flex-direction: column;
+}
+.quote-author { color: #4cc9f0; font-weight: 600; }
+.quote-text { opacity: .85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px; }
+
+.reply-bar {
+  flex: 0 0 auto;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: .5rem; padding: .5rem .8rem;
+  background: #1c1c30; border-top: 1px solid #2a2a44;
+  border-left: 3px solid #4cc9f0;
+}
+.reply-bar-content { display: flex; flex-direction: column; min-width: 0; }
+.reply-bar-author { color: #4cc9f0; font-weight: 600; font-size: .8rem; }
+.reply-bar-text { opacity: .8; font-size: .85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.msg-menu-overlay {
+  position: fixed; inset: 0; z-index: 1100;
+  background: rgba(0,0,0,.4);
+  display: flex; align-items: flex-end; justify-content: center;
+  padding: 1rem;
+}
+.msg-menu {
+  background: #16213e; border-radius: 16px; padding: .6rem;
+  display: flex; flex-direction: column; gap: .4rem;
+  width: 100%; max-width: 360px;
+}
+.msg-menu button { width: 100%; text-align: left; padding: .9rem 1rem; font-size: 1rem; }
+
+.fwd-overlay {
+  position: fixed; inset: 0; z-index: 1100;
+  background: rgba(0,0,0,.6);
+  display: flex; align-items: center; justify-content: center; padding: 1rem;
+}
+.fwd-box {
+  background: #16213e; border-radius: 16px; padding: 1rem;
+  width: 100%; max-width: 380px; max-height: 80vh;
+  display: flex; flex-direction: column; gap: .6rem;
+}
+.fwd-list { overflow-y: auto; display: flex; flex-direction: column; gap: .2rem; }
+.fwd-item { display: flex; align-items: center; gap: .6rem; padding: .6rem .4rem; border-radius: 8px; cursor: pointer; }
+.fwd-item:hover { background: #2a2a44; }
 
 /* === Editor de recorte de avatar === */
 .crop-overlay {

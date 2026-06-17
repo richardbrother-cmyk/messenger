@@ -18,6 +18,8 @@ let pendingFile = null;
 let pendingChat = null; // { id, name } chat a abrir cuando haya sesión
 let activeIsGroup = false; // si la conversación abierta es un grupo
 let memberNames = {};      // cache id->nombre para mostrar autores en grupos
+let replyingTo = null;     // { id, preview, author } mensaje al que respondo
+let msgCache = {};         // id -> mensaje (para reenviar/citar sin re-consultar)
 
 // Emojis más usados para el selector simple
 const EMOJIS = ['😀','😂','🥰','😍','😘','😎','🤔','😴','😭','😡','👍','👎','👏','🙏','💪','🔥','🎉','❤️','💔','✨','⭐','🌟','💯','✅','❌','🤣','😅','😉','😊','🙂','😇','🤗','🤩','😋','😜','🤪','😏','🥺','😩','😤','👋','🤝','✌️','🤞','👌','🙌','💀','👀','💩','🥳','😱','😬','🤯','🫶','💕','💖','🎂','🍕','☕','🌹'];
@@ -559,7 +561,7 @@ async function openChat(otherId, otherName, otherAvatar) {
   activeChat = otherId;
   activeChatName = otherName;
   activeIsGroup = false;
-  pendingFile = null;
+  pendingFile = null; replyingTo = null;
   if (otherAvatar === undefined) {
     const { data } = await sb.from('profiles').select('avatar_url, avatar_version').eq('id', otherId).single();
     otherAvatar = avatarUrl(data);
@@ -579,7 +581,7 @@ async function openGroup(groupId, groupName, groupAvatar) {
   activeChat = groupId;
   activeChatName = groupName;
   activeIsGroup = true;
-  pendingFile = null;
+  pendingFile = null; replyingTo = null;
   // cargar nombres de miembros para mostrar autores
   memberNames = {};
   const { data: members } = await sb.from('group_members').select('user_id').eq('group_id', groupId);
@@ -657,16 +659,26 @@ async function loadMessages() {
     if (clearedAt) q = q.gt('created_at', clearedAt);
   }
   const { data } = await q;
+  msgCache = {};
+  for (const m of data) msgCache[m.id] = m;
   const box = document.getElementById('messages');
   box.innerHTML = '';
   for (const m of data) box.insertAdjacentHTML('beforeend', renderBubble(m));
   box.scrollTop = box.scrollHeight;
   hydrateAttachments(box);
+  attachLongPress(box);
 }
 
 function renderBubble(m) {
   const mine = m.sender_id === currentUser.id;
   let inner = '';
+  // Cita del mensaje al que responde
+  if (m.reply_to && (m.reply_preview || m.reply_author)) {
+    inner += `<div class="quote">
+      <span class="quote-author">${esc(m.reply_author || '')}</span>
+      <span class="quote-text">${esc(m.reply_preview || '')}</span>
+    </div>`;
+  }
   // En grupos, mostrar el autor encima (solo si no es mío)
   if (activeIsGroup && !mine) {
     const autor = memberNames[m.sender_id] || 'Alguien';
@@ -681,7 +693,148 @@ function renderBubble(m) {
     }
   }
   if (m.content) inner += `<div class="text">${esc(m.content)}</div>`;
-  return `<div class="bubble ${mine ? 'mine' : 'theirs'}">${inner}</div>`;
+  return `<div class="bubble ${mine ? 'mine' : 'theirs'}" data-id="${m.id}">${inner}</div>`;
+}
+
+// Detecta "mantener presionado" (y clic derecho en escritorio) sobre burbujas
+function attachLongPress(box) {
+  let timer = null;
+  const start = (el) => {
+    timer = setTimeout(() => {
+      const id = el.dataset.id;
+      if (id) abrirMenuMensaje(parseInt(id));
+    }, 500);
+  };
+  const cancel = () => { if (timer) { clearTimeout(timer); timer = null; } };
+
+  box.querySelectorAll('.bubble').forEach(el => {
+    el.addEventListener('touchstart', () => start(el), { passive: true });
+    el.addEventListener('touchend', cancel);
+    el.addEventListener('touchmove', cancel);
+    // escritorio: clic derecho
+    el.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      const id = el.dataset.id;
+      if (id) abrirMenuMensaje(parseInt(id));
+    });
+  });
+}
+
+// Menú flotante con Responder / Reenviar
+function abrirMenuMensaje(msgId) {
+  const m = msgCache[msgId];
+  if (!m) return;
+  const overlay = document.createElement('div');
+  overlay.className = 'msg-menu-overlay';
+  overlay.innerHTML = `
+    <div class="msg-menu">
+      <button id="mmReply">↩️ Responder</button>
+      <button id="mmForward">↪️ Reenviar</button>
+      <button id="mmCancel" class="secondary">Cancelar</button>
+    </div>`;
+  document.body.appendChild(overlay);
+  const close = () => overlay.remove();
+  overlay.onclick = (e) => { if (e.target === overlay) close(); };
+  document.getElementById('mmCancel').onclick = close;
+  document.getElementById('mmReply').onclick = () => { close(); iniciarRespuesta(m); };
+  document.getElementById('mmForward').onclick = () => { close(); abrirReenviar(m); };
+}
+
+// --- RESPONDER ---
+function iniciarRespuesta(m) {
+  const preview = m.content
+    ? m.content.slice(0, 80)
+    : (m.attachment_type?.startsWith('image/') ? '📷 Foto' : '📎 Archivo');
+  const author = (m.sender_id === currentUser.id)
+    ? 'Tú'
+    : (memberNames[m.sender_id] || activeChatName || '');
+  replyingTo = { id: m.id, preview, author };
+  mostrarBarraRespuesta();
+  document.getElementById('msgInput')?.focus();
+}
+
+function mostrarBarraRespuesta() {
+  let bar = document.getElementById('replyBar');
+  if (!bar) {
+    bar = document.createElement('div');
+    bar.id = 'replyBar';
+    bar.className = 'reply-bar';
+    const composer = document.querySelector('.composer');
+    composer.parentNode.insertBefore(bar, composer);
+  }
+  bar.innerHTML = `
+    <div class="reply-bar-content">
+      <span class="reply-bar-author">${esc(replyingTo.author)}</span>
+      <span class="reply-bar-text">${esc(replyingTo.preview)}</span>
+    </div>
+    <button id="cancelReply" class="link">✕</button>`;
+  document.getElementById('cancelReply').onclick = cancelarRespuesta;
+}
+
+function cancelarRespuesta() {
+  replyingTo = null;
+  document.getElementById('replyBar')?.remove();
+}
+
+// --- REENVIAR ---
+async function abrirReenviar(m) {
+  // lista de destinos: contactos + grupos
+  const { data: profiles } = await sb.from('profiles').select('id, display_name, avatar_url, avatar_version').neq('id', currentUser.id).order('display_name');
+  const { data: myMem } = await sb.from('group_members').select('group_id').eq('user_id', currentUser.id);
+  const gids = (myMem || []).map(x => x.group_id);
+  let groups = [];
+  if (gids.length) { const { data } = await sb.from('groups').select('id, name, avatar_url, avatar_version').in('id', gids); groups = data || []; }
+
+  const overlay = document.createElement('div');
+  overlay.className = 'fwd-overlay';
+  overlay.innerHTML = `
+    <div class="fwd-box">
+      <p class="crop-title">Reenviar a…</p>
+      <div class="fwd-list">
+        ${groups.map(g => `<div class="fwd-item" data-type="group" data-id="${g.id}">
+          ${avatarUrl(g) ? `<img class="avatar-img sm" src="${esc(avatarUrl(g))}">` : `<div class="avatar sm group-av">${esc((g.name||'?')[0])}</div>`}
+          <span>${esc(g.name)}</span></div>`).join('')}
+        ${profiles.map(p => `<div class="fwd-item" data-type="user" data-id="${p.id}">
+          ${avatarUrl(p) ? `<img class="avatar-img sm" src="${esc(avatarUrl(p))}">` : `<div class="avatar sm">${esc((p.display_name||'?')[0])}</div>`}
+          <span>${esc(p.display_name)}</span></div>`).join('')}
+      </div>
+      <button id="fwdCancel" class="secondary">Cancelar</button>
+    </div>`;
+  document.body.appendChild(overlay);
+  const close = () => overlay.remove();
+  overlay.onclick = (e) => { if (e.target === overlay) close(); };
+  document.getElementById('fwdCancel').onclick = close;
+  overlay.querySelectorAll('.fwd-item').forEach(it => {
+    it.onclick = async () => {
+      await reenviarMensaje(m, it.dataset.type, it.dataset.id);
+      close();
+      alert('Mensaje reenviado ✓');
+    };
+  });
+}
+
+async function reenviarMensaje(m, destType, destId) {
+  // copia contenido y, si hay archivo, copia el archivo a una ruta nueva
+  const row = { sender_id: currentUser.id, content: m.content || null };
+  if (destType === 'group') row.group_id = destId;
+  else row.recipient_id = destId;
+
+  if (m.attachment_path) {
+    try {
+      // descarga el original y lo sube como archivo nuevo del usuario
+      const { data: file } = await sb.storage.from('attachments').download(m.attachment_path);
+      if (file) {
+        const safeName = (m.attachment_name || 'archivo').replace(/[^\w.\-]/g, '_');
+        const newPath = `${currentUser.id}/${Date.now()}-${safeName}`;
+        await sb.storage.from('attachments').upload(newPath, file, { contentType: m.attachment_type || 'application/octet-stream' });
+        row.attachment_path = newPath;
+        row.attachment_name = m.attachment_name;
+        row.attachment_type = m.attachment_type;
+        row.attachment_size = m.attachment_size;
+      }
+    } catch (e) { console.warn('No se pudo copiar el archivo al reenviar:', e); }
+  }
+  await sb.from('messages').insert(row);
 }
 
 async function hydrateAttachments(box) {
@@ -759,7 +912,15 @@ async function sendMessage() {
   if (activeIsGroup) row.group_id = activeChat;
   else row.recipient_id = activeChat;
 
+  // Si estoy respondiendo, adjunta la cita
+  if (replyingTo) {
+    row.reply_to = replyingTo.id;
+    row.reply_preview = replyingTo.preview;
+    row.reply_author = replyingTo.author;
+  }
+
   await sb.from('messages').insert(row);
+  cancelarRespuesta();
   clearPendingFile();
   sendBtn.disabled = false;
 }
@@ -776,10 +937,12 @@ function subscribe() {
                    (m.sender_id === activeChat && m.recipient_id === currentUser.id);
       }
       if (!relevant) return;
+      msgCache[m.id] = m;
       const box = document.getElementById('messages');
       box.insertAdjacentHTML('beforeend', renderBubble(m));
       box.scrollTop = box.scrollHeight;
       hydrateAttachments(box);
+      attachLongPress(box);
     }).subscribe();
 }
 
