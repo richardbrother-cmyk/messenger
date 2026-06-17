@@ -745,19 +745,18 @@ function pintarMensajePropio(m) {
 }
 
 // === "ESTÁ ESCRIBIENDO…" ===
-let typingLastSent = 0, typingHideTimer = null;
+let typingLastSent = 0, typingHideTimer = null, channelReady = false;
 
 function emitirEscribiendo() {
   const ahora = Date.now();
   if (ahora - typingLastSent < 2000) return; // no spamear
+  if (!channel || !channelReady) return;     // canal aún no listo
   typingLastSent = ahora;
-  if (channel) {
-    channel.send({
-      type: 'broadcast',
-      event: 'typing',
-      payload: { userId: currentUser.id, name: currentProfile?.display_name || 'Alguien' }
-    });
-  }
+  channel.send({
+    type: 'broadcast',
+    event: 'typing',
+    payload: { userId: currentUser.id, name: currentProfile?.display_name || 'Alguien' }
+  }).catch(() => {}); // si falla, no romper
 }
 
 function mostrarEscribiendo(nombre) {
@@ -1540,11 +1539,14 @@ function subscribe() {
       await cargarReacciones();
       for (const id of Object.keys(msgCache)) repintarReacciones(id);
     })
-    .subscribe();
+    .subscribe((status) => {
+      channelReady = (status === 'SUBSCRIBED');
+    });
 }
 
 function unsubscribe() {
   if (channel) { sb.removeChannel(channel); channel = null; }
+  channelReady = false;
   document.getElementById('typingInd')?.remove();
   clearTimeout(typingHideTimer);
 }
