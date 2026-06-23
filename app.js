@@ -116,13 +116,47 @@ function abrirChatDesdeURL() {
     // vino desde una notificación de llamada (app estaba cerrada)
     const callName = params.get('name');
     history.replaceState({}, '', location.pathname);
-    abrirChatPorId(callId, callName);
-    // la oferta de llamada, si sigue activa, llegará por el inbox al suscribirse
+    // buscar la oferta pendiente en la base (el broadcast en vivo pudo perderse)
+    recuperarLlamadaPendiente(callId, callName);
     return;
   }
   if (!chatId) return;
   history.replaceState({}, '', location.pathname); // limpia la URL
   abrirChatPorId(chatId, chatName);
+}
+
+// Al abrir desde la notificación: buscar si hay una llamada entrante activa
+// y, si la oferta está guardada, mostrar la pantalla de aceptar/rechazar.
+async function recuperarLlamadaPendiente(callerId, callerName) {
+  // dar un momento a que la sesión esté lista
+  for (let i = 0; i < 20 && !currentUser; i++) await sleep(150);
+  if (!currentUser) return;
+  try {
+    const { data } = await sb.from('calls')
+      .select('*')
+      .eq('callee_id', currentUser.id)
+      .eq('caller_id', callerId)
+      .eq('status', 'ringing')
+      .order('started_at', { ascending: false })
+      .limit(1);
+    const llamada = data && data[0];
+    if (llamada && llamada.offer_sdp) {
+      // ¿sigue vigente? (menos de 60s desde que empezó)
+      const edad = (Date.now() - new Date(llamada.started_at).getTime()) / 1000;
+      if (edad < 60) {
+        recibirLlamada({
+          from: callerId, sdp: llamada.offer_sdp,
+          kind: llamada.offer_kind || 'audio',
+          callerName: callerName || 'Alguien'
+        });
+        return;
+      }
+    }
+    // no hay oferta vigente: solo abrir el chat
+    abrirChatPorId(callerId, callerName);
+  } catch (e) {
+    abrirChatPorId(callerId, callerName);
+  }
 }
 
 // === AUTH ===
@@ -2005,9 +2039,12 @@ async function iniciarLlamada(otherId, otherName, otherAvatar, kind) {
     console.error('Error enviando push de llamada:', e);
   }
 
-  // registrar la llamada (historial) — si falla, no debe afectar la llamada
+  // registrar la llamada (historial) + guardar la oferta para arranque en frío
   try {
-    await sb.from('calls').insert({ caller_id: currentUser.id, callee_id: otherId, kind, status: 'ringing' });
+    await sb.from('calls').insert({
+      caller_id: currentUser.id, callee_id: otherId, kind, status: 'ringing',
+      offer_sdp: offer, offer_kind: kind
+    });
   } catch (e) {
     console.warn('No se pudo registrar la llamada en historial:', e);
   }
@@ -2051,11 +2088,28 @@ async function aceptarLlamada() {
   await pc.setRemoteDescription(new RTCSessionDescription(pendingOffer));
   const answer = await pc.createAnswer();
   await pc.setLocalDescription(answer);
-  callChannel.send({ type: 'broadcast', event: 'call-answer',
-    payload: { sdp: answer, from: currentUser.id } });
+
+  // enviar la respuesta cuando el canal esté listo (evita perderla en arranque en frío)
+  enviarAnswerConReintento(answer, 0);
+
+  // marcar la llamada como aceptada
+  try {
+    await sb.from('calls').update({ status: 'accepted' })
+      .eq('callee_id', currentUser.id).eq('caller_id', callPeerId).eq('status', 'ringing');
+  } catch (_) {}
 
   mostrarPantallaLlamada(document.getElementById('incomingName')?.textContent || 'Llamada', '', 'Conectando…');
   iniciarContador();
+}
+
+function enviarAnswerConReintento(answer, intento) {
+  if (!callChannel || intento > 10) return;
+  if (callChannel.state === 'joined') {
+    callChannel.send({ type: 'broadcast', event: 'call-answer',
+      payload: { sdp: answer, from: currentUser.id } });
+  } else {
+    setTimeout(() => enviarAnswerConReintento(answer, intento + 1), 200);
+  }
 }
 
 function rechazarLlamada() {
