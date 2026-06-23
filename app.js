@@ -1852,9 +1852,9 @@ function formatSize(bytes) {
 const ICE_SERVERS = [
   { urls: 'stun:stun.l.google.com:19302' },
   // === PEGA AQUÍ TUS CREDENCIALES TURN (ejemplo Metered) ===
-  // { urls: 'turn:a.relay.metered.ca:80', username: 'TU_USUARIO', credential: 'TU_PASSWORD' },
-  // { urls: 'turn:a.relay.metered.ca:443', username: 'TU_USUARIO', credential: 'TU_PASSWORD' },
-  // { urls: 'turn:a.relay.metered.ca:443?transport=tcp', username: 'TU_USUARIO', credential: 'TU_PASSWORD' },
+  // { urls: 'turn:a.relay.metered.ca:80', username: 'hb.ricardo@outlook.com', credential: 'RicYes13#*' },
+  // { urls: 'turn:a.relay.metered.ca:443', username: 'hb.ricardo@outlook.com', credential: 'RicYes13#*' },
+  // { urls: 'turn:a.relay.metered.ca:443?transport=tcp', username: 'hb.ricardo@outlook.com', credential: 'RicYes13#*' },
 ];
 
 let pc = null;                 // RTCPeerConnection actual
