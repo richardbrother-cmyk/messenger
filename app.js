@@ -1910,7 +1910,11 @@ function abrirCanalSenal(otherId) {
   callChannel
     .on('broadcast', { event: 'call-answer' }, ({ payload }) => onAnswer(payload))
     .on('broadcast', { event: 'call-ice' }, ({ payload }) => onRemoteIce(payload))
-    .on('broadcast', { event: 'call-reject' }, () => { finalizarLlamada('rechazada'); })
+    .on('broadcast', { event: 'call-reject' }, () => {
+      // si yo era quien llamaba, registrar como perdida/rechazada
+      if (callRole === 'caller') registrarPerdida(callPeerId);
+      finalizarLlamada('rechazada');
+    })
     .on('broadcast', { event: 'call-busy' }, () => { finalizarLlamada('ocupado'); })
     .on('broadcast', { event: 'call-end' }, () => { finalizarLlamada('colgó'); })
     .subscribe();
@@ -1977,24 +1981,32 @@ async function iniciarLlamada(otherId, otherName, otherAvatar, kind) {
   const offer = await pc.createOffer();
   await pc.setLocalDescription(offer);
 
-  // registrar la llamada (historial)
-  await sb.from('calls').insert({ caller_id: currentUser.id, callee_id: otherId, kind, status: 'ringing' });
-
   // mandar la oferta al inbox del otro (app abierta)
   enviarSenal(otherId, 'call-offer', {
     sdp: offer, kind, callerName: currentProfile?.display_name || 'Alguien',
     callerAvatar: otherAvatar || ''
   });
 
-  // push de "llamada entrante" (por si tiene la app cerrada)
+  // push de "llamada entrante" PRIMERO (por si tiene la app cerrada),
+  // para que no dependa de que otras operaciones tengan éxito.
   try {
-    await fetch(`${SUPABASE_URL}/functions/v1/send-call`, {
+    const r = await fetch(`${SUPABASE_URL}/functions/v1/send-call`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_KEY}` },
       body: JSON.stringify({ calleeId: otherId, callerId: currentUser.id,
         callerName: currentProfile?.display_name || 'Alguien', kind })
     });
-  } catch (_) {}
+    console.log('send-call status:', r.status, await r.clone().text());
+  } catch (e) {
+    console.error('Error enviando push de llamada:', e);
+  }
+
+  // registrar la llamada (historial) — si falla, no debe afectar la llamada
+  try {
+    await sb.from('calls').insert({ caller_id: currentUser.id, callee_id: otherId, kind, status: 'ringing' });
+  } catch (e) {
+    console.warn('No se pudo registrar la llamada en historial:', e);
+  }
 
   // si en 35s no contestan, marcar perdida
   callRingTimeout = setTimeout(() => {
@@ -2009,6 +2021,9 @@ async function iniciarLlamada(otherId, otherName, otherAvatar, kind) {
 function recibirLlamada(payload) {
   callPeerId = payload.from; callKind = payload.kind; callRole = 'callee';
   pendingOffer = payload.sdp;
+  // Abrir YA el canal de señalización compartido, para poder responder
+  // (aceptar o rechazar) por la misma vía que escucha quien llama.
+  abrirCanalSenal(callPeerId);
   mostrarLlamadaEntrante(payload.callerName || 'Alguien', payload.kind);
   sonarTono('entrante');
 }
@@ -2024,7 +2039,8 @@ async function aceptarLlamada() {
     rechazarLlamada();
     return;
   }
-  abrirCanalSenal(callPeerId);
+  // el canal ya se abrió en recibirLlamada; no reabrir
+  if (!callChannel) abrirCanalSenal(callPeerId);
   crearPeerConnection();
   localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
 
@@ -2040,8 +2056,25 @@ async function aceptarLlamada() {
 
 function rechazarLlamada() {
   detenerTono();
-  enviarSenal(callPeerId, 'call-reject', {});
-  cerrarTodoLlamada();
+  // Enviar el rechazo y cerrar tras un pequeño margen para que la señal salga.
+  const cerrar = () => cerrarTodoLlamada();
+  if (callChannel && callChannel.state === 'joined') {
+    callChannel.send({ type: 'broadcast', event: 'call-reject', payload: { from: currentUser.id } })
+      .finally(() => setTimeout(cerrar, 150));
+  } else if (callChannel) {
+    // canal aún no listo: esperar a que se una y entonces enviar
+    let intentos = 0;
+    const t = setInterval(() => {
+      intentos++;
+      if (callChannel && callChannel.state === 'joined') {
+        callChannel.send({ type: 'broadcast', event: 'call-reject', payload: { from: currentUser.id } })
+          .finally(() => setTimeout(cerrar, 150));
+        clearInterval(t);
+      } else if (intentos > 8) { clearInterval(t); cerrar(); }
+    }, 150);
+  } else {
+    cerrar();
+  }
 }
 
 // El que llamó recibe la respuesta
@@ -2074,8 +2107,14 @@ async function onRemoteIce(payload) {
 
 // === COLGAR / FINALIZAR ===
 function colgar() {
-  if (callChannel) callChannel.send({ type: 'broadcast', event: 'call-end', payload: { from: currentUser.id } });
-  finalizarLlamada('terminada');
+  if (callChannel && callChannel.state === 'joined') {
+    callChannel.send({ type: 'broadcast', event: 'call-end', payload: { from: currentUser.id } })
+      .finally(() => finalizarLlamada('terminada'));
+    // por si el finally tarda, cerrar igual tras un margen
+    setTimeout(() => finalizarLlamada('terminada'), 300);
+  } else {
+    finalizarLlamada('terminada');
+  }
 }
 
 function finalizarLlamada(motivo) {
