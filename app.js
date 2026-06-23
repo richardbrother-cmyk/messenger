@@ -1863,11 +1863,15 @@ function formatSize(bytes) {
 // STUN gratis (Google). El TURN lo necesitas para que funcione en datos
 // móviles / redes difíciles. Pega aquí tus credenciales de Metered/Cloudflare.
 const ICE_SERVERS = [
-  { urls: 'stun:stun.l.google.com:19302' },
-  // === PEGA AQUÍ TUS CREDENCIALES TURN (ejemplo Metered) ===
-  // { urls: 'turn:a.relay.metered.ca:80', username: 'hb.ricardo@outlook.com', credential: 'RicYes13#*' },
-  // { urls: 'turn:a.relay.metered.ca:443', username: 'hb.ricardo@outlook.com', credential: 'RicYes13#*' },
-  // { urls: 'turn:a.relay.metered.ca:443?transport=tcp', username: 'hb.ricardo@outlook.com', credential: 'RicYes13#*' },
+  { urls: 'stun:stun.relay.metered.ca:80' },
+  { urls: 'turn:global.relay.metered.ca:80',
+    username: 'b291766bde5645c8a116d4ae', credential: 'P5i0Hx7sseoLtuF/' },
+  { urls: 'turn:global.relay.metered.ca:80?transport=tcp',
+    username: 'b291766bde5645c8a116d4ae', credential: 'P5i0Hx7sseoLtuF/' },
+  { urls: 'turn:global.relay.metered.ca:443',
+    username: 'b291766bde5645c8a116d4ae', credential: 'P5i0Hx7sseoLtuF/' },
+  { urls: 'turns:global.relay.metered.ca:443?transport=tcp',
+    username: 'b291766bde5645c8a116d4ae', credential: 'P5i0Hx7sseoLtuF/' },
 ];
 
 let pc = null;                 // RTCPeerConnection actual
@@ -1911,16 +1915,13 @@ function abrirCanalSenal(otherId) {
     .on('broadcast', { event: 'call-answer' }, ({ payload }) => onAnswer(payload))
     .on('broadcast', { event: 'call-ice' }, ({ payload }) => onRemoteIce(payload))
     .on('broadcast', { event: 'call-reject' }, () => {
-      console.warn('[LLAMADA] recibí call-reject, rol:', callRole);
       // si yo era quien llamaba, registrar como perdida/rechazada
       if (callRole === 'caller') registrarPerdida(callPeerId);
       finalizarLlamada('rechazada');
     })
     .on('broadcast', { event: 'call-busy' }, () => { finalizarLlamada('ocupado'); })
     .on('broadcast', { event: 'call-end' }, () => { finalizarLlamada('colgó'); })
-    .subscribe((status) => {
-      console.warn('[LLAMADA] canal señal', nombre, '->', status);
-    });
+    .subscribe();
 }
 
 // Envía una señal puntual al inbox del otro (para la oferta inicial)
@@ -1999,10 +2000,9 @@ async function iniciarLlamada(otherId, otherName, otherAvatar, kind) {
       body: JSON.stringify({ calleeId: otherId, callerId: currentUser.id,
         callerName: currentProfile?.display_name || 'Alguien', kind })
     });
-    const txt = await r.clone().text();
-    console.warn('[LLAMADA] send-call status:', r.status, txt);  // visible en Warnings
+    if (!r.ok) console.warn('send-call status:', r.status);
   } catch (e) {
-    console.error('[LLAMADA] Error enviando push:', e);
+    console.error('Error enviando push de llamada:', e);
   }
 
   // registrar la llamada (historial) — si falla, no debe afectar la llamada
