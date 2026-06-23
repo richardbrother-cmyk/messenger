@@ -1911,13 +1911,16 @@ function abrirCanalSenal(otherId) {
     .on('broadcast', { event: 'call-answer' }, ({ payload }) => onAnswer(payload))
     .on('broadcast', { event: 'call-ice' }, ({ payload }) => onRemoteIce(payload))
     .on('broadcast', { event: 'call-reject' }, () => {
+      console.warn('[LLAMADA] recibí call-reject, rol:', callRole);
       // si yo era quien llamaba, registrar como perdida/rechazada
       if (callRole === 'caller') registrarPerdida(callPeerId);
       finalizarLlamada('rechazada');
     })
     .on('broadcast', { event: 'call-busy' }, () => { finalizarLlamada('ocupado'); })
     .on('broadcast', { event: 'call-end' }, () => { finalizarLlamada('colgó'); })
-    .subscribe();
+    .subscribe((status) => {
+      console.warn('[LLAMADA] canal señal', nombre, '->', status);
+    });
 }
 
 // Envía una señal puntual al inbox del otro (para la oferta inicial)
@@ -1996,9 +1999,10 @@ async function iniciarLlamada(otherId, otherName, otherAvatar, kind) {
       body: JSON.stringify({ calleeId: otherId, callerId: currentUser.id,
         callerName: currentProfile?.display_name || 'Alguien', kind })
     });
-    console.log('send-call status:', r.status, await r.clone().text());
+    const txt = await r.clone().text();
+    console.warn('[LLAMADA] send-call status:', r.status, txt);  // visible en Warnings
   } catch (e) {
-    console.error('Error enviando push de llamada:', e);
+    console.error('[LLAMADA] Error enviando push:', e);
   }
 
   // registrar la llamada (historial) — si falla, no debe afectar la llamada
