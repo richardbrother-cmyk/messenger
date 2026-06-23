@@ -2,7 +2,7 @@
 //  FAMILIA CHAT — sw.js  (v5: notificaciones + badge de no leídos)
 //  Reemplaza tu sw.js por este.
 // ============================================================
-const CACHE = 'familia-chat-v7';
+const CACHE = 'familia-chat-v6';
 const ASSETS = ['./index.html', './styles.css', './app.js', './manifest.json'];
 
 self.addEventListener('install', e => {
@@ -25,6 +25,29 @@ self.addEventListener('fetch', e => {
 self.addEventListener('push', e => {
   let data = { title: 'Familia Chat', body: 'Nuevo mensaje' };
   try { data = e.data.json(); } catch {}
+
+  // --- Llamada entrante: notificación especial ---
+  if (data.isCall) {
+    e.waitUntil(
+      self.registration.showNotification(data.title, {
+        body: data.body,
+        icon: data.icon || 'icon-192.png',
+        badge: 'badge-96.png',
+        vibrate: [300, 100, 300, 100, 300],
+        tag: 'llamada-' + data.callerId,
+        renotify: true,
+        requireInteraction: true,   // se queda hasta que el usuario actúe
+        data: {
+          isCall: true,
+          callerId: data.callerId,
+          callerName: data.callerName,
+          kind: data.kind,
+          url: `./index.html?call=${data.callerId}&name=${encodeURIComponent(data.callerName || '')}&kind=${data.kind || 'audio'}`
+        }
+      })
+    );
+    return;
+  }
 
   const acciones = (async () => {
     // Badge: número real de no leídos que mandó la Edge Function
@@ -53,12 +76,30 @@ self.addEventListener('push', e => {
   e.waitUntil(acciones);
 });
 
-// === Al tocar: abrir la app y, si se puede, ese chat ===
+// === Al tocar: abrir la app y, si se puede, ese chat o llamada ===
 self.addEventListener('notificationclick', e => {
   e.notification.close();
-  const senderId = e.notification.data?.senderId;
-  const senderName = e.notification.data?.senderName;
+  const d = e.notification.data || {};
 
+  // Llamada entrante
+  if (d.isCall) {
+    e.waitUntil(
+      clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+        for (const c of list) {
+          if ('focus' in c) {
+            c.focus();
+            c.postMessage({ type: 'incoming-call', callerId: d.callerId, callerName: d.callerName, kind: d.kind });
+            return;
+          }
+        }
+        return clients.openWindow(d.url || './index.html');
+      })
+    );
+    return;
+  }
+
+  const senderId = d.senderId;
+  const senderName = d.senderName;
   e.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
       for (const c of list) {

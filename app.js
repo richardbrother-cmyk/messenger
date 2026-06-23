@@ -100,6 +100,10 @@ if ('serviceWorker' in navigator) {
     if (event.data?.type === 'open-chat' && event.data.senderId) {
       abrirChatPorId(event.data.senderId, event.data.senderName);
     }
+    if (event.data?.type === 'incoming-call' && event.data.callerId) {
+      // tocó la notificación de llamada: abrir el chat (la oferta llega por el inbox)
+      abrirChatPorId(event.data.callerId, event.data.callerName);
+    }
   });
 }
 
@@ -107,6 +111,15 @@ function abrirChatDesdeURL() {
   const params = new URLSearchParams(location.search);
   const chatId = params.get('chat');
   const chatName = params.get('name');
+  const callId = params.get('call');
+  if (callId) {
+    // vino desde una notificación de llamada (app estaba cerrada)
+    const callName = params.get('name');
+    history.replaceState({}, '', location.pathname);
+    abrirChatPorId(callId, callName);
+    // la oferta de llamada, si sigue activa, llegará por el inbox al suscribirse
+    return;
+  }
   if (!chatId) return;
   history.replaceState({}, '', location.pathname); // limpia la URL
   abrirChatPorId(chatId, chatName);
@@ -1865,6 +1878,7 @@ let callPeerId = null;         // id del otro en la llamada
 let callKind = 'audio';        // 'audio' | 'video'
 let callRole = null;           // 'caller' | 'callee'
 let callTimer = null, callSeconds = 0;
+let callRingTimeout = null;
 let ringAudio = null;
 
 // Canal global del usuario para RECIBIR llamadas entrantes (siempre activo)
@@ -1966,11 +1980,29 @@ async function iniciarLlamada(otherId, otherName, otherAvatar, kind) {
   // registrar la llamada (historial)
   await sb.from('calls').insert({ caller_id: currentUser.id, callee_id: otherId, kind, status: 'ringing' });
 
-  // mandar la oferta al inbox del otro
+  // mandar la oferta al inbox del otro (app abierta)
   enviarSenal(otherId, 'call-offer', {
     sdp: offer, kind, callerName: currentProfile?.display_name || 'Alguien',
     callerAvatar: otherAvatar || ''
   });
+
+  // push de "llamada entrante" (por si tiene la app cerrada)
+  try {
+    await fetch(`${SUPABASE_URL}/functions/v1/send-call`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_KEY}` },
+      body: JSON.stringify({ calleeId: otherId, callerId: currentUser.id,
+        callerName: currentProfile?.display_name || 'Alguien', kind })
+    });
+  } catch (_) {}
+
+  // si en 35s no contestan, marcar perdida
+  callRingTimeout = setTimeout(() => {
+    if (pc && callRole === 'caller' && (!pc.remoteDescription)) {
+      registrarPerdida(otherId);
+      finalizarLlamada('sin respuesta');
+    }
+  }, 35000);
 }
 
 // === RECIBIR (me llaman) ===
@@ -2015,11 +2047,23 @@ function rechazarLlamada() {
 // El que llamó recibe la respuesta
 async function onAnswer(payload) {
   detenerTono();
+  if (callRingTimeout) { clearTimeout(callRingTimeout); callRingTimeout = null; }
   if (!pc) return;
   await pc.setRemoteDescription(new RTCSessionDescription(payload.sdp));
   const estado = document.getElementById('callStatus');
   if (estado) estado.textContent = 'Conectado';
   iniciarContador();
+}
+
+// Registra una llamada perdida como mensaje en el chat
+async function registrarPerdida(otherId) {
+  try {
+    await sb.from('messages').insert({
+      sender_id: currentUser.id,
+      recipient_id: otherId,
+      content: callKind === 'video' ? '📹 Videollamada perdida' : '📞 Llamada perdida'
+    });
+  } catch (_) {}
 }
 
 async function onRemoteIce(payload) {
@@ -2041,6 +2085,7 @@ function finalizarLlamada(motivo) {
 
 function cerrarTodoLlamada() {
   if (callTimer) { clearInterval(callTimer); callTimer = null; }
+  if (callRingTimeout) { clearTimeout(callRingTimeout); callRingTimeout = null; }
   callSeconds = 0;
   if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
   if (pc) { pc.close(); pc = null; }
