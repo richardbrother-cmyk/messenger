@@ -918,9 +918,10 @@ async function openChat(otherId, otherName, otherAvatar) {
   const avatarHtml = otherAvatar
     ? `<img class="avatar-img chat-av" src="${esc(otherAvatar)}" alt="">`
     : `<div class="avatar chat-av">${esc((otherName||'?')[0])}</div>`;
-  app.innerHTML = chatShell(`${avatarHtml}<span class="chat-title">${esc(otherName)}</span>`, true, true);
+  app.innerHTML = chatShell(`<div class="chat-head-info" id="peerHead">${avatarHtml}<span class="chat-title">${esc(otherName)}</span></div>`, true, true);
   document.getElementById('backBtn').onclick = () => { unsubscribe(); renderChats(); };
   document.getElementById('clearBtn').onclick = limpiarConversacion;
+  document.getElementById('peerHead').onclick = () => verPerfilUsuario(otherId, otherName, otherAvatar);
   document.getElementById('callAudioBtn').onclick = () => iniciarLlamada(otherId, otherName, otherAvatar, 'audio');
   document.getElementById('callVideoBtn').onclick = () => iniciarLlamada(otherId, otherName, otherAvatar, 'video');
   wireComposer();
@@ -1887,6 +1888,56 @@ function formatSize(bytes) {
   const u = ['B', 'KB', 'MB', 'GB']; let i = 0, n = bytes;
   while (n >= 1024 && i < u.length - 1) { n /= 1024; i++; }
   return `${n.toFixed(n < 10 && i > 0 ? 1 : 0)} ${u[i]}`;
+}
+
+// ============================================================
+//  PERFIL DE OTRO USUARIO (solo lectura)
+// ============================================================
+async function verPerfilUsuario(otherId, otherName, otherAvatar) {
+  // refrescar datos por si cambió foto/nombre
+  let prof = { display_name: otherName, avatar_url: null, avatar_version: 0 };
+  try {
+    const { data } = await sb.from('profiles').select('*').eq('id', otherId).single();
+    if (data) prof = data;
+  } catch (_) {}
+  const av = avatarUrl(prof) || otherAvatar;
+  const nombre = prof.display_name || otherName || 'Usuario';
+
+  const overlay = document.createElement('div');
+  overlay.id = 'peerProfileOverlay';
+  overlay.className = 'peer-profile-overlay';
+  overlay.innerHTML = `
+    <div class="peer-profile">
+      <button class="link peer-close" id="peerClose">✕</button>
+      ${av
+        ? `<img class="peer-avatar" id="peerAvatarImg" src="${esc(av)}" alt="${esc(nombre)}">`
+        : `<div class="peer-avatar placeholder">${esc((nombre||'?')[0])}</div>`}
+      <div class="peer-name">${esc(nombre)}</div>
+      <div class="peer-actions">
+        <button class="peer-act" id="peerCallAudio">📞<span>Llamar</span></button>
+        <button class="peer-act" id="peerCallVideo">📹<span>Video</span></button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  const close = () => overlay.remove();
+  overlay.onclick = (e) => { if (e.target === overlay) close(); };
+  document.getElementById('peerClose').onclick = close;
+  document.getElementById('peerCallAudio').onclick = () => { close(); iniciarLlamada(otherId, nombre, av, 'audio'); };
+  document.getElementById('peerCallVideo').onclick = () => { close(); iniciarLlamada(otherId, nombre, av, 'video'); };
+  // tocar la foto la muestra a tamaño completo
+  const img = document.getElementById('peerAvatarImg');
+  if (img) img.onclick = () => verImagenCompleta(av);
+}
+
+// Muestra una imagen a pantalla completa (reusable)
+function verImagenCompleta(url) {
+  if (!url) return;
+  const ov = document.createElement('div');
+  ov.className = 'img-full-overlay';
+  ov.innerHTML = `<img src="${esc(url)}" alt=""><button class="link img-full-close">✕</button>`;
+  document.body.appendChild(ov);
+  const close = () => ov.remove();
+  ov.onclick = close;
 }
 
 // ============================================================
