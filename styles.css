@@ -390,6 +390,67 @@ button.link { background: none; color: #4cc9f0; width: auto; padding: .3rem; }
 .sel-bar .link { font-size: 1.3rem; min-width: 40px; min-height: 40px; }
 .bubble.selected { outline: 2px solid #4cc9f0; background: #2f4a6e; }
 
+/* === Llamadas y videollamadas === */
+.call-overlay {
+  position: fixed; inset: 0; z-index: 2000;
+  background: #0d1020;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+}
+.call-box {
+  display: flex; flex-direction: column; align-items: center; gap: 1rem;
+  padding: 2rem;
+}
+.call-avatar {
+  width: 110px; height: 110px; border-radius: 50%;
+  background: #4361ee; display: flex; align-items: center; justify-content: center;
+  font-size: 3rem; font-weight: bold; text-transform: uppercase; color: #fff;
+}
+.call-name { font-size: 1.4rem; font-weight: 600; }
+.call-sub { opacity: .7; font-size: .95rem; }
+.call-actions { display: flex; gap: 1.5rem; margin-top: 1.5rem; }
+
+.call-btn {
+  width: auto; padding: .9rem 1.3rem; border-radius: 30px;
+  font-size: 1rem; background: #2a2a44; min-height: 56px;
+}
+.call-btn.accept { background: #2ecc71; }
+.call-btn.reject { background: #e74c3c; }
+.call-btn.off { background: #c0392b; opacity: .8; }
+
+/* Llamada activa */
+.call-overlay.active { justify-content: space-between; padding: 0; }
+.call-videos { position: relative; flex: 1 1 auto; width: 100%; overflow: hidden; }
+.call-videos #remoteVideo {
+  width: 100%; height: 100%; object-fit: cover; background: #000;
+}
+.call-videos #localVideo {
+  position: absolute; top: 1rem; right: 1rem;
+  width: 110px; height: 150px; object-fit: cover;
+  border-radius: 12px; border: 2px solid rgba(255,255,255,.5); background: #000;
+  z-index: 2;
+}
+.call-videos.audio-only #remoteVideo { display: none; }
+.call-videos.audio-only #localVideo { display: none; }
+.call-videos.audio-only {
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(160deg, #1a1a2e, #2a2a44);
+}
+.call-info {
+  position: absolute; top: 2rem; left: 0; right: 0;
+  text-align: center; z-index: 1; text-shadow: 0 1px 4px rgba(0,0,0,.6);
+}
+.call-videos.audio-only .call-info { position: static; }
+.call-controls {
+  display: flex; gap: 1.5rem; justify-content: center;
+  padding: 2rem; padding-bottom: calc(2rem + env(safe-area-inset-bottom));
+  width: 100%; background: rgba(0,0,0,.3);
+}
+.call-controls .call-btn {
+  width: 60px; height: 60px; min-height: 60px; padding: 0;
+  border-radius: 50%; font-size: 1.4rem;
+}
+
 /* === Editor de recorte de avatar === */
 .crop-overlay {
   position: fixed; inset: 0; z-index: 1000;

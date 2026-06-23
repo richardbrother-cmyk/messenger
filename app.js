@@ -120,6 +120,7 @@ async function init() {
     await loadProfile();
     renderChats();
     setupPush();
+    iniciarInbox();   // escuchar llamadas entrantes
     if (pendingChat) { abrirChatPorId(pendingChat.id, pendingChat.name); pendingChat = null; }
     abrirChatDesdeURL();
   } else {
@@ -164,6 +165,7 @@ async function login() {
   await loadProfile();
   renderChats();
   setupPush();
+  iniciarInbox();   // escuchar llamadas entrantes
   if (pendingChat) { abrirChatPorId(pendingChat.id, pendingChat.name); pendingChat = null; }
 }
 
@@ -557,11 +559,13 @@ async function deleteAccount() {
 let activeChatName = '';
 
 // Construye el HTML común del chat (header + mensajes + compositor con emojis)
-function chatShell(titleHtml, withClear) {
+function chatShell(titleHtml, withClear, conLlamadas) {
   return `
     <div class="header">
       <button class="link" id="backBtn">←</button>
       ${titleHtml}
+      ${conLlamadas ? `<button class="link" id="callAudioBtn" title="Llamar">📞</button>
+      <button class="link" id="callVideoBtn" title="Videollamada">📹</button>` : ''}
       <button class="link" id="searchBtn" title="Buscar">🔍</button>
       ${withClear ? `<button class="link" id="clearBtn" title="Limpiar conversación">🗑️</button>` : ''}
     </div>
@@ -867,9 +871,11 @@ async function openChat(otherId, otherName, otherAvatar) {
   const avatarHtml = otherAvatar
     ? `<img class="avatar-img chat-av" src="${esc(otherAvatar)}" alt="">`
     : `<div class="avatar chat-av">${esc((otherName||'?')[0])}</div>`;
-  app.innerHTML = chatShell(`${avatarHtml}<span class="chat-title">${esc(otherName)}</span>`, true);
+  app.innerHTML = chatShell(`${avatarHtml}<span class="chat-title">${esc(otherName)}</span>`, true, true);
   document.getElementById('backBtn').onclick = () => { unsubscribe(); renderChats(); };
   document.getElementById('clearBtn').onclick = limpiarConversacion;
+  document.getElementById('callAudioBtn').onclick = () => iniciarLlamada(otherId, otherName, otherAvatar, 'audio');
+  document.getElementById('callVideoBtn').onclick = () => iniciarLlamada(otherId, otherName, otherAvatar, 'video');
   wireComposer();
   await loadMessages();
   subscribe();
@@ -1834,6 +1840,314 @@ function formatSize(bytes) {
   const u = ['B', 'KB', 'MB', 'GB']; let i = 0, n = bytes;
   while (n >= 1024 && i < u.length - 1) { n /= 1024; i++; }
   return `${n.toFixed(n < 10 && i > 0 ? 1 : 0)} ${u[i]}`;
+}
+
+// ============================================================
+//  LLAMADAS Y VIDEOLLAMADAS (WebRTC 1-a-1)
+// ============================================================
+
+// --- Configuración de servidores ICE ---
+// STUN gratis (Google). El TURN lo necesitas para que funcione en datos
+// móviles / redes difíciles. Pega aquí tus credenciales de Metered/Cloudflare.
+const ICE_SERVERS = [
+  { urls: 'stun:stun.l.google.com:19302' },
+  // === PEGA AQUÍ TUS CREDENCIALES TURN (ejemplo Metered) ===
+  // { urls: 'turn:a.relay.metered.ca:80', username: 'TU_USUARIO', credential: 'TU_PASSWORD' },
+  // { urls: 'turn:a.relay.metered.ca:443', username: 'TU_USUARIO', credential: 'TU_PASSWORD' },
+  // { urls: 'turn:a.relay.metered.ca:443?transport=tcp', username: 'TU_USUARIO', credential: 'TU_PASSWORD' },
+];
+
+let pc = null;                 // RTCPeerConnection actual
+let localStream = null;        // mi cámara/micrófono
+let remoteStream = null;       // el del otro
+let callChannel = null;        // canal de señalización con el otro
+let callPeerId = null;         // id del otro en la llamada
+let callKind = 'audio';        // 'audio' | 'video'
+let callRole = null;           // 'caller' | 'callee'
+let callTimer = null, callSeconds = 0;
+let ringAudio = null;
+
+// Canal global del usuario para RECIBIR llamadas entrantes (siempre activo)
+let inboxChannel = null;
+
+function iniciarInbox() {
+  if (inboxChannel || !currentUser) return;
+  inboxChannel = sb.channel('inbox-' + currentUser.id)
+    .on('broadcast', { event: 'call-offer' }, ({ payload }) => {
+      // me están llamando
+      if (pc) { // ya estoy en llamada: rechazar ocupado
+        enviarSenal(payload.from, 'call-busy', {});
+        return;
+      }
+      recibirLlamada(payload);
+    })
+    .subscribe();
+}
+
+function pararInbox() {
+  if (inboxChannel) { sb.removeChannel(inboxChannel); inboxChannel = null; }
+}
+
+// Canal de señalización entre dos personas (nombre compartido por hash)
+function abrirCanalSenal(otherId) {
+  const par = [currentUser.id, otherId].sort();
+  const nombre = 'call-' + hashCorto(par[0] + par[1]);
+  callChannel = sb.channel(nombre);
+  callChannel
+    .on('broadcast', { event: 'call-answer' }, ({ payload }) => onAnswer(payload))
+    .on('broadcast', { event: 'call-ice' }, ({ payload }) => onRemoteIce(payload))
+    .on('broadcast', { event: 'call-reject' }, () => { finalizarLlamada('rechazada'); })
+    .on('broadcast', { event: 'call-busy' }, () => { finalizarLlamada('ocupado'); })
+    .on('broadcast', { event: 'call-end' }, () => { finalizarLlamada('colgó'); })
+    .subscribe();
+}
+
+// Envía una señal puntual al inbox del otro (para la oferta inicial)
+function enviarSenal(toUserId, event, payload) {
+  const ch = sb.channel('inbox-' + toUserId);
+  ch.subscribe((status) => {
+    if (status === 'SUBSCRIBED') {
+      ch.send({ type: 'broadcast', event, payload: { ...payload, from: currentUser.id } })
+        .finally(() => setTimeout(() => sb.removeChannel(ch), 500));
+    }
+  });
+}
+
+function crearPeerConnection() {
+  pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+  remoteStream = new MediaStream();
+
+  pc.ontrack = (e) => {
+    e.streams[0].getTracks().forEach(t => remoteStream.addTrack(t));
+    const rv = document.getElementById('remoteVideo');
+    if (rv) rv.srcObject = remoteStream;
+  };
+  pc.onicecandidate = (e) => {
+    if (e.candidate && callChannel) {
+      callChannel.send({ type: 'broadcast', event: 'call-ice',
+        payload: { candidate: e.candidate, from: currentUser.id } });
+    }
+  };
+  pc.onconnectionstatechange = () => {
+    if (pc && (pc.connectionState === 'failed' || pc.connectionState === 'disconnected')) {
+      finalizarLlamada('conexión perdida');
+    }
+  };
+}
+
+async function obtenerMedios(kind) {
+  const constraints = kind === 'video'
+    ? { audio: true, video: { facingMode: 'user' } }
+    : { audio: true, video: false };
+  localStream = await navigator.mediaDevices.getUserMedia(constraints);
+  return localStream;
+}
+
+// === INICIAR (yo llamo) ===
+async function iniciarLlamada(otherId, otherName, otherAvatar, kind) {
+  if (pc) { alert('Ya hay una llamada en curso.'); return; }
+  callPeerId = otherId; callKind = kind; callRole = 'caller';
+  try {
+    await obtenerMedios(kind);
+  } catch (err) {
+    alert('Necesito permiso de ' + (kind === 'video' ? 'cámara y micrófono' : 'micrófono') + '.');
+    return;
+  }
+  abrirCanalSenal(otherId);
+  crearPeerConnection();
+  localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
+
+  mostrarPantallaLlamada(otherName, otherAvatar, 'Llamando…');
+  sonarTono('saliente');
+
+  const offer = await pc.createOffer();
+  await pc.setLocalDescription(offer);
+
+  // registrar la llamada (historial)
+  await sb.from('calls').insert({ caller_id: currentUser.id, callee_id: otherId, kind, status: 'ringing' });
+
+  // mandar la oferta al inbox del otro
+  enviarSenal(otherId, 'call-offer', {
+    sdp: offer, kind, callerName: currentProfile?.display_name || 'Alguien',
+    callerAvatar: otherAvatar || ''
+  });
+}
+
+// === RECIBIR (me llaman) ===
+function recibirLlamada(payload) {
+  callPeerId = payload.from; callKind = payload.kind; callRole = 'callee';
+  pendingOffer = payload.sdp;
+  mostrarLlamadaEntrante(payload.callerName || 'Alguien', payload.kind);
+  sonarTono('entrante');
+}
+
+let pendingOffer = null;
+
+async function aceptarLlamada() {
+  detenerTono();
+  try {
+    await obtenerMedios(callKind);
+  } catch (err) {
+    alert('Necesito permiso de micrófono/cámara.');
+    rechazarLlamada();
+    return;
+  }
+  abrirCanalSenal(callPeerId);
+  crearPeerConnection();
+  localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
+
+  await pc.setRemoteDescription(new RTCSessionDescription(pendingOffer));
+  const answer = await pc.createAnswer();
+  await pc.setLocalDescription(answer);
+  callChannel.send({ type: 'broadcast', event: 'call-answer',
+    payload: { sdp: answer, from: currentUser.id } });
+
+  mostrarPantallaLlamada(document.getElementById('incomingName')?.textContent || 'Llamada', '', 'Conectando…');
+  iniciarContador();
+}
+
+function rechazarLlamada() {
+  detenerTono();
+  enviarSenal(callPeerId, 'call-reject', {});
+  cerrarTodoLlamada();
+}
+
+// El que llamó recibe la respuesta
+async function onAnswer(payload) {
+  detenerTono();
+  if (!pc) return;
+  await pc.setRemoteDescription(new RTCSessionDescription(payload.sdp));
+  const estado = document.getElementById('callStatus');
+  if (estado) estado.textContent = 'Conectado';
+  iniciarContador();
+}
+
+async function onRemoteIce(payload) {
+  if (payload.from === currentUser.id) return;
+  if (!pc) return;
+  try { await pc.addIceCandidate(new RTCIceCandidate(payload.candidate)); } catch (_) {}
+}
+
+// === COLGAR / FINALIZAR ===
+function colgar() {
+  if (callChannel) callChannel.send({ type: 'broadcast', event: 'call-end', payload: { from: currentUser.id } });
+  finalizarLlamada('terminada');
+}
+
+function finalizarLlamada(motivo) {
+  detenerTono();
+  cerrarTodoLlamada();
+}
+
+function cerrarTodoLlamada() {
+  if (callTimer) { clearInterval(callTimer); callTimer = null; }
+  callSeconds = 0;
+  if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
+  if (pc) { pc.close(); pc = null; }
+  if (callChannel) { sb.removeChannel(callChannel); callChannel = null; }
+  remoteStream = null; callPeerId = null; pendingOffer = null; callRole = null;
+  document.getElementById('callOverlay')?.remove();
+  document.getElementById('incomingOverlay')?.remove();
+}
+
+// === Tono de llamada ===
+function sonarTono(tipo) {
+  // beep simple generado, para no depender de archivos
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    ringAudio = ctx;
+    const beep = () => {
+      if (!ringAudio) return;
+      const o = ctx.createOscillator(); const g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.frequency.value = tipo === 'entrante' ? 520 : 440;
+      g.gain.value = 0.1;
+      o.start(); o.stop(ctx.currentTime + 0.4);
+    };
+    beep();
+    ringAudio._interval = setInterval(beep, 2000);
+  } catch (_) {}
+}
+
+function detenerTono() {
+  if (ringAudio) {
+    clearInterval(ringAudio._interval);
+    try { ringAudio.close(); } catch (_) {}
+    ringAudio = null;
+  }
+}
+
+function iniciarContador() {
+  callSeconds = 0;
+  callTimer = setInterval(() => {
+    callSeconds++;
+    const el = document.getElementById('callStatus');
+    if (el) el.textContent = `${Math.floor(callSeconds/60)}:${String(callSeconds%60).padStart(2,'0')}`;
+  }, 1000);
+}
+
+// === Pantallas ===
+function mostrarLlamadaEntrante(nombre, kind) {
+  const ov = document.createElement('div');
+  ov.id = 'incomingOverlay';
+  ov.className = 'call-overlay';
+  ov.innerHTML = `
+    <div class="call-box">
+      <div class="call-avatar">${esc(nombre[0] || '?')}</div>
+      <div class="call-name" id="incomingName">${esc(nombre)}</div>
+      <div class="call-sub">${kind === 'video' ? '📹 Videollamada' : '📞 Llamada'} entrante…</div>
+      <div class="call-actions">
+        <button class="call-btn reject" id="incReject">📵 Rechazar</button>
+        <button class="call-btn accept" id="incAccept">✅ Aceptar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+  document.getElementById('incAccept').onclick = () => { ov.remove(); aceptarLlamada(); };
+  document.getElementById('incReject').onclick = () => { ov.remove(); rechazarLlamada(); };
+}
+
+function mostrarPantallaLlamada(nombre, avatar, estadoTxt) {
+  document.getElementById('incomingOverlay')?.remove();
+  const ov = document.createElement('div');
+  ov.id = 'callOverlay';
+  ov.className = 'call-overlay active';
+  ov.innerHTML = `
+    <div class="call-videos ${callKind === 'video' ? '' : 'audio-only'}">
+      <video id="remoteVideo" autoplay playsinline></video>
+      <video id="localVideo" autoplay playsinline muted></video>
+      <div class="call-info">
+        <div class="call-name">${esc(nombre)}</div>
+        <div class="call-sub" id="callStatus">${esc(estadoTxt)}</div>
+      </div>
+    </div>
+    <div class="call-controls">
+      <button class="call-btn" id="btnMute" title="Silenciar">🎤</button>
+      ${callKind === 'video' ? `<button class="call-btn" id="btnCam" title="Cámara">📹</button>` : ''}
+      <button class="call-btn reject" id="btnHangup" title="Colgar">📴</button>
+    </div>`;
+  document.body.appendChild(ov);
+  const lv = document.getElementById('localVideo');
+  if (lv && localStream) lv.srcObject = localStream;
+  document.getElementById('btnHangup').onclick = colgar;
+  document.getElementById('btnMute').onclick = toggleMute;
+  const camBtn = document.getElementById('btnCam');
+  if (camBtn) camBtn.onclick = toggleCam;
+}
+
+function toggleMute() {
+  if (!localStream) return;
+  const track = localStream.getAudioTracks()[0];
+  if (track) { track.enabled = !track.enabled;
+    document.getElementById('btnMute').classList.toggle('off', !track.enabled);
+  }
+}
+
+function toggleCam() {
+  if (!localStream) return;
+  const track = localStream.getVideoTracks()[0];
+  if (track) { track.enabled = !track.enabled;
+    document.getElementById('btnCam').classList.toggle('off', !track.enabled);
+  }
 }
 
 init();
