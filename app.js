@@ -611,10 +611,10 @@ function chatShell(titleHtml, withClear, conLlamadas) {
     <div class="header">
       <button class="link" id="backBtn">←</button>
       ${titleHtml}
-      ${conLlamadas ? `<button class="link" id="callAudioBtn" title="Llamar">📞</button>
-      <button class="link" id="callVideoBtn" title="Videollamada">📹</button>` : ''}
-      <button class="link" id="searchBtn" title="Buscar">🔍</button>
-      ${withClear ? `<button class="link" id="clearBtn" title="Limpiar conversación">🗑️</button>` : ''}
+      ${conLlamadas ? `<button class="link" id="callAudioBtn" title="Llamar"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg></button>
+      <button class="link" id="callVideoBtn" title="Videollamada"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></button>` : ''}
+      <button class="link" id="searchBtn" title="Buscar"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button>
+      ${withClear ? `<button class="link" id="clearBtn" title="Limpiar conversación"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>` : ''}
     </div>
     <div id="searchBar" class="search-bar hidden">
       <input id="searchInput" placeholder="Buscar en la conversación…" autocomplete="off">
@@ -629,11 +629,11 @@ function chatShell(titleHtml, withClear, conLlamadas) {
     </div>
     <div id="filePreview" class="file-preview hidden"></div>
     <div class="composer">
-      <button id="emojiBtn" class="icon-btn" title="Emojis">😀</button>
-      <button id="attachBtn" class="icon-btn" title="Adjuntar">📎</button>
+      <button id="emojiBtn" class="icon-btn" title="Emojis"><svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg></button>
+      <button id="attachBtn" class="icon-btn" title="Adjuntar"><svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
       <input id="fileInput" type="file" hidden>
       <input id="msgInput" placeholder="Mensaje..." autocomplete="off">
-      <button id="micBtn" class="icon-btn" title="Mantén presionado para grabar">🎤</button>
+      <button id="micBtn" class="icon-btn" title="Mantén presionado para grabar"><svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></button>
       <button id="sendBtn">Enviar</button>
     </div>
     <div id="recIndicator" class="rec-indicator hidden">
@@ -1914,8 +1914,8 @@ async function verPerfilUsuario(otherId, otherName, otherAvatar) {
         : `<div class="peer-avatar placeholder">${esc((nombre||'?')[0])}</div>`}
       <div class="peer-name">${esc(nombre)}</div>
       <div class="peer-actions">
-        <button class="peer-act" id="peerCallAudio">📞<span>Llamar</span></button>
-        <button class="peer-act" id="peerCallVideo">📹<span>Video</span></button>
+        <button class="peer-act" id="peerCallAudio"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg><span>Llamar</span></button>
+        <button class="peer-act" id="peerCallVideo"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg><span>Video</span></button>
       </div>
     </div>`;
   document.body.appendChild(overlay);
