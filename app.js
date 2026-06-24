@@ -29,6 +29,8 @@ let listaChannel = null;   // canal de realtime para la lista de contactos
 const EMOJIS = ['😀','😂','🥰','😍','😘','😎','🤔','😴','😭','😡','👍','👎','👏','🙏','💪','🔥','🎉','❤️','💔','✨','⭐','🌟','💯','✅','❌','🤣','😅','😉','😊','🙂','😇','🤗','🤩','😋','😜','🤪','😏','🥺','😩','😤','👋','🤝','✌️','🤞','👌','🙌','💀','👀','💩','🥳','😱','😬','🤯','🫶','💕','💖','🎂','🍕','☕','🌹'];
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+const SVG_PLAY  = '<svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+const SVG_PAUSE = '<svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>';
 
 const userToEmail = u => `${u.toLowerCase().trim()}@${EMAIL_DOMAIN}`;
 
@@ -265,12 +267,12 @@ async function renderChats() {
           : `<div class="avatar">${esc((currentProfile.display_name||'?')[0])}</div>`}
         <span>Hola, ${esc(currentProfile.display_name)}</span>
       </div>
-      <button class="link" id="logoutBtn">Salir</button>
+      <button class="link" id="logoutBtn" title="Cerrar sesión" aria-label="Cerrar sesión"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
     </div>
     <div class="contacts">
       <div class="section-head">
         <span>Grupos</span>
-        <button class="link" id="newGroupBtn" title="Crear grupo">＋</button>
+        <button class="link" id="newGroupBtn" title="Crear grupo" aria-label="Crear grupo"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
       </div>
       ${groups.map(g => {
         const av = avatarUrl(g);
@@ -307,7 +309,7 @@ async function renderCreateGroup() {
   const { data: profiles } = await sb.from('profiles').select('*').neq('id', currentUser.id).order('display_name');
   app.innerHTML = `
     <div class="header">
-      <button class="link" id="backBtn">←</button>
+      <button class="link" id="backBtn" aria-label="Atrás"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
       <span class="chat-title">Nuevo grupo</span>
     </div>
     <div class="profile">
@@ -359,7 +361,7 @@ function renderProfile() {
   const av = avatarUrl(currentProfile);
   app.innerHTML = `
     <div class="header">
-      <button class="link" id="backBtn">←</button>
+      <button class="link" id="backBtn" aria-label="Atrás"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
       <span>Mi perfil</span>
     </div>
     <div class="profile">
@@ -609,7 +611,7 @@ let activeChatName = '';
 function chatShell(titleHtml, withClear, conLlamadas) {
   return `
     <div class="header">
-      <button class="link" id="backBtn">←</button>
+      <button class="link" id="backBtn" aria-label="Atrás"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
       ${titleHtml}
       ${conLlamadas ? `<button class="link" id="callAudioBtn" title="Llamar"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg></button>
       <button class="link" id="callVideoBtn" title="Videollamada"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></button>` : ''}
@@ -619,9 +621,9 @@ function chatShell(titleHtml, withClear, conLlamadas) {
     <div id="searchBar" class="search-bar hidden">
       <input id="searchInput" placeholder="Buscar en la conversación…" autocomplete="off">
       <span id="searchCount" class="search-count"></span>
-      <button class="link" id="searchPrev" title="Anterior">▲</button>
-      <button class="link" id="searchNext" title="Siguiente">▼</button>
-      <button class="link" id="searchClose">✕</button>
+      <button class="link" id="searchPrev" title="Anterior"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg></button>
+      <button class="link" id="searchNext" title="Siguiente"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+      <button class="link" id="searchClose" aria-label="Cerrar"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <div class="messages" id="messages"></div>
     <div id="emojiPanel" class="emoji-panel hidden">
@@ -965,7 +967,7 @@ async function renderGroupInfo(groupId, groupName) {
 
   app.innerHTML = `
     <div class="header">
-      <button class="link" id="backBtn">←</button>
+      <button class="link" id="backBtn" aria-label="Atrás"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
       <span class="chat-title">Info del grupo</span>
     </div>
     <div class="profile">
@@ -1176,11 +1178,12 @@ function renderBubble(m) {
       inner += `<div class="attach-img" data-path="${esc(m.attachment_path)}"><span class="loading">Cargando imagen…</span></div>`;
     } else if (isAudio) {
       inner += `<div class="voice-note" data-path="${esc(m.attachment_path)}">
-        <button class="voice-play" type="button">▶️</button>
-        <span class="voice-label">🎙️ ${esc(m.attachment_name || 'Nota de voz')}</span>
+        <button class="voice-play" type="button"><svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>
+        <span class="voice-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+        <span class="voice-label">${esc(m.attachment_name || 'Nota de voz')}</span>
       </div>`;
     } else {
-      inner += `<a class="attach-file" data-path="${esc(m.attachment_path)}" href="#">📄 ${esc(m.attachment_name || 'archivo')} <small>${formatSize(m.attachment_size)}</small></a>`;
+      inner += `<a class="attach-file" data-path="${esc(m.attachment_path)}" href="#"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;opacity:.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>${esc(m.attachment_name || 'archivo')} <small>${formatSize(m.attachment_size)}</small></span></a>`;
     }
   }
   if (m.content) inner += `<div class="text">${esc(m.content)}</div>`;
@@ -1288,11 +1291,11 @@ function actualizarBarraSeleccion() {
   const bar = document.getElementById('selBar');
   if (!bar) return;
   bar.innerHTML = `
-    <button class="link" id="selCancel">✕</button>
+    <button class="link" id="selCancel" aria-label="Cancelar"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     <span class="sel-count">${seleccionados.size} seleccionado(s)</span>
-    <button class="link" id="selCopy" title="Copiar">📋</button>
-    <button class="link" id="selForward" title="Reenviar">↪️</button>
-    <button class="link" id="selDelete" title="Eliminar">🗑️</button>`;
+    <button class="link" id="selCopy" title="Copiar"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+    <button class="link" id="selForward" title="Reenviar"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 17 20 12 15 7"/><path d="M4 18v-2a4 4 0 0 1 4-4h12"/></svg></button>
+    <button class="link" id="selDelete" title="Eliminar"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>`;
   document.getElementById('selCancel').onclick = salirModoSeleccion;
   document.getElementById('selCopy').onclick = copiarSeleccionados;
   document.getElementById('selForward').onclick = reenviarSeleccionados;
@@ -1431,11 +1434,11 @@ function abrirMenuMensaje(msgId) {
         ${REACT_QUICK.map(e => `<button class="react-emoji" data-e="${e}">${e}</button>`).join('')}
         <button class="react-emoji more" id="reactMore">➕</button>
       </div>
-      <button id="mmReply">↩️ Responder</button>
-      <button id="mmForward">↪️ Reenviar</button>
-      <button id="mmSelect">☑️ Seleccionar</button>
-      ${mine && m.content ? `<button id="mmEdit">✏️ Editar</button>` : ''}
-      <button id="mmDelete" class="danger">🗑️ Borrar</button>
+      <button id="mmReply"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg><span>Responder</span></button>
+      <button id="mmForward"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 17 20 12 15 7"/><path d="M4 18v-2a4 4 0 0 1 4-4h12"/></svg><span>Reenviar</span></button>
+      <button id="mmSelect"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span>Seleccionar</span></button>
+      ${mine && m.content ? `<button id="mmEdit"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg><span>Editar</span></button>` : ''}
+      <button id="mmDelete" class="danger"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg><span>Borrar</span></button>
       <button id="mmCancel" class="secondary">Cancelar</button>
     </div>`;
   document.body.appendChild(overlay);
@@ -1573,7 +1576,7 @@ function mostrarBarraRespuesta() {
       <span class="reply-bar-author">${esc(replyingTo.author)}</span>
       <span class="reply-bar-text">${esc(replyingTo.preview)}</span>
     </div>
-    <button id="cancelReply" class="link">✕</button>`;
+    <button id="cancelReply" class="link" aria-label="Cancelar"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>`;
   document.getElementById('cancelReply').onclick = cancelarRespuesta;
 }
 
@@ -1672,13 +1675,13 @@ async function hydrateAttachments(box) {
       document.querySelectorAll('.voice-note').forEach(otra => {
         if (otra !== el && otra._audio && !otra._audio.paused) {
           otra._audio.pause();
-          otra.querySelector('.voice-play').textContent = '▶️';
+          otra.querySelector('.voice-play').innerHTML = SVG_PLAY;
         }
       });
-      if (audio.paused) { audio.play(); btn.textContent = '⏸️'; }
-      else { audio.pause(); btn.textContent = '▶️'; }
+      if (audio.paused) { audio.play(); btn.innerHTML = SVG_PAUSE; }
+      else { audio.pause(); btn.innerHTML = SVG_PLAY; }
     };
-    audio.onended = () => { btn.textContent = '▶️'; };
+    audio.onended = () => { btn.innerHTML = SVG_PLAY; };
     el._audio = audio;
   }
 }
@@ -1693,7 +1696,7 @@ function onFilePicked(e) {
   pendingFile = file;
   const preview = document.getElementById('filePreview');
   preview.classList.remove('hidden');
-  preview.innerHTML = `<span>📎 ${esc(file.name)} <small>${formatSize(file.size)}</small></span><button id="cancelFile" class="link">✕</button>`;
+  preview.innerHTML = `<span style="display:flex;align-items:center;gap:.5rem"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;opacity:.8"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>${esc(file.name)} <small>${formatSize(file.size)}</small></span><button id="cancelFile" class="link" aria-label="Quitar"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>`;
   document.getElementById('cancelFile').onclick = clearPendingFile;
 }
 
@@ -1908,7 +1911,7 @@ async function verPerfilUsuario(otherId, otherName, otherAvatar) {
   overlay.className = 'peer-profile-overlay';
   overlay.innerHTML = `
     <div class="peer-profile">
-      <button class="link peer-close" id="peerClose">✕</button>
+      <button class="link peer-close" id="peerClose" aria-label="Cerrar"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
       ${av
         ? `<img class="peer-avatar" id="peerAvatarImg" src="${esc(av)}" alt="${esc(nombre)}">`
         : `<div class="peer-avatar placeholder">${esc((nombre||'?')[0])}</div>`}
@@ -1934,7 +1937,7 @@ function verImagenCompleta(url) {
   if (!url) return;
   const ov = document.createElement('div');
   ov.className = 'img-full-overlay';
-  ov.innerHTML = `<img src="${esc(url)}" alt=""><button class="link img-full-close">✕</button>`;
+  ov.innerHTML = `<img src="${esc(url)}" alt=""><button class="link img-full-close" aria-label="Cerrar"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>`;
   document.body.appendChild(ov);
   const close = () => ov.remove();
   ov.onclick = close;
@@ -2203,7 +2206,7 @@ async function registrarPerdida(otherId) {
     await sb.from('messages').insert({
       sender_id: currentUser.id,
       recipient_id: otherId,
-      content: callKind === 'video' ? '📹 Videollamada perdida' : '📞 Llamada perdida'
+      content: callKind === 'video' ? 'Videollamada perdida' : 'Llamada perdida'
     });
   } catch (_) {}
 }
@@ -2288,10 +2291,10 @@ function mostrarLlamadaEntrante(nombre, kind) {
     <div class="call-box">
       <div class="call-avatar">${esc(nombre[0] || '?')}</div>
       <div class="call-name" id="incomingName">${esc(nombre)}</div>
-      <div class="call-sub">${kind === 'video' ? '📹 Videollamada' : '📞 Llamada'} entrante…</div>
+      <div class="call-sub">${kind === 'video' ? 'Videollamada' : 'Llamada'} entrante…</div>
       <div class="call-actions">
-        <button class="call-btn reject" id="incReject">📵 Rechazar</button>
-        <button class="call-btn accept" id="incAccept">✅ Aceptar</button>
+        <button class="call-btn reject" id="incReject"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"/><line x1="23" y1="1" x2="1" y2="23"/></svg><span>Rechazar</span></button>
+        <button class="call-btn accept" id="incAccept"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg><span>Aceptar</span></button>
       </div>
     </div>`;
   document.body.appendChild(ov);
@@ -2314,9 +2317,9 @@ function mostrarPantallaLlamada(nombre, avatar, estadoTxt) {
       </div>
     </div>
     <div class="call-controls">
-      <button class="call-btn" id="btnMute" title="Silenciar">🎤</button>
-      ${callKind === 'video' ? `<button class="call-btn" id="btnCam" title="Cámara">📹</button>` : ''}
-      <button class="call-btn reject" id="btnHangup" title="Colgar">📴</button>
+      <button class="call-btn" id="btnMute" title="Silenciar"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></button>
+      ${callKind === 'video' ? `<button class="call-btn" id="btnCam" title="Cámara"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></button>` : ''}
+      <button class="call-btn reject" id="btnHangup" title="Colgar"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"/><line x1="23" y1="1" x2="1" y2="23"/></svg></button>
     </div>`;
   document.body.appendChild(ov);
   const lv = document.getElementById('localVideo');
