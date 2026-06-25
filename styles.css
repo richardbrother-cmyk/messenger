@@ -45,6 +45,34 @@
   --ease: cubic-bezier(.2,.6,.2,1);
 }
 
+/* === TEMA CLARO === */
+[data-theme="light"] {
+  --ink:        #EEF1F7;   /* fondo de la app */
+  --surface-1:  #FFFFFF;   /* header, compositor, paneles, tarjetas */
+  --surface-2:  #EDF0F6;   /* inputs, burbuja ajena, chips */
+  --surface-3:  #DDE3EF;   /* hover / seleccionado */
+
+  --line:        rgba(0,0,0,.07);
+  --line-strong: rgba(0,0,0,.13);
+
+  --primary:      #4E5BEC;
+  --primary-600:  #3C46C8;
+  --primary-soft: rgba(78,91,236,.12);
+  --accent:       #2BA8D8;
+
+  --text:       #1A2030;
+  --text-dim:   #5A6478;
+  --text-faint: #8A93A8;
+
+  --danger:     #D93A40;
+  --danger-600: #B62B30;
+  --ok:         #1FA968;
+
+  --sh-1:   0 1px 2px rgba(20,30,60,.10);
+  --sh-2:   0 10px 30px rgba(20,30,60,.14);
+  --sh-pop: 0 20px 56px rgba(20,30,60,.20);
+}
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 html, body { height: 100%; }
@@ -514,7 +542,7 @@ button.link:hover { background: none; opacity: .8; }
   flex: 0 0 auto;
   display: flex; align-items: center; gap: .5rem;
   padding: .65rem 1rem;
-  background: #2a1c2a; border-top: 1px solid rgba(255,255,255,.08);
+  background: var(--surface-2); border-top: 1px solid var(--line);
   font-size: .85rem;
 }
 .rec-indicator.hidden { display: none; }
@@ -907,4 +935,18 @@ button.link:hover { background: none; opacity: .8; }
   display: flex; align-items: center; justify-content: center;
   background: var(--accent); color: #fff; border-radius: 50%;
   font-size: 15px; opacity: .95;
+}
+
+/* ============================================================
+   SELECTOR DE TEMA (claro/oscuro/sistema)
+   ============================================================ */
+.theme-options { display: flex; gap: .5rem; }
+.theme-opt {
+  flex: 1 1 0; background: var(--surface-2); color: var(--text-dim);
+  border: 1px solid var(--line); padding: .7rem .5rem;
+  border-radius: var(--r-md); font-size: .9rem; cursor: pointer;
+}
+.theme-opt.active {
+  background: var(--primary-soft); color: var(--primary);
+  border-color: var(--primary); font-weight: 600;
 }

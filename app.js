@@ -31,6 +31,34 @@ const EMOJIS = ['😀','😂','🥰','😍','😘','😎','🤔','😴','😭','
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
 
+// === TEMA CLARO / OSCURO ===
+// Preferencia guardada: 'light', 'dark' o 'system' (default).
+function temaGuardado() {
+  try { return localStorage.getItem('tema') || 'system'; } catch (_) { return 'system'; }
+}
+function aplicarTema(pref) {
+  const root = document.documentElement;
+  let efectivo = pref;
+  if (pref === 'system') {
+    efectivo = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+  }
+  if (efectivo === 'light') root.setAttribute('data-theme', 'light');
+  else root.removeAttribute('data-theme');
+  // actualizar el color de la barra del navegador
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', efectivo === 'light' ? '#FFFFFF' : '#101321');
+}
+function guardarTema(pref) {
+  try { localStorage.setItem('tema', pref); } catch (_) {}
+  aplicarTema(pref);
+}
+// aplicar al cargar
+aplicarTema(temaGuardado());
+// si está en "system", reaccionar a cambios del sistema en vivo
+window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => {
+  if (temaGuardado() === 'system') aplicarTema('system');
+});
+
 // === ICONOS SVG (estilizados, heredan color via currentColor) ===
 const ICON = {
   back: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>',
@@ -443,6 +471,13 @@ function renderProfile() {
       <input id="newPass" type="password" placeholder="Nueva contraseña">
       <button id="savePass" class="btn-ico">${ICON.key}<span>Actualizar contraseña</span></button>
 
+      <label class="field-label">Apariencia</label>
+      <div class="theme-options" id="themeOptions">
+        <button class="theme-opt" data-tema="system">Sistema</button>
+        <button class="theme-opt" data-tema="light">Claro</button>
+        <button class="theme-opt" data-tema="dark">Oscuro</button>
+      </div>
+
       <hr class="sep">
       <button id="deleteAccount" class="danger btn-ico">${ICON.trash}<span>Eliminar mi cuenta</span></button>
 
@@ -455,6 +490,16 @@ function renderProfile() {
   document.getElementById('saveName').onclick = saveName;
   document.getElementById('savePass').onclick = savePassword;
   document.getElementById('deleteAccount').onclick = deleteAccount;
+  // selector de tema
+  const actual = temaGuardado();
+  document.querySelectorAll('.theme-opt').forEach(b => {
+    if (b.dataset.tema === actual) b.classList.add('active');
+    b.onclick = () => {
+      guardarTema(b.dataset.tema);
+      document.querySelectorAll('.theme-opt').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+    };
+  });
 }
 
 function profileMsg(t, ok = true) {
