@@ -863,3 +863,48 @@ button.link:hover { background: none; opacity: .8; }
 }
 .contact.has-unread .contact-preview { color: var(--text); font-weight: 500; }
 .contact.has-unread .contact-time { color: var(--accent); }
+
+/* ============================================================
+   NOTA DE VOZ CON ONDA + VELOCIDAD (Tanda 3)
+   ============================================================ */
+.voice-note {
+  display: flex; align-items: center; gap: .6rem;
+  padding: .45rem .6rem; min-width: 220px; max-width: 280px;
+}
+.voice-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: .2rem; }
+.waveform {
+  display: flex; align-items: center; gap: 2px; height: 28px; cursor: pointer;
+}
+.wf-bar {
+  flex: 1 1 auto; min-width: 2px; max-width: 4px;
+  height: 40%; border-radius: 2px;
+  background: var(--text-faint, #6b7280); opacity: .5;
+  transition: background .1s, opacity .1s;
+}
+.wf-bar.played { background: var(--accent); opacity: 1; }
+.bubble.mine .wf-bar { background: color-mix(in srgb, #fff 55%, transparent); }
+.bubble.mine .wf-bar.played { background: #fff; opacity: 1; }
+.voice-meta { display: flex; justify-content: space-between; }
+.voice-time { font-size: .68rem; color: var(--text-dim); font-variant-numeric: tabular-nums; }
+.bubble.mine .voice-time { color: color-mix(in srgb, #fff 75%, transparent); }
+.voice-speed {
+  flex: 0 0 auto; width: auto; min-height: auto;
+  background: var(--surface-2); color: var(--text-dim);
+  font-size: .7rem; font-weight: 700; padding: .2rem .4rem;
+  border-radius: var(--r-sm, 6px); cursor: pointer;
+}
+.bubble.mine .voice-speed { background: color-mix(in srgb, #000 18%, transparent); color: #fff; }
+
+/* ============================================================
+   RESPONDER DESLIZANDO (swipe) — Tanda 3
+   ============================================================ */
+.bubble { transition: transform .18s ease; }
+.bubble.swiping { transition: none; }
+/* icono de responder que asoma al deslizar */
+.bubble.swiping::before {
+  content: "↩"; position: absolute; left: -32px; top: 50%;
+  width: 26px; height: 26px; transform: translateY(-50%);
+  display: flex; align-items: center; justify-content: center;
+  background: var(--accent); color: #fff; border-radius: 50%;
+  font-size: 15px; opacity: .95;
+}

@@ -1321,9 +1321,15 @@ function renderBubble(m) {
     if (isImage) {
       inner += `<div class="attach-wrap"><div class="attach-img" data-path="${esc(m.attachment_path)}"><span class="loading">Cargando imagen…</span></div>${fwd}</div>`;
     } else if (isAudio) {
+      // 28 barras de onda (placeholder; se rellenan al cargar el audio)
+      const barras = Array.from({length: 28}, () => '<span class="wf-bar"></span>').join('');
       inner += `<div class="attach-wrap"><div class="voice-note" data-path="${esc(m.attachment_path)}">
         <button class="voice-play" type="button">${ICON.play}</button>
-        <span class="voice-label">${esc(m.attachment_name || 'Nota de voz')}</span>
+        <div class="voice-body">
+          <div class="waveform">${barras}</div>
+          <div class="voice-meta"><span class="voice-time">0:00</span></div>
+        </div>
+        <button class="voice-speed" type="button" title="Velocidad">1x</button>
       </div>${fwd}</div>`;
     } else {
       inner += `<div class="attach-wrap"><a class="attach-file" data-path="${esc(m.attachment_path)}" href="#"><span class="file-ico">${ICON.file}</span> ${esc(m.attachment_name || 'archivo')} <small>${formatSize(m.attachment_size)}</small></a>${fwd}</div>`;
@@ -1426,9 +1432,42 @@ function attachLongPress(box) {
       e.stopPropagation();
       toggleSeleccion(parseInt(id), el);
     });
-    el.addEventListener('touchstart', () => start(el), { passive: true });
-    el.addEventListener('touchend', cancel);
-    el.addEventListener('touchmove', cancel);
+    // Gestos táctiles: long-press (acciones) + swipe horizontal (responder)
+    let sx = 0, sy = 0, swiping = false, swiped = false;
+    el.addEventListener('touchstart', (e) => {
+      const t = e.touches[0];
+      sx = t.clientX; sy = t.clientY; swiping = false; swiped = false;
+      start(el);
+    }, { passive: true });
+    el.addEventListener('touchmove', (e) => {
+      const t = e.touches[0];
+      const dx = t.clientX - sx, dy = t.clientY - sy;
+      // si el movimiento es claramente horizontal hacia la derecha, es swipe-responder
+      if (!swiped && Math.abs(dx) > Math.abs(dy) && dx > 10) {
+        cancel();              // no es long-press
+        swiping = true;
+        const desp = Math.min(dx, 80);
+        el.style.transform = `translateX(${desp}px)`;
+        el.classList.add('swiping');
+        if (dx > 55 && !swiped) {
+          swiped = true;        // umbral alcanzado: responder
+          if (navigator.vibrate) navigator.vibrate(15);
+        }
+      } else if (Math.abs(dy) > 10) {
+        cancel();              // se está desplazando vertical (scroll)
+      }
+    }, { passive: true });
+    el.addEventListener('touchend', () => {
+      cancel();
+      if (swiping) {
+        el.style.transform = '';
+        el.classList.remove('swiping');
+        if (swiped && !modoSeleccion) {
+          const m = msgCache[id];
+          if (m && !m.deleted_at) iniciarRespuesta(m);
+        }
+      }
+    });
     // escritorio: clic derecho
     el.addEventListener('contextmenu', (e) => {
       e.preventDefault();
@@ -1968,7 +2007,7 @@ async function hydrateAttachments(box) {
     const { data } = await sb.storage.from('attachments').createSignedUrl(path, 3600);
     if (data?.signedUrl) { el.href = data.signedUrl; el.target = '_blank'; }
   }
-  // Notas de voz: cargar URL y enganchar play/pausa
+  // Notas de voz: reproductor con onda, tiempo y velocidad
   for (const el of box.querySelectorAll('.voice-note')) {
     if (el.dataset.ready) continue;       // ya enganchada
     const path = el.dataset.path;
@@ -1976,7 +2015,28 @@ async function hydrateAttachments(box) {
     if (!data?.signedUrl) continue;
     el.dataset.ready = '1';
     const audio = new Audio(data.signedUrl);
+    audio.preload = 'metadata';
     const btn = el.querySelector('.voice-play');
+    const timeEl = el.querySelector('.voice-time');
+    const speedBtn = el.querySelector('.voice-speed');
+    const bars = [...el.querySelectorAll('.wf-bar')];
+
+    // alturas pseudo-aleatorias pero estables (según la ruta) para la onda
+    let seed = 0; for (const c of path) seed = (seed * 31 + c.charCodeAt(0)) | 0;
+    bars.forEach((b, i) => {
+      const v = Math.abs(Math.sin(seed + i * 1.7)) * 0.7 + 0.3; // 0.3–1.0
+      b.style.height = `${Math.round(v * 100)}%`;
+    });
+
+    const fmt = (s) => isFinite(s) ? `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}` : '0:00';
+    audio.onloadedmetadata = () => { if (timeEl) timeEl.textContent = fmt(audio.duration); };
+    audio.ontimeupdate = () => {
+      if (timeEl) timeEl.textContent = fmt(audio.currentTime || 0);
+      const prog = audio.duration ? audio.currentTime / audio.duration : 0;
+      const activas = Math.round(prog * bars.length);
+      bars.forEach((b, i) => b.classList.toggle('played', i < activas));
+    };
+
     btn.onclick = () => {
       document.querySelectorAll('.voice-note').forEach(otra => {
         if (otra !== el && otra._audio && !otra._audio.paused) {
@@ -1987,7 +2047,29 @@ async function hydrateAttachments(box) {
       if (audio.paused) { audio.play(); btn.innerHTML = ICON.pause; }
       else { audio.pause(); btn.innerHTML = ICON.play; }
     };
-    audio.onended = () => { btn.innerHTML = ICON.play; };
+    audio.onended = () => {
+      btn.innerHTML = ICON.play;
+      bars.forEach(b => b.classList.remove('played'));
+      if (timeEl) timeEl.textContent = fmt(audio.duration);
+    };
+
+    // botón de velocidad: 1x → 1.5x → 2x → 1x
+    const velocidades = [1, 1.5, 2];
+    let vi = 0;
+    if (speedBtn) speedBtn.onclick = () => {
+      vi = (vi + 1) % velocidades.length;
+      audio.playbackRate = velocidades[vi];
+      speedBtn.textContent = velocidades[vi] + 'x';
+    };
+
+    // tocar la onda para saltar a una posición
+    const wf = el.querySelector('.waveform');
+    if (wf) wf.onclick = (e) => {
+      const r = wf.getBoundingClientRect();
+      const prog = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
+      if (audio.duration) audio.currentTime = prog * audio.duration;
+    };
+
     el._audio = audio;
   }
 }
