@@ -2493,10 +2493,6 @@ function formatFechaHora(iso) {
 // móviles / redes difíciles. Pega aquí tus credenciales de Metered/Cloudflare.
 const ICE_SERVERS = [
   { urls: 'stun:stun.relay.metered.ca:80' },
-  { urls: 'turn:global.relay.metered.ca:80',
-    username: 'b291766bde5645c8a116d4ae', credential: 'P5i0Hx7sseoLtuF/' },
-  { urls: 'turn:global.relay.metered.ca:80?transport=tcp',
-    username: 'b291766bde5645c8a116d4ae', credential: 'P5i0Hx7sseoLtuF/' },
   { urls: 'turn:global.relay.metered.ca:443',
     username: 'b291766bde5645c8a116d4ae', credential: 'P5i0Hx7sseoLtuF/' },
   { urls: 'turns:global.relay.metered.ca:443?transport=tcp',
@@ -2586,6 +2582,8 @@ function crearPeerConnection() {
     }
     ra.srcObject = remoteStream;
     ra.play?.().catch(()=>{});
+    // intentar desbloquear de inmediato (móvil)
+    setTimeout(() => desbloquearAudioRemoto?.(), 100);
   };
   pc.onicecandidate = (e) => {
     if (e.candidate && callChannel) {
@@ -2897,7 +2895,17 @@ function mostrarPantallaLlamada(nombre, avatar, estadoTxt) {
 // Fuerza la reproducción del audio remoto (necesario en móvil por autoplay)
 function desbloquearAudioRemoto() {
   const ra = document.getElementById('remoteAudio');
-  if (ra) { ra.muted = false; ra.play?.().catch(()=>{}); }
+  if (ra) {
+    ra.muted = false;
+    ra.volume = 1;
+    const p = ra.play?.();
+    if (p) p.catch(() => {
+      // si falla, reintentar al próximo toque global
+      const reintento = () => { ra.play?.().catch(()=>{}); document.removeEventListener('touchend', reintento); document.removeEventListener('click', reintento); };
+      document.addEventListener('touchend', reintento, { once: true });
+      document.addEventListener('click', reintento, { once: true });
+    });
+  }
   const rv = document.getElementById('remoteVideo');
   if (rv) { rv.play?.().catch(()=>{}); }
 }
