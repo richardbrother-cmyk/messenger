@@ -658,7 +658,10 @@ function chatShell(titleHtml, withClear, conLlamadas) {
       <button class="link" id="searchNext" title="Siguiente">▼</button>
       ${svgBtn('close', 'searchClose', 'link')}
     </div>
-    <div class="messages" id="messages"></div>
+    <div class="messages-wrap">
+      <div class="day-float hidden" id="dayFloat"><span></span></div>
+      <div class="messages" id="messages"></div>
+    </div>
     <div id="emojiPanel" class="emoji-panel hidden">
       ${EMOJIS.map(e => `<button class="emoji" type="button">${e}</button>`).join('')}
     </div>
@@ -835,7 +838,7 @@ function pintarMensajePropio(m) {
   msgCache[m.id] = m;
   const box = document.getElementById('messages');
   if (!box) return;
-  box.insertAdjacentHTML('beforeend', renderBubble(m));
+  appendMensaje(box, m);
   box.scrollTop = box.scrollHeight;
   hydrateAttachments(box);
   attachLongPress(box);
@@ -1122,13 +1125,83 @@ async function loadMessages() {
   for (const m of visibles) msgCache[m.id] = m;
   const box = document.getElementById('messages');
   box.innerHTML = '';
-  for (const m of visibles) box.insertAdjacentHTML('beforeend', renderBubble(m));
+  scrollDiaEnganchado = false; // re-enganchar scroll del chat nuevo
+  let diaPrevio = null;
+  for (const m of visibles) {
+    const dia = claveDia(m.created_at);
+    if (dia !== diaPrevio) {
+      box.insertAdjacentHTML('beforeend', separadorDiaHtml(m.created_at));
+      diaPrevio = dia;
+    }
+    box.insertAdjacentHTML('beforeend', renderBubble(m));
+  }
   box.scrollTop = box.scrollHeight;
   hydrateAttachments(box);
   attachLongPress(box);
   marcarLeidos(); // marca como leídos los mensajes del otro
   await cargarReacciones();
   for (const id of Object.keys(msgCache)) repintarReacciones(id);
+  actualizarDiaFlotante(); // posiciona la etiqueta flotante
+}
+
+// HTML del separador de día
+function separadorDiaHtml(iso) {
+  return `<div class="day-sep" data-day="${claveDia(iso)}"><span>${esc(etiquetaDia(iso))}</span></div>`;
+}
+
+// Inserta un mensaje al final, anteponiendo separador de día si cambió la fecha
+function appendMensaje(box, m) {
+  const dia = claveDia(m.created_at);
+  // último separador presente
+  const seps = box.querySelectorAll('.day-sep');
+  const ultimoDia = seps.length ? seps[seps.length - 1].dataset.day : null;
+  if (dia !== ultimoDia) {
+    box.insertAdjacentHTML('beforeend', separadorDiaHtml(m.created_at));
+  }
+  box.insertAdjacentHTML('beforeend', renderBubble(m));
+}
+
+// === ETIQUETA DE DÍA FLOTANTE (al hacer scroll, estilo WhatsApp) ===
+let scrollDiaEnganchado = false, ocultarFloatTimer = null;
+
+function actualizarDiaFlotante() {
+  const box = document.getElementById('messages');
+  const float = document.getElementById('dayFloat');
+  if (!box || !float) return;
+
+  // engancha el listener de scroll una sola vez
+  if (!scrollDiaEnganchado) {
+    box.addEventListener('scroll', onScrollDia, { passive: true });
+    scrollDiaEnganchado = true;
+  }
+  // fija el texto inicial según el primer separador visible
+  posicionarFloat();
+}
+
+function onScrollDia() {
+  posicionarFloat();
+  const float = document.getElementById('dayFloat');
+  if (!float) return;
+  // mostrar mientras se hace scroll, ocultar tras una pausa
+  float.classList.remove('hidden');
+  clearTimeout(ocultarFloatTimer);
+  ocultarFloatTimer = setTimeout(() => float.classList.add('hidden'), 1400);
+}
+
+function posicionarFloat() {
+  const box = document.getElementById('messages');
+  const float = document.getElementById('dayFloat');
+  if (!box || !float) return;
+  const seps = [...box.querySelectorAll('.day-sep')];
+  if (!seps.length) { float.classList.add('hidden'); return; }
+  const topBox = box.getBoundingClientRect().top;
+  // el último separador que ya pasó por arriba del viewport marca el día actual
+  let actual = seps[0];
+  for (const s of seps) {
+    if (s.getBoundingClientRect().top - topBox <= 8) actual = s;
+    else break;
+  }
+  float.querySelector('span').textContent = actual.querySelector('span').textContent;
 }
 
 // === REACCIONES ===
@@ -1220,13 +1293,13 @@ function renderBubble(m) {
   }
   if (m.content) inner += `<div class="text">${esc(m.content)}</div>`;
 
-  // Pie del mensaje: "editado" + palomitas (solo mis mensajes 1-a-1)
-  let meta = '';
+  // Pie del mensaje: hora + "editado" + palomitas
+  let meta = '<span class="hora">' + esc(formatHora(m.created_at)) + '</span>';
   if (m.edited_at) meta += `<span class="edited">editado</span>`;
   if (mine && !activeIsGroup) {
     meta += `<span class="ticks ${m.read_at ? 'read' : ''}">${ticksSvg()}</span>`;
   }
-  if (meta) inner += `<div class="meta">${meta}</div>`;
+  inner += `<div class="meta">${meta}</div>`;
 
   return `<div class="bubble ${mine ? 'mine' : 'theirs'}" data-id="${m.id}">${inner}<button class="bubble-menu-btn" title="Acciones">${ICON.forward}</button></div>`;
 }
@@ -1234,6 +1307,35 @@ function renderBubble(m) {
 // Doble palomita SVG
 function ticksSvg() {
   return '<svg viewBox="0 0 28 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9l4 4 9-11"/><path d="M11 13l1.5 1.5L22 3"/></svg>';
+}
+
+// Hora en formato 12h (ej. "2:32 PM")
+function formatHora(iso) {
+  const d = new Date(iso);
+  let h = d.getHours();
+  const m = String(d.getMinutes()).padStart(2, '0');
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12; if (h === 0) h = 12;
+  return `${h}:${m} ${ampm}`;
+}
+
+// Etiqueta de día: "Hoy", "Ayer" o fecha (ej. "12 de junio de 2026")
+const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+function etiquetaDia(iso) {
+  const d = new Date(iso);
+  const hoy = new Date();
+  const ayer = new Date(); ayer.setDate(hoy.getDate() - 1);
+  const mismaFecha = (a, b) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  if (mismaFecha(d, hoy)) return 'Hoy';
+  if (mismaFecha(d, ayer)) return 'Ayer';
+  const año = d.getFullYear() === hoy.getFullYear() ? '' : ` de ${d.getFullYear()}`;
+  return `${d.getDate()} de ${MESES[d.getMonth()]}${año}`;
+}
+
+// Clave de día para comparar (YYYY-MM-DD en hora local)
+function claveDia(iso) {
+  const d = new Date(iso);
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 }
 
 // Detecta "mantener presionado" (y clic derecho en escritorio) sobre burbujas
@@ -1921,7 +2023,7 @@ function subscribe() {  // Nombre de canal COMPARTIDO y CORTO. Concatenar dos UU
       if (document.querySelector(`.bubble[data-id="${m.id}"]`)) return; // ya pintado (yo lo envié)
       msgCache[m.id] = m;
       const box = document.getElementById('messages');
-      box.insertAdjacentHTML('beforeend', renderBubble(m));
+      appendMensaje(box, m);
       box.scrollTop = box.scrollHeight;
       hydrateAttachments(box);
       attachLongPress(box);

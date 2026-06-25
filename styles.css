@@ -784,3 +784,46 @@ button.link:hover { background: none; opacity: .8; }
 .call-controls .call-btn svg { width: 24px; height: 24px; }
 .peer-act svg { width: 24px; height: 24px; }
 .peer-close svg, .img-full-close svg { width: 22px; height: 22px; }
+
+/* ============================================================
+   HORA EN MENSAJES + SEPARADOR DE DÍA
+   ============================================================ */
+/* Hora dentro del pie del mensaje */
+.bubble .meta {
+  display: flex; align-items: center; justify-content: flex-end; gap: .35rem;
+  margin-top: .15rem; font-size: .68rem; line-height: 1;
+  color: var(--text-faint, #6b7280);
+}
+.bubble.mine .meta { color: color-mix(in srgb, #fff 75%, transparent); }
+.bubble .meta .hora { font-variant-numeric: tabular-nums; }
+
+/* Contenedor para posicionar la etiqueta flotante */
+.messages-wrap { position: relative; flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+.messages-wrap .messages { flex: 1 1 auto; }
+
+/* Separador de día intercalado */
+.day-sep {
+  display: flex; align-items: center; justify-content: center;
+  margin: .8rem 0 .5rem;
+}
+.day-sep span {
+  background: var(--surface-1); color: var(--text-dim);
+  font-size: .72rem; font-weight: 600;
+  padding: .25rem .7rem; border-radius: var(--r-pill);
+  box-shadow: var(--sh-1, 0 1px 3px rgba(0,0,0,.3));
+}
+
+/* Etiqueta de día flotante (al hacer scroll) */
+.day-float {
+  position: absolute; top: .5rem; left: 0; right: 0;
+  display: flex; justify-content: center; z-index: 4;
+  pointer-events: none;
+  transition: opacity .25s;
+}
+.day-float.hidden { opacity: 0; }
+.day-float span {
+  background: var(--surface-1); color: var(--text-dim);
+  font-size: .72rem; font-weight: 600;
+  padding: .25rem .7rem; border-radius: var(--r-pill);
+  box-shadow: var(--sh-2, 0 2px 8px rgba(0,0,0,.4));
+}
