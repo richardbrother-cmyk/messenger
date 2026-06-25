@@ -827,3 +827,17 @@ button.link:hover { background: none; opacity: .8; }
   padding: .25rem .7rem; border-radius: var(--r-pill);
   box-shadow: var(--sh-2, 0 2px 8px rgba(0,0,0,.4));
 }
+
+/* ============================================================
+   BOTONES CON ICONO + TEXTO (perfil, grupos, crear)
+   ============================================================ */
+.btn-ico {
+  display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+}
+.btn-ico svg { width: 18px; height: 18px; flex-shrink: 0; }
+.link.with-text {
+  display: inline-flex; align-items: center; gap: .4rem;
+  width: auto; color: var(--accent);
+  font-size: .9rem; padding: .4rem .7rem;
+}
+.link.with-text svg { width: 18px; height: 18px; }

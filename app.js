@@ -52,6 +52,12 @@ const ICON = {
   file: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
   plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>',
   copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>',
+  logout: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>',
+  camera: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>',
+  group: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+  user: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
+  key: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.6 7.6a5 5 0 1 0-7 7 5 5 0 0 0 7-7zm0 0L15 8m0 0l3 3 3-3-3-3"/></svg>',
+  check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
 };
 function svgBtn(name, id, cls, title) {
   return `<button class="${cls || 'icon-btn'}" ${id ? `id="${id}"` : ''} ${title ? `title="${title}"` : ''} type="button">${ICON[name] || ''}</button>`;
@@ -292,12 +298,12 @@ async function renderChats() {
           : `<div class="avatar">${esc((currentProfile.display_name||'?')[0])}</div>`}
         <span>Hola, ${esc(currentProfile.display_name)}</span>
       </div>
-      <button class="link" id="logoutBtn">Salir</button>
+      <button class="link" id="logoutBtn" title="Salir">${ICON.logout}</button>
     </div>
     <div class="contacts">
       <div class="section-head">
         <span>Grupos</span>
-        <button class="link" id="newGroupBtn" title="Crear grupo">＋</button>
+        <button class="link" id="newGroupBtn" title="Crear grupo">${ICON.plus}</button>
       </div>
       ${groups.map(g => {
         const av = avatarUrl(g);
@@ -334,7 +340,7 @@ async function renderCreateGroup() {
   const { data: profiles } = await sb.from('profiles').select('*').neq('id', currentUser.id).order('display_name');
   app.innerHTML = `
     <div class="header">
-      <button class="link" id="backBtn">←</button>
+      ${svgBtn('back', 'backBtn', 'link')}
       <span class="chat-title">Nuevo grupo</span>
     </div>
     <div class="profile">
@@ -350,7 +356,7 @@ async function renderCreateGroup() {
             <span>${esc(p.display_name)}</span>
           </label>`).join('') || '<p class="empty small">No hay otros usuarios para agregar.</p>'}
       </div>
-      <button id="createGroupBtn">Crear grupo</button>
+      <button id="createGroupBtn" class="btn-ico">${ICON.group}<span>Crear grupo</span></button>
       <p id="groupMsg" class="error"></p>
     </div>`;
   document.getElementById('backBtn').onclick = renderChats;
@@ -386,27 +392,27 @@ function renderProfile() {
   const av = avatarUrl(currentProfile);
   app.innerHTML = `
     <div class="header">
-      <button class="link" id="backBtn">←</button>
-      <span>Mi perfil</span>
+      ${svgBtn('back', 'backBtn', 'link')}
+      <span class="chat-title">Mi perfil</span>
     </div>
     <div class="profile">
       <div class="profile-avatar">
         ${av ? `<img class="avatar-lg" id="avatarPreview" src="${esc(av)}" alt="avatar">`
              : `<div class="avatar-lg placeholder" id="avatarPreview">${esc((currentProfile.display_name||'?')[0])}</div>`}
-        <button class="link" id="changePhoto">Cambiar foto</button>
+        <button class="link with-text" id="changePhoto">${ICON.camera}<span>Cambiar foto</span></button>
         <input id="avatarInput" type="file" accept="image/*" hidden>
       </div>
 
       <label class="field-label">Nombre</label>
       <input id="newName" value="${esc(currentProfile.display_name || '')}" placeholder="Tu nombre">
-      <button id="saveName">Guardar nombre</button>
+      <button id="saveName" class="btn-ico">${ICON.check}<span>Guardar nombre</span></button>
 
       <label class="field-label">Cambiar contraseña</label>
       <input id="newPass" type="password" placeholder="Nueva contraseña">
-      <button id="savePass">Actualizar contraseña</button>
+      <button id="savePass" class="btn-ico">${ICON.key}<span>Actualizar contraseña</span></button>
 
       <hr class="sep">
-      <button id="deleteAccount" class="danger">Eliminar mi cuenta</button>
+      <button id="deleteAccount" class="danger btn-ico">${ICON.trash}<span>Eliminar mi cuenta</span></button>
 
       <p id="profileMsg" class="ok"></p>
     </div>`;
@@ -985,7 +991,7 @@ async function openGroup(groupId, groupName, groupAvatar) {
     : `<div class="avatar chat-av group-av">${esc((groupName||'?')[0])}</div>`;
   app.innerHTML = chatShell(
     `${avatarHtml}<span class="chat-title">${esc(groupName)}</span>
-     <button class="link" id="groupInfoBtn" title="Info del grupo">ⓘ</button>`, false);
+     <button class="link" id="groupInfoBtn" title="Info del grupo">${ICON.group}</button>`, false);
   document.getElementById('backBtn').onclick = () => { unsubscribe(); renderChats(); };
   document.getElementById('groupInfoBtn').onclick = () => renderGroupInfo(groupId, groupName);
   wireComposer();
@@ -1003,20 +1009,20 @@ async function renderGroupInfo(groupId, groupName) {
 
   app.innerHTML = `
     <div class="header">
-      <button class="link" id="backBtn">←</button>
+      ${svgBtn('back', 'backBtn', 'link')}
       <span class="chat-title">Info del grupo</span>
     </div>
     <div class="profile">
       <div class="profile-avatar">
         ${gAvatar ? `<img class="avatar-lg" id="gAvatarPreview" src="${esc(gAvatar)}" alt="grupo">`
                   : `<div class="avatar-lg placeholder group-av" id="gAvatarPreview">${esc((g.name||'?')[0])}</div>`}
-        <button class="link" id="changeGroupPhoto">Cambiar foto</button>
+        <button class="link with-text" id="changeGroupPhoto">${ICON.camera}<span>Cambiar foto</span></button>
         <input id="groupAvatarInput" type="file" accept="image/*" hidden>
       </div>
 
       <label class="field-label">Nombre del grupo</label>
       <input id="gName" value="${esc(g.name || '')}" placeholder="Nombre del grupo">
-      <button id="saveGroupName">Guardar nombre</button>
+      <button id="saveGroupName" class="btn-ico">${ICON.check}<span>Guardar nombre</span></button>
 
       <label class="field-label">Miembros (${profs.length})</label>
       <div class="member-list">
@@ -1028,7 +1034,7 @@ async function renderGroupInfo(groupId, groupName) {
       </div>
 
       <hr class="sep">
-      <button id="leaveGroup" class="danger">Salir del grupo</button>
+      <button id="leaveGroup" class="danger btn-ico">${ICON.logout}<span>Salir del grupo</span></button>
       <p id="giMsg" class="ok"></p>
     </div>`;
 
