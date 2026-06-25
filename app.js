@@ -87,6 +87,10 @@ const ICON = {
   user: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
   key: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.6 7.6a5 5 0 1 0-7 7 5 5 0 0 0 7-7zm0 0L15 8m0 0l3 3 3-3-3-3"/></svg>',
   check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+  images: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-5-5L5 21"/></svg>',
+  callLog: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.1-8.7A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg>',
+  callIn: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="7 3 7 9 1 9"/><path d="M16 21a10 10 0 0 1-9-9"/><path d="M7 9L21 3"/></svg>',
+  callOut: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 3 23 3 23 9"/><path d="M8 3a10 10 0 0 0 9 9"/><path d="M23 3L9 17"/></svg>',
 };
 function svgBtn(name, id, cls, title) {
   return `<button class="${cls || 'icon-btn'}" ${id ? `id="${id}"` : ''} ${title ? `title="${title}"` : ''} type="button">${ICON[name] || ''}</button>`;
@@ -2355,6 +2359,10 @@ async function verPerfilUsuario(otherId, otherName, otherAvatar) {
         <button class="peer-act" id="peerCallAudio">${ICON.phone}<span>Llamar</span></button>
         <button class="peer-act" id="peerCallVideo">${ICON.video}<span>Video</span></button>
       </div>
+      <div class="peer-links">
+        <button class="peer-link" id="peerGallery">${ICON.images}<span>Fotos compartidas</span></button>
+        <button class="peer-link" id="peerCalls">${ICON.callLog}<span>Historial de llamadas</span></button>
+      </div>
     </div>`;
   document.body.appendChild(overlay);
   const close = () => overlay.remove();
@@ -2362,6 +2370,8 @@ async function verPerfilUsuario(otherId, otherName, otherAvatar) {
   document.getElementById('peerClose').onclick = close;
   document.getElementById('peerCallAudio').onclick = () => { close(); iniciarLlamada(otherId, nombre, av, 'audio'); };
   document.getElementById('peerCallVideo').onclick = () => { close(); iniciarLlamada(otherId, nombre, av, 'video'); };
+  document.getElementById('peerGallery').onclick = () => { close(); verGaleria(otherId, nombre); };
+  document.getElementById('peerCalls').onclick = () => { close(); verHistorialLlamadas(otherId, nombre); };
   // tocar la foto la muestra a tamaño completo
   const img = document.getElementById('peerAvatarImg');
   if (img) img.onclick = () => verImagenCompleta(av);
@@ -2372,10 +2382,106 @@ function verImagenCompleta(url) {
   if (!url) return;
   const ov = document.createElement('div');
   ov.className = 'img-full-overlay';
-  ov.innerHTML = `<img src="${esc(url)}" alt=""><button class="link img-full-close">✕</button>`;
+  ov.innerHTML = `<img src="${esc(url)}" alt=""><button class="link img-full-close">${ICON.close}</button>`;
   document.body.appendChild(ov);
   const close = () => ov.remove();
   ov.onclick = close;
+}
+
+// ============================================================
+//  GALERÍA DE FOTOS COMPARTIDAS (de una conversación 1-a-1)
+// ============================================================
+async function verGaleria(otherId, nombre) {
+  const ov = document.createElement('div');
+  ov.className = 'sheet-overlay';
+  ov.innerHTML = `
+    <div class="sheet">
+      <div class="sheet-head">
+        <button class="link" id="galClose">${ICON.back}</button>
+        <span class="sheet-title">Fotos con ${esc(nombre)}</span>
+      </div>
+      <div class="gallery-grid" id="galGrid"><p class="empty small">Cargando…</p></div>
+    </div>`;
+  document.body.appendChild(ov);
+  document.getElementById('galClose').onclick = () => ov.remove();
+
+  // traer mensajes con imagen de esta conversación
+  const { data } = await sb.from('messages')
+    .select('attachment_path, attachment_type, created_at')
+    .or(`and(sender_id.eq.${currentUser.id},recipient_id.eq.${otherId}),and(sender_id.eq.${otherId},recipient_id.eq.${currentUser.id})`)
+    .is('deleted_at', null)
+    .order('created_at', { ascending: false });
+
+  const imgs = (data || []).filter(m => (m.attachment_type || '').startsWith('image/') && m.attachment_path);
+  const grid = document.getElementById('galGrid');
+  if (!imgs.length) { grid.innerHTML = '<p class="empty small">No hay fotos compartidas todavía.</p>'; return; }
+
+  grid.innerHTML = '';
+  for (const m of imgs) {
+    const cell = document.createElement('div');
+    cell.className = 'gallery-cell';
+    cell.innerHTML = `<div class="gallery-loading"></div>`;
+    grid.appendChild(cell);
+    // url firmada
+    const { data: signed } = await sb.storage.from('attachments').createSignedUrl(m.attachment_path, 3600);
+    if (signed?.signedUrl) {
+      cell.innerHTML = `<img src="${esc(signed.signedUrl)}" loading="lazy" alt="">`;
+      cell.querySelector('img').onclick = () => verImagenCompleta(signed.signedUrl);
+    }
+  }
+}
+
+// ============================================================
+//  HISTORIAL DE LLAMADAS (de una conversación 1-a-1)
+// ============================================================
+async function verHistorialLlamadas(otherId, nombre) {
+  const ov = document.createElement('div');
+  ov.className = 'sheet-overlay';
+  ov.innerHTML = `
+    <div class="sheet">
+      <div class="sheet-head">
+        <button class="link" id="clClose">${ICON.back}</button>
+        <span class="sheet-title">Llamadas con ${esc(nombre)}</span>
+      </div>
+      <div class="call-log" id="clList"><p class="empty small">Cargando…</p></div>
+    </div>`;
+  document.body.appendChild(ov);
+  document.getElementById('clClose').onclick = () => ov.remove();
+
+  const { data } = await sb.from('calls')
+    .select('*')
+    .or(`and(caller_id.eq.${currentUser.id},callee_id.eq.${otherId}),and(caller_id.eq.${otherId},callee_id.eq.${currentUser.id})`)
+    .order('started_at', { ascending: false })
+    .limit(100);
+
+  const list = document.getElementById('clList');
+  if (!data || !data.length) { list.innerHTML = '<p class="empty small">No hay llamadas registradas.</p>'; return; }
+
+  list.innerHTML = data.map(c => {
+    const saliente = c.caller_id === currentUser.id;
+    const perdida = c.status === 'missed' || c.status === 'rejected' || (c.status === 'ringing' && !c.duration_seconds);
+    const icono = saliente ? ICON.callOut : ICON.callIn;
+    const tipo = c.kind === 'video' ? ICON.video : ICON.phone;
+    const fecha = formatFechaHora(c.started_at);
+    let detalle;
+    if (perdida) detalle = saliente ? 'Sin respuesta' : 'Perdida';
+    else if (c.duration_seconds) detalle = `${Math.floor(c.duration_seconds/60)}:${String(c.duration_seconds%60).padStart(2,'0')}`;
+    else detalle = saliente ? 'Saliente' : 'Entrante';
+    return `<div class="call-row ${perdida ? 'missed' : ''}">
+      <span class="call-dir">${icono}</span>
+      <div class="call-info-row">
+        <span class="call-detail">${tipo} ${detalle}</span>
+        <span class="call-date">${esc(fecha)}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// Fecha + hora legible para el historial
+function formatFechaHora(iso) {
+  const d = new Date(iso);
+  const dia = etiquetaDia(iso); // Hoy / Ayer / fecha
+  return `${dia}, ${formatHora(iso)}`;
 }
 
 // ============================================================
