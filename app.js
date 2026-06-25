@@ -2569,9 +2569,23 @@ function crearPeerConnection() {
   remoteStream = new MediaStream();
 
   pc.ontrack = (e) => {
-    e.streams[0].getTracks().forEach(t => remoteStream.addTrack(t));
+    // agregar cada track entrante al stream remoto
+    e.streams[0].getTracks().forEach(t => {
+      if (!remoteStream.getTracks().some(x => x.id === t.id)) remoteStream.addTrack(t);
+    });
+    // conectar al video (si hay) y SIEMPRE a un audio dedicado (suena aunque el video esté oculto)
     const rv = document.getElementById('remoteVideo');
-    if (rv) rv.srcObject = remoteStream;
+    if (rv) { rv.srcObject = remoteStream; rv.play?.().catch(()=>{}); }
+    let ra = document.getElementById('remoteAudio');
+    if (!ra) {
+      ra = document.createElement('audio');
+      ra.id = 'remoteAudio';
+      ra.autoplay = true;
+      ra.playsInline = true;
+      document.body.appendChild(ra);
+    }
+    ra.srcObject = remoteStream;
+    ra.play?.().catch(()=>{});
   };
   pc.onicecandidate = (e) => {
     if (e.candidate && callChannel) {
@@ -2579,7 +2593,11 @@ function crearPeerConnection() {
         payload: { candidate: e.candidate, from: currentUser.id } });
     }
   };
+  pc.oniceconnectionstatechange = () => {
+    console.log('[CALL] ICE:', pc?.iceConnectionState);
+  };
   pc.onconnectionstatechange = () => {
+    console.log('[CALL] conn:', pc?.connectionState);
     if (pc && (pc.connectionState === 'failed' || pc.connectionState === 'disconnected')) {
       finalizarLlamada('conexión perdida');
     }
@@ -2785,6 +2803,7 @@ function cerrarTodoLlamada() {
   remoteStream = null; callPeerId = null; pendingOffer = null; callRole = null;
   document.getElementById('callOverlay')?.remove();
   document.getElementById('incomingOverlay')?.remove();
+  document.getElementById('remoteAudio')?.remove();
 }
 
 // === Tono de llamada ===
@@ -2869,6 +2888,18 @@ function mostrarPantallaLlamada(nombre, avatar, estadoTxt) {
   document.getElementById('btnMute').onclick = toggleMute;
   const camBtn = document.getElementById('btnCam');
   if (camBtn) camBtn.onclick = toggleCam;
+  // En móvil el audio puede estar bloqueado: cualquier toque en la pantalla
+  // de llamada lo desbloquea (gesto del usuario).
+  ov.addEventListener('click', desbloquearAudioRemoto, { once: false });
+  desbloquearAudioRemoto();
+}
+
+// Fuerza la reproducción del audio remoto (necesario en móvil por autoplay)
+function desbloquearAudioRemoto() {
+  const ra = document.getElementById('remoteAudio');
+  if (ra) { ra.muted = false; ra.play?.().catch(()=>{}); }
+  const rv = document.getElementById('remoteVideo');
+  if (rv) { rv.play?.().catch(()=>{}); }
 }
 
 function toggleMute() {
