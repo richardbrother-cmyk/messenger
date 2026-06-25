@@ -19,6 +19,7 @@ let pendingChat = null; // { id, name } chat a abrir cuando haya sesión
 let activeIsGroup = false; // si la conversación abierta es un grupo
 let memberNames = {};      // cache id->nombre para mostrar autores en grupos
 let replyingTo = null;     // { id, preview, author } mensaje al que respondo
+let editandoMsg = null;    // mensaje que se está editando inline
 let msgCache = {};         // id -> mensaje (para reenviar/citar sin re-consultar)
 let reactionsCache = {};   // msgId -> [{user_id, emoji}]
 let modoSeleccion = false;
@@ -283,10 +284,32 @@ async function renderChats() {
   const totalNoLeidos = Object.values(unread).reduce((a, b) => a + b, 0);
   actualizarBadge(totalNoLeidos);
 
-  // Ordenar contactos: primero los que tienen no leídos (más arriba), luego alfabético
+  // === Último mensaje por contacto (para vista previa) ===
+  // Traigo los mensajes 1-a-1 donde participo, recientes primero, y me quedo
+  // con el primero (más nuevo) de cada contraparte.
+  const ultimoMsg = {};   // otherId -> { texto, hora, ts }
+  const { data: recientes } = await sb.from('messages')
+    .select('sender_id, recipient_id, content, attachment_type, attachment_name, created_at, deleted_at')
+    .or(`sender_id.eq.${currentUser.id},recipient_id.eq.${currentUser.id}`)
+    .is('group_id', null)
+    .order('created_at', { ascending: false })
+    .limit(300);
+  for (const m of (recientes || [])) {
+    const otro = m.sender_id === currentUser.id ? m.recipient_id : m.sender_id;
+    if (!otro || ultimoMsg[otro]) continue;  // ya tengo el más nuevo de este contacto
+    ultimoMsg[otro] = {
+      texto: previewTexto(m),
+      hora: formatHora(m.created_at),
+      ts: new Date(m.created_at).getTime()
+    };
+  }
+
+  // Ordenar contactos: por no leídos primero, luego por actividad reciente
   const contactos = [...(profiles || [])].sort((a, b) => {
     const ua = unread[a.id] || 0, ub = unread[b.id] || 0;
     if (ua !== ub) return ub - ua;                       // más no leídos primero
+    const ta = ultimoMsg[a.id]?.ts || 0, tb = ultimoMsg[b.id]?.ts || 0;
+    if (ta !== tb) return tb - ta;                        // conversación más reciente arriba
     return (a.display_name || '').localeCompare(b.display_name || '');
   });
 
@@ -317,12 +340,21 @@ async function renderChats() {
       ${contactos.map(p => {
         const av = avatarUrl(p);
         const n = unread[p.id] || 0;
+        const last = ultimoMsg[p.id];
         return `<div class="contact ${n ? 'has-unread' : ''}" data-id="${p.id}" data-name="${esc(p.display_name)}" data-avatar="${esc(av)}">
         ${av
           ? `<img class="avatar-img" src="${esc(av)}" alt="">`
           : `<div class="avatar">${esc((p.display_name||'?')[0])}</div>`}
-        <span class="contact-name">${esc(p.display_name)}</span>
-        ${n ? `<span class="unread-badge">${n > 99 ? '99+' : n}</span>` : ''}</div>`;
+        <div class="contact-main">
+          <div class="contact-top">
+            <span class="contact-name">${esc(p.display_name)}</span>
+            ${last ? `<span class="contact-time">${esc(last.hora)}</span>` : ''}
+          </div>
+          <div class="contact-bottom">
+            <span class="contact-preview">${last ? esc(last.texto) : ''}</span>
+            ${n ? `<span class="unread-badge">${n > 99 ? '99+' : n}</span>` : ''}
+          </div>
+        </div></div>`;
       }).join('') || '<p class="empty small">Aún no hay otros usuarios.</p>'}
     </div>`;
 
@@ -954,7 +986,7 @@ async function openChat(otherId, otherName, otherAvatar) {
   activeChat = otherId;
   activeChatName = otherName;
   activeIsGroup = false;
-  pendingFile = null; replyingTo = null; searchMatches = []; searchIdx = -1; modoSeleccion = false; seleccionados.clear();
+  pendingFile = null; replyingTo = null; editandoMsg = null; searchMatches = []; searchIdx = -1; modoSeleccion = false; seleccionados.clear();
   if (otherAvatar === undefined) {
     const { data } = await sb.from('profiles').select('avatar_url, avatar_version').eq('id', otherId).single();
     otherAvatar = avatarUrl(data);
@@ -977,7 +1009,7 @@ async function openGroup(groupId, groupName, groupAvatar) {
   activeChat = groupId;
   activeChatName = groupName;
   activeIsGroup = true;
-  pendingFile = null; replyingTo = null; searchMatches = []; searchIdx = -1; modoSeleccion = false; seleccionados.clear();
+  pendingFile = null; replyingTo = null; editandoMsg = null; searchMatches = []; searchIdx = -1; modoSeleccion = false; seleccionados.clear();
   // cargar nombres de miembros para mostrar autores
   memberNames = {};
   const { data: members } = await sb.from('group_members').select('user_id').eq('group_id', groupId);
@@ -1342,6 +1374,19 @@ function etiquetaDia(iso) {
 function claveDia(iso) {
   const d = new Date(iso);
   return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+}
+
+// Texto de vista previa para la lista de contactos
+function previewTexto(m) {
+  if (m.deleted_at) return 'Mensaje eliminado';
+  if (m.content) return m.content;
+  const t = m.attachment_type || '';
+  const path = (m.attachment_name || '') + (m.attachment_type || '');
+  if (t.startsWith('image/')) return '📷 Foto';
+  if (t.startsWith('audio/') || /voz/i.test(m.attachment_name || '')) return '🎤 Nota de voz';
+  if (t.startsWith('video/')) return '🎥 Video';
+  if (m.attachment_name) return '📎 ' + m.attachment_name;
+  return '';
 }
 
 // Detecta "mantener presionado" (y clic derecho en escritorio) sobre burbujas
@@ -1719,16 +1764,56 @@ async function reaccionar(msgId, emoji) {
 }
 
 // --- EDITAR ---
-async function editarMensaje(m) {
-  const nuevo = prompt('Editar mensaje:', m.content || '');
-  if (nuevo === null) return;            // canceló
-  const texto = nuevo.trim();
-  if (!texto || texto === m.content) return;
+function editarMensaje(m) {
+  // Carga el texto en el compositor y muestra una barra "Editando"
+  editandoMsg = m;
+  replyingTo = null; // no se puede responder y editar a la vez
+  document.getElementById('replyBar')?.remove();
+  const input = document.getElementById('msgInput');
+  if (input) { input.value = m.content || ''; input.focus(); }
+  mostrarBarraEdicion();
+}
+
+function mostrarBarraEdicion() {
+  let bar = document.getElementById('editBar');
+  if (!bar) {
+    bar = document.createElement('div');
+    bar.id = 'editBar';
+    bar.className = 'reply-bar edit-bar';
+    const composer = document.querySelector('.composer');
+    composer.parentNode.insertBefore(bar, composer);
+  }
+  bar.innerHTML = `
+    <div class="reply-bar-content">
+      <span class="reply-bar-author">${ICON.edit}<span>Editando mensaje</span></span>
+      <span class="reply-bar-text">${esc((editandoMsg.content || '').slice(0, 80))}</span>
+    </div>
+    <button id="cancelEdit" class="link">${ICON.close}</button>`;
+  document.getElementById('cancelEdit').onclick = cancelarEdicion;
+}
+
+function cancelarEdicion() {
+  editandoMsg = null;
+  document.getElementById('editBar')?.remove();
+  const input = document.getElementById('msgInput');
+  if (input) input.value = '';
+}
+
+async function guardarEdicion() {
+  const input = document.getElementById('msgInput');
+  const texto = (input?.value || '').trim();
+  const m = editandoMsg;
+  if (!m) return;
+  if (!texto) { // si lo dejó vacío, cancelar
+    cancelarEdicion();
+    return;
+  }
+  if (texto === m.content) { cancelarEdicion(); return; }
   const { error } = await sb.from('messages')
     .update({ content: texto, edited_at: new Date().toISOString() })
     .eq('id', m.id);
   if (error) { alert('No se pudo editar: ' + error.message); return; }
-  // el UPDATE en realtime refrescará la burbuja
+  cancelarEdicion(); // limpia barra y campo; el UPDATE en realtime refresca la burbuja
 }
 
 // --- BORRAR (suave) ---
@@ -1930,6 +2015,8 @@ function clearPendingFile() {
 }
 
 async function sendMessage() {
+  // Si estoy editando un mensaje, el "enviar" guarda la edición
+  if (editandoMsg) { guardarEdicion(); return; }
   const input = document.getElementById('msgInput');
   const content = input.value.trim();
   if (!content && !pendingFile) return;
