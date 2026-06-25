@@ -333,8 +333,6 @@ button.link:hover { background: none; opacity: .8; }
 }
 .attach-file small { color: var(--text-dim); opacity: .9; }
 .attach-file:hover { background: rgba(255,255,255,.14); }
-.attach-file span { display: flex; flex-direction: column; line-height: 1.2; min-width: 0; }
-.attach-file span small { opacity: .65; }
 .bubble .text { margin-top: .1rem; }
 
 /* === Grupos, emojis, miembros === */
@@ -415,10 +413,7 @@ button.link:hover { background: none; opacity: .8; }
   width: 100%; max-width: 360px;
   box-shadow: var(--sh-pop);
 }
-.msg-menu button { width: 100%; display: flex; align-items: center; gap: .8rem; text-align: left; padding: .8rem 1rem; font-size: 1rem; background: none; color: var(--text); border-radius: var(--r-md); font-weight: 500; }
-.msg-menu button svg { flex: 0 0 auto; opacity: .85; }
-.msg-menu button.danger { color: #ff7b7f; background: none; }
-.msg-menu button.danger:hover { background: rgba(229,72,77,.12); }
+.msg-menu button { width: 100%; text-align: left; padding: .85rem 1rem; font-size: 1rem; background: none; color: var(--text); border-radius: var(--r-md); font-weight: 500; }
 .msg-menu button:hover { background: var(--surface-2); }
 .del-title { padding: .4rem 1rem .5rem; font-weight: 600; opacity: .85; }
 
@@ -533,36 +528,16 @@ button.link:hover { background: none; opacity: .8; }
 #micBtn:active { background: var(--danger); color: #fff; }
 
 .voice-note {
-  display: flex; align-items: center; gap: .6rem;
-  padding: .45rem .55rem; margin-bottom: .2rem;
-  background: rgba(255,255,255,.08); border-radius: var(--r-pill);
-  min-width: 210px;
+  display: flex; align-items: center; gap: .5rem;
+  padding: .4rem .6rem; margin-bottom: .2rem;
+  background: rgba(255,255,255,.08); border-radius: 12px;
+  min-width: 180px;
 }
 .voice-play {
-  flex: 0 0 auto;
-  width: 34px; height: 34px; min-height: auto; padding: 0;
-  border: none; border-radius: 50%;
-  background: rgba(255,255,255,.16); color: #fff;
-  display: inline-flex; align-items: center; justify-content: center;
-  cursor: pointer; transition: background .14s var(--ease);
+  background: none; border: none; font-size: 1.5rem;
+  cursor: pointer; padding: 0; width: auto; min-height: auto; color: inherit;
 }
-.bubble.mine .voice-play { background: rgba(255,255,255,.22); }
-.voice-play:hover { background: rgba(255,255,255,.3); }
-.voice-play svg { margin-left: 1px; }
-/* Ondas decorativas */
-.voice-bars { display: flex; align-items: center; gap: 2px; height: 22px; flex: 1 1 auto; min-width: 0; }
-.voice-bars i {
-  flex: 1 1 0; min-width: 0; max-width: 3px;
-  border-radius: 2px; background: currentColor; opacity: .45;
-}
-.voice-bars i:nth-child(1){height:40%} .voice-bars i:nth-child(2){height:70%}
-.voice-bars i:nth-child(3){height:100%} .voice-bars i:nth-child(4){height:55%}
-.voice-bars i:nth-child(5){height:85%} .voice-bars i:nth-child(6){height:35%}
-.voice-bars i:nth-child(7){height:65%} .voice-bars i:nth-child(8){height:95%}
-.voice-bars i:nth-child(9){height:45%} .voice-bars i:nth-child(10){height:75%}
-.voice-bars i:nth-child(11){height:30%} .voice-bars i:nth-child(12){height:60%}
-.voice-bars i:nth-child(13){height:80%} .voice-bars i:nth-child(14){height:40%}
-.voice-label { font-size: .78rem; opacity: .8; flex: 0 0 auto; white-space: nowrap; }
+.voice-label { font-size: .85rem; opacity: .9; }
 
 /* === Flechita de menú (hover en web) === */
 .bubble-menu-btn {
@@ -613,11 +588,9 @@ button.link:hover { background: none; opacity: .8; }
 .call-actions { display: flex; gap: 1.5rem; margin-top: 1.5rem; }
 
 .call-btn {
-  width: auto; padding: .9rem 1.4rem; border-radius: var(--r-pill);
+  width: auto; padding: .9rem 1.3rem; border-radius: var(--r-pill);
   font-size: 1rem; background: var(--surface-2); min-height: 56px;
-  display: inline-flex; align-items: center; justify-content: center; gap: .55rem;
 }
-.call-btn span { font-weight: 600; }
 .call-btn:hover { background: var(--surface-3); }
 .call-btn.accept { background: var(--ok); }
 .call-btn.accept:hover { background: #34c27d; }
@@ -734,3 +707,80 @@ button.link:hover { background: none; opacity: .8; }
   .attach-img img { max-width: 70vw; }
   .contact { padding: .65rem .85rem; margin: 1px .35rem; }
 }
+
+/* ============================================================
+   ICONOS SVG + NUEVAS ACCIONES (entrega de rediseño)
+   ============================================================ */
+/* Tamaño y color de todos los SVG dentro de botones */
+.icon-btn svg, .link svg, .call-btn svg, .peer-act svg,
+.voice-play svg, .obj-forward svg, .bubble-menu-btn svg,
+.react-q svg, .attach-file .file-ico svg, .section-head .link svg {
+  width: 1.25em; height: 1.25em; display: block;
+}
+.icon-btn, .link { display: inline-flex; align-items: center; justify-content: center; }
+.header .link svg { width: 22px; height: 22px; }
+.send-btn { background: var(--primary); color: #fff; }
+.send-btn:hover { background: var(--primary-600); color: #fff; }
+.send-btn svg { width: 20px; height: 20px; }
+
+/* Barra de acciones del encabezado (modo acción) */
+.action-header { display: flex; align-items: center; gap: .15rem; }
+.action-header.hidden { display: none; }
+.action-spacer { flex: 1 1 auto; }
+.action-header .link { color: var(--text); }
+.action-header .danger-ico { color: var(--danger); }
+.bubble.action-target { outline: 2px solid var(--primary); outline-offset: 1px; }
+
+/* Barra flotante de emojis de reacción (estilo WhatsApp) */
+.react-strip {
+  align-self: center;
+  display: inline-flex; gap: .15rem; padding: .3rem .4rem;
+  background: var(--surface-1); border: 1px solid var(--line-strong);
+  border-radius: var(--r-pill); box-shadow: var(--sh-pop);
+  margin: .2rem 0 .35rem; z-index: 5;
+}
+.react-q {
+  background: none; border: none; font-size: 1.5rem; line-height: 1;
+  padding: .2rem .25rem; cursor: pointer; border-radius: 50%;
+  width: auto; min-height: auto; color: var(--text);
+}
+.react-q:hover { background: var(--surface-2); transform: scale(1.15); }
+.react-q.more svg { width: 20px; height: 20px; }
+
+/* Flechita de reenvío en objetos (voz/imagen/video/archivo) */
+.attach-wrap { position: relative; display: inline-block; }
+.obj-forward {
+  position: absolute; top: -6px; right: -6px;
+  width: 26px; height: 26px; min-height: auto; padding: 0;
+  background: var(--surface-1); border: 1px solid var(--line-strong);
+  border-radius: 50%; color: var(--text-dim);
+  display: none; align-items: center; justify-content: center;
+  box-shadow: var(--sh-1); cursor: pointer;
+}
+.attach-wrap:hover .obj-forward { display: inline-flex; }
+.obj-forward:hover { color: var(--primary); }
+/* en táctil, siempre visible (no hay hover) */
+@media (hover: none) {
+  .obj-forward { display: inline-flex; }
+}
+
+/* Reproductor de voz: botón circular con SVG */
+.voice-play {
+  background: var(--primary); color: #fff; border: none;
+  width: 38px; height: 38px; min-height: auto; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+  flex-shrink: 0;
+}
+.voice-play svg { width: 18px; height: 18px; }
+.attach-file .file-ico { display: inline-flex; vertical-align: middle; margin-right: .2rem; }
+.attach-file .file-ico svg { width: 18px; height: 18px; }
+
+/* Palomitas SVG */
+.ticks svg { width: 18px; height: 12px; color: var(--text-faint); }
+.ticks.read svg { color: var(--accent); }
+
+/* Iconos en pantallas de llamada */
+.call-btn svg { width: 26px; height: 26px; }
+.call-controls .call-btn svg { width: 24px; height: 24px; }
+.peer-act svg { width: 24px; height: 24px; }
+.peer-close svg, .img-full-close svg { width: 22px; height: 22px; }

@@ -29,8 +29,33 @@ let listaChannel = null;   // canal de realtime para la lista de contactos
 const EMOJIS = ['😀','😂','🥰','😍','😘','😎','🤔','😴','😭','😡','👍','👎','👏','🙏','💪','🔥','🎉','❤️','💔','✨','⭐','🌟','💯','✅','❌','🤣','😅','😉','😊','🙂','😇','🤗','🤩','😋','😜','🤪','😏','🥺','😩','😤','👋','🤝','✌️','🤞','👌','🙌','💀','👀','💩','🥳','😱','😬','🤯','🫶','💕','💖','🎂','🍕','☕','🌹'];
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
-const SVG_PLAY  = '<svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
-const SVG_PAUSE = '<svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>';
+
+// === ICONOS SVG (estilizados, heredan color via currentColor) ===
+const ICON = {
+  back: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>',
+  search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>',
+  phone: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.1-8.7A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg>',
+  video: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>',
+  trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M10 11v6M14 11v6"/></svg>',
+  reply: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 17l-5-5 5-5"/><path d="M4 12h11a5 5 0 0 1 5 5v1"/></svg>',
+  forward: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 17l5-5-5-5"/><path d="M20 12H9a5 5 0 0 0-5 5v1"/></svg>',
+  edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>',
+  select: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>',
+  close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>',
+  emoji: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>',
+  attach: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.4 11.05l-9.19 9.19a5 5 0 0 1-7.07-7.07l9.19-9.19a3.33 3.33 0 0 1 4.71 4.71l-9.2 9.19a1.67 1.67 0 0 1-2.36-2.36l8.49-8.48"/></svg>',
+  mic: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>',
+  send: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>',
+  play: '<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg>',
+  pause: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>',
+  hangup: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.1-8.7A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/><line x1="1" y1="1" x2="23" y2="23"/></svg>',
+  file: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
+  plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>',
+  copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>',
+};
+function svgBtn(name, id, cls, title) {
+  return `<button class="${cls || 'icon-btn'}" ${id ? `id="${id}"` : ''} ${title ? `title="${title}"` : ''} type="button">${ICON[name] || ''}</button>`;
+}
 
 const userToEmail = u => `${u.toLowerCase().trim()}@${EMAIL_DOMAIN}`;
 
@@ -267,12 +292,12 @@ async function renderChats() {
           : `<div class="avatar">${esc((currentProfile.display_name||'?')[0])}</div>`}
         <span>Hola, ${esc(currentProfile.display_name)}</span>
       </div>
-      <button class="link" id="logoutBtn" title="Cerrar sesión" aria-label="Cerrar sesión"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
+      <button class="link" id="logoutBtn">Salir</button>
     </div>
     <div class="contacts">
       <div class="section-head">
         <span>Grupos</span>
-        <button class="link" id="newGroupBtn" title="Crear grupo" aria-label="Crear grupo"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+        <button class="link" id="newGroupBtn" title="Crear grupo">＋</button>
       </div>
       ${groups.map(g => {
         const av = avatarUrl(g);
@@ -309,7 +334,7 @@ async function renderCreateGroup() {
   const { data: profiles } = await sb.from('profiles').select('*').neq('id', currentUser.id).order('display_name');
   app.innerHTML = `
     <div class="header">
-      <button class="link" id="backBtn" aria-label="Atrás"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+      <button class="link" id="backBtn">←</button>
       <span class="chat-title">Nuevo grupo</span>
     </div>
     <div class="profile">
@@ -361,7 +386,7 @@ function renderProfile() {
   const av = avatarUrl(currentProfile);
   app.innerHTML = `
     <div class="header">
-      <button class="link" id="backBtn" aria-label="Atrás"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+      <button class="link" id="backBtn">←</button>
       <span>Mi perfil</span>
     </div>
     <div class="profile">
@@ -610,20 +635,28 @@ let activeChatName = '';
 // Construye el HTML común del chat (header + mensajes + compositor con emojis)
 function chatShell(titleHtml, withClear, conLlamadas) {
   return `
-    <div class="header">
-      <button class="link" id="backBtn" aria-label="Atrás"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <div class="header" id="chatHeader">
+      ${svgBtn('back', 'backBtn', 'link')}
       ${titleHtml}
-      ${conLlamadas ? `<button class="link" id="callAudioBtn" title="Llamar"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg></button>
-      <button class="link" id="callVideoBtn" title="Videollamada"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></button>` : ''}
-      <button class="link" id="searchBtn" title="Buscar"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button>
-      ${withClear ? `<button class="link" id="clearBtn" title="Limpiar conversación"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>` : ''}
+      ${conLlamadas ? svgBtn('phone', 'callAudioBtn', 'link', 'Llamar') + svgBtn('video', 'callVideoBtn', 'link', 'Videollamada') : ''}
+      ${svgBtn('search', 'searchBtn', 'link', 'Buscar')}
+      ${withClear ? svgBtn('trash', 'clearBtn', 'link', 'Limpiar conversación') : ''}
+    </div>
+    <div class="header action-header hidden" id="actionHeader">
+      ${svgBtn('close', 'actClose', 'link', 'Cerrar')}
+      <span class="action-spacer"></span>
+      ${svgBtn('reply', 'actReply', 'link', 'Responder')}
+      ${svgBtn('forward', 'actForward', 'link', 'Reenviar')}
+      ${svgBtn('edit', 'actEdit', 'link', 'Editar')}
+      ${svgBtn('select', 'actSelect', 'link', 'Seleccionar')}
+      ${svgBtn('trash', 'actDelete', 'link danger-ico', 'Eliminar')}
     </div>
     <div id="searchBar" class="search-bar hidden">
       <input id="searchInput" placeholder="Buscar en la conversación…" autocomplete="off">
       <span id="searchCount" class="search-count"></span>
-      <button class="link" id="searchPrev" title="Anterior"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg></button>
-      <button class="link" id="searchNext" title="Siguiente"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
-      <button class="link" id="searchClose" aria-label="Cerrar"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      <button class="link" id="searchPrev" title="Anterior">▲</button>
+      <button class="link" id="searchNext" title="Siguiente">▼</button>
+      ${svgBtn('close', 'searchClose', 'link')}
     </div>
     <div class="messages" id="messages"></div>
     <div id="emojiPanel" class="emoji-panel hidden">
@@ -631,12 +664,12 @@ function chatShell(titleHtml, withClear, conLlamadas) {
     </div>
     <div id="filePreview" class="file-preview hidden"></div>
     <div class="composer">
-      <button id="emojiBtn" class="icon-btn" title="Emojis"><svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg></button>
-      <button id="attachBtn" class="icon-btn" title="Adjuntar"><svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
+      ${svgBtn('emoji', 'emojiBtn', 'icon-btn', 'Emojis')}
+      ${svgBtn('attach', 'attachBtn', 'icon-btn', 'Adjuntar')}
       <input id="fileInput" type="file" hidden>
       <input id="msgInput" placeholder="Mensaje..." autocomplete="off">
-      <button id="micBtn" class="icon-btn" title="Mantén presionado para grabar"><svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></button>
-      <button id="sendBtn">Enviar</button>
+      ${svgBtn('mic', 'micBtn', 'icon-btn', 'Mantén presionado para grabar')}
+      ${svgBtn('send', 'sendBtn', 'icon-btn send-btn', 'Enviar')}
     </div>
     <div id="recIndicator" class="rec-indicator hidden">
       <span class="rec-dot"></span>
@@ -967,7 +1000,7 @@ async function renderGroupInfo(groupId, groupName) {
 
   app.innerHTML = `
     <div class="header">
-      <button class="link" id="backBtn" aria-label="Atrás"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+      <button class="link" id="backBtn">←</button>
       <span class="chat-title">Info del grupo</span>
     </div>
     <div class="profile">
@@ -1172,18 +1205,17 @@ function renderBubble(m) {
     const type = m.attachment_type || '';
     const path = m.attachment_path || '';
     const isImage = type.startsWith('image/');
-    // audio por mime O por extensión (blinda notas con tipo mal guardado)
     const isAudio = type.startsWith('audio/') || /\.(webm|m4a|mp3|ogg|wav|aac)$/i.test(path) || /voz/i.test(path);
+    const fwd = `<button class="obj-forward" title="Reenviar">${ICON.forward}</button>`;
     if (isImage) {
-      inner += `<div class="attach-img" data-path="${esc(m.attachment_path)}"><span class="loading">Cargando imagen…</span></div>`;
+      inner += `<div class="attach-wrap"><div class="attach-img" data-path="${esc(m.attachment_path)}"><span class="loading">Cargando imagen…</span></div>${fwd}</div>`;
     } else if (isAudio) {
-      inner += `<div class="voice-note" data-path="${esc(m.attachment_path)}">
-        <button class="voice-play" type="button"><svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>
-        <span class="voice-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+      inner += `<div class="attach-wrap"><div class="voice-note" data-path="${esc(m.attachment_path)}">
+        <button class="voice-play" type="button">${ICON.play}</button>
         <span class="voice-label">${esc(m.attachment_name || 'Nota de voz')}</span>
-      </div>`;
+      </div>${fwd}</div>`;
     } else {
-      inner += `<a class="attach-file" data-path="${esc(m.attachment_path)}" href="#"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;opacity:.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>${esc(m.attachment_name || 'archivo')} <small>${formatSize(m.attachment_size)}</small></span></a>`;
+      inner += `<div class="attach-wrap"><a class="attach-file" data-path="${esc(m.attachment_path)}" href="#"><span class="file-ico">${ICON.file}</span> ${esc(m.attachment_name || 'archivo')} <small>${formatSize(m.attachment_size)}</small></a>${fwd}</div>`;
     }
   }
   if (m.content) inner += `<div class="text">${esc(m.content)}</div>`;
@@ -1192,12 +1224,16 @@ function renderBubble(m) {
   let meta = '';
   if (m.edited_at) meta += `<span class="edited">editado</span>`;
   if (mine && !activeIsGroup) {
-    const tick = m.read_at ? '<span class="ticks read">✓✓</span>' : '<span class="ticks">✓✓</span>';
-    meta += tick;
+    meta += `<span class="ticks ${m.read_at ? 'read' : ''}">${ticksSvg()}</span>`;
   }
   if (meta) inner += `<div class="meta">${meta}</div>`;
 
-  return `<div class="bubble ${mine ? 'mine' : 'theirs'}" data-id="${m.id}">${inner}<button class="bubble-menu-btn" title="Acciones">▾</button></div>`;
+  return `<div class="bubble ${mine ? 'mine' : 'theirs'}" data-id="${m.id}">${inner}<button class="bubble-menu-btn" title="Acciones">${ICON.forward}</button></div>`;
+}
+
+// Doble palomita SVG
+function ticksSvg() {
+  return '<svg viewBox="0 0 28 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9l4 4 9-11"/><path d="M11 13l1.5 1.5L22 3"/></svg>';
 }
 
 // Detecta "mantener presionado" (y clic derecho en escritorio) sobre burbujas
@@ -1206,20 +1242,29 @@ function attachLongPress(box) {
   const start = (el) => {
     timer = setTimeout(() => {
       const id = el.dataset.id;
-      if (id) abrirMenuMensaje(parseInt(id));
-    }, 500);
+      if (id && !modoSeleccion) activarAcciones(parseInt(id), el);
+    }, 450);
   };
   const cancel = () => { if (timer) { clearTimeout(timer); timer = null; } };
 
   box.querySelectorAll('.bubble').forEach(el => {
     const id = el.dataset.id;
-    // Flechita ▾ (visible en hover en web): abre el menú
+    // Flechita ▾ (visible en hover en web): activa acciones
     const menuBtn = el.querySelector('.bubble-menu-btn');
     if (menuBtn) {
       menuBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         if (modoSeleccion) { toggleSeleccion(parseInt(id), el); return; }
-        if (id) abrirMenuMensaje(parseInt(id));
+        if (id) activarAcciones(parseInt(id), el);
+      });
+    }
+    // Flechita de reenvío rápido en objetos (voz/imagen/video/archivo)
+    const fwdBtn = el.querySelector('.obj-forward');
+    if (fwdBtn) {
+      fwdBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const m = msgCache[id];
+        if (m) abrirReenviar(m);
       });
     }
     // En modo selección, un tap marca/desmarca
@@ -1235,7 +1280,7 @@ function attachLongPress(box) {
     el.addEventListener('contextmenu', (e) => {
       e.preventDefault();
       if (modoSeleccion) return;
-      if (id) abrirMenuMensaje(parseInt(id));
+      if (id) activarAcciones(parseInt(id), el);
     });
     // tocar la cita salta al mensaje original
     const quote = el.querySelector('.quote');
@@ -1248,6 +1293,75 @@ function attachLongPress(box) {
       });
     }
   });
+}
+
+// === ACCIONES SOBRE UN MENSAJE (emojis + barra en el encabezado) ===
+let mensajeActivo = null;
+
+function activarAcciones(msgId, el) {
+  const m = msgCache[msgId];
+  if (!m || m.deleted_at) return;
+  mensajeActivo = m;
+
+  // resaltar el mensaje activo
+  document.querySelectorAll('.bubble.action-target').forEach(b => b.classList.remove('action-target'));
+  el?.classList.add('action-target');
+
+  // 1) mostrar la barra de emojis de reacción rápida
+  mostrarBarraEmojis(msgId);
+
+  // 2) cambiar el encabezado a modo acciones para ESTE mensaje
+  const mine = m.sender_id === currentUser.id;
+  document.getElementById('chatHeader')?.classList.add('hidden');
+  const ah = document.getElementById('actionHeader');
+  if (ah) {
+    ah.classList.remove('hidden');
+    // editar solo en mis mensajes con texto
+    const editBtn = document.getElementById('actEdit');
+    if (editBtn) editBtn.style.display = (mine && m.content) ? '' : 'none';
+    document.getElementById('actClose').onclick = cerrarAcciones;
+    document.getElementById('actReply').onclick = () => { cerrarAcciones(); iniciarRespuesta(m); };
+    document.getElementById('actForward').onclick = () => { cerrarAcciones(); abrirReenviar(m); };
+    if (editBtn) editBtn.onclick = () => { cerrarAcciones(); editarMensaje(m); };
+    document.getElementById('actSelect').onclick = () => { cerrarAcciones(); entrarModoSeleccion(m.id); };
+    document.getElementById('actDelete').onclick = () => { cerrarAcciones(); borrarMensaje(m); };
+  }
+}
+
+function cerrarAcciones() {
+  mensajeActivo = null;
+  document.querySelectorAll('.bubble.action-target').forEach(b => b.classList.remove('action-target'));
+  document.getElementById('reactStrip')?.remove();
+  document.getElementById('actionHeader')?.classList.add('hidden');
+  document.getElementById('chatHeader')?.classList.remove('hidden');
+}
+
+// Barra flotante de emojis de reacción rápida (estilo WhatsApp)
+function mostrarBarraEmojis(msgId) {
+  document.getElementById('reactStrip')?.remove();
+  const bubble = document.querySelector(`.bubble[data-id="${msgId}"]`);
+  if (!bubble) return;
+  const strip = document.createElement('div');
+  strip.id = 'reactStrip';
+  strip.className = 'react-strip';
+  strip.innerHTML =
+    REACT_QUICK.map(e => `<button class="react-q" data-e="${e}">${e}</button>`).join('') +
+    `<button class="react-q more" id="reactStripMore">${ICON.plus}</button>`;
+  // posicionar sobre la burbuja
+  bubble.insertAdjacentElement('beforebegin', strip);
+  strip.querySelectorAll('.react-q[data-e]').forEach(b =>
+    b.onclick = () => { const e = b.dataset.e; cerrarAcciones(); reaccionar(msgId, e); });
+  document.getElementById('reactStripMore').onclick = () => { cerrarAcciones(); abrirSelectorReaccion(msgId); };
+  // tocar fuera cierra todo
+  setTimeout(() => {
+    const onDoc = (ev) => {
+      if (!ev.target.closest('#reactStrip') && !ev.target.closest('#actionHeader')) {
+        cerrarAcciones();
+        document.removeEventListener('click', onDoc, true);
+      }
+    };
+    document.addEventListener('click', onDoc, true);
+  }, 50);
 }
 
 // === MODO SELECCIÓN MÚLTIPLE ===
@@ -1291,11 +1405,11 @@ function actualizarBarraSeleccion() {
   const bar = document.getElementById('selBar');
   if (!bar) return;
   bar.innerHTML = `
-    <button class="link" id="selCancel" aria-label="Cancelar"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    <button class="link" id="selCancel">✕</button>
     <span class="sel-count">${seleccionados.size} seleccionado(s)</span>
-    <button class="link" id="selCopy" title="Copiar"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
-    <button class="link" id="selForward" title="Reenviar"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 17 20 12 15 7"/><path d="M4 18v-2a4 4 0 0 1 4-4h12"/></svg></button>
-    <button class="link" id="selDelete" title="Eliminar"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>`;
+    <button class="link" id="selCopy" title="Copiar">📋</button>
+    <button class="link" id="selForward" title="Reenviar">↪️</button>
+    <button class="link" id="selDelete" title="Eliminar">🗑️</button>`;
   document.getElementById('selCancel').onclick = salirModoSeleccion;
   document.getElementById('selCopy').onclick = copiarSeleccionados;
   document.getElementById('selForward').onclick = reenviarSeleccionados;
@@ -1434,11 +1548,11 @@ function abrirMenuMensaje(msgId) {
         ${REACT_QUICK.map(e => `<button class="react-emoji" data-e="${e}">${e}</button>`).join('')}
         <button class="react-emoji more" id="reactMore">➕</button>
       </div>
-      <button id="mmReply"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg><span>Responder</span></button>
-      <button id="mmForward"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 17 20 12 15 7"/><path d="M4 18v-2a4 4 0 0 1 4-4h12"/></svg><span>Reenviar</span></button>
-      <button id="mmSelect"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span>Seleccionar</span></button>
-      ${mine && m.content ? `<button id="mmEdit"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg><span>Editar</span></button>` : ''}
-      <button id="mmDelete" class="danger"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg><span>Borrar</span></button>
+      <button id="mmReply">↩️ Responder</button>
+      <button id="mmForward">↪️ Reenviar</button>
+      <button id="mmSelect">☑️ Seleccionar</button>
+      ${mine && m.content ? `<button id="mmEdit">✏️ Editar</button>` : ''}
+      <button id="mmDelete" class="danger">🗑️ Borrar</button>
       <button id="mmCancel" class="secondary">Cancelar</button>
     </div>`;
   document.body.appendChild(overlay);
@@ -1576,7 +1690,7 @@ function mostrarBarraRespuesta() {
       <span class="reply-bar-author">${esc(replyingTo.author)}</span>
       <span class="reply-bar-text">${esc(replyingTo.preview)}</span>
     </div>
-    <button id="cancelReply" class="link" aria-label="Cancelar"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>`;
+    <button id="cancelReply" class="link">✕</button>`;
   document.getElementById('cancelReply').onclick = cancelarRespuesta;
 }
 
@@ -1671,17 +1785,16 @@ async function hydrateAttachments(box) {
     const audio = new Audio(data.signedUrl);
     const btn = el.querySelector('.voice-play');
     btn.onclick = () => {
-      // pausa cualquier otra nota que esté sonando
       document.querySelectorAll('.voice-note').forEach(otra => {
         if (otra !== el && otra._audio && !otra._audio.paused) {
           otra._audio.pause();
-          otra.querySelector('.voice-play').innerHTML = SVG_PLAY;
+          otra.querySelector('.voice-play').innerHTML = ICON.play;
         }
       });
-      if (audio.paused) { audio.play(); btn.innerHTML = SVG_PAUSE; }
-      else { audio.pause(); btn.innerHTML = SVG_PLAY; }
+      if (audio.paused) { audio.play(); btn.innerHTML = ICON.pause; }
+      else { audio.pause(); btn.innerHTML = ICON.play; }
     };
-    audio.onended = () => { btn.innerHTML = SVG_PLAY; };
+    audio.onended = () => { btn.innerHTML = ICON.play; };
     el._audio = audio;
   }
 }
@@ -1696,7 +1809,7 @@ function onFilePicked(e) {
   pendingFile = file;
   const preview = document.getElementById('filePreview');
   preview.classList.remove('hidden');
-  preview.innerHTML = `<span style="display:flex;align-items:center;gap:.5rem"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;opacity:.8"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>${esc(file.name)} <small>${formatSize(file.size)}</small></span><button id="cancelFile" class="link" aria-label="Quitar"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>`;
+  preview.innerHTML = `<span>📎 ${esc(file.name)} <small>${formatSize(file.size)}</small></span><button id="cancelFile" class="link">✕</button>`;
   document.getElementById('cancelFile').onclick = clearPendingFile;
 }
 
@@ -1911,14 +2024,14 @@ async function verPerfilUsuario(otherId, otherName, otherAvatar) {
   overlay.className = 'peer-profile-overlay';
   overlay.innerHTML = `
     <div class="peer-profile">
-      <button class="link peer-close" id="peerClose" aria-label="Cerrar"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      <button class="link peer-close" id="peerClose">${ICON.close}</button>
       ${av
         ? `<img class="peer-avatar" id="peerAvatarImg" src="${esc(av)}" alt="${esc(nombre)}">`
         : `<div class="peer-avatar placeholder">${esc((nombre||'?')[0])}</div>`}
       <div class="peer-name">${esc(nombre)}</div>
       <div class="peer-actions">
-        <button class="peer-act" id="peerCallAudio"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg><span>Llamar</span></button>
-        <button class="peer-act" id="peerCallVideo"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg><span>Video</span></button>
+        <button class="peer-act" id="peerCallAudio">${ICON.phone}<span>Llamar</span></button>
+        <button class="peer-act" id="peerCallVideo">${ICON.video}<span>Video</span></button>
       </div>
     </div>`;
   document.body.appendChild(overlay);
@@ -1937,7 +2050,7 @@ function verImagenCompleta(url) {
   if (!url) return;
   const ov = document.createElement('div');
   ov.className = 'img-full-overlay';
-  ov.innerHTML = `<img src="${esc(url)}" alt=""><button class="link img-full-close" aria-label="Cerrar"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>`;
+  ov.innerHTML = `<img src="${esc(url)}" alt=""><button class="link img-full-close">✕</button>`;
   document.body.appendChild(ov);
   const close = () => ov.remove();
   ov.onclick = close;
@@ -2206,7 +2319,7 @@ async function registrarPerdida(otherId) {
     await sb.from('messages').insert({
       sender_id: currentUser.id,
       recipient_id: otherId,
-      content: callKind === 'video' ? 'Videollamada perdida' : 'Llamada perdida'
+      content: callKind === 'video' ? '📹 Videollamada perdida' : '📞 Llamada perdida'
     });
   } catch (_) {}
 }
@@ -2291,10 +2404,10 @@ function mostrarLlamadaEntrante(nombre, kind) {
     <div class="call-box">
       <div class="call-avatar">${esc(nombre[0] || '?')}</div>
       <div class="call-name" id="incomingName">${esc(nombre)}</div>
-      <div class="call-sub">${kind === 'video' ? 'Videollamada' : 'Llamada'} entrante…</div>
+      <div class="call-sub">${kind === 'video' ? '📹 Videollamada' : '📞 Llamada'} entrante…</div>
       <div class="call-actions">
-        <button class="call-btn reject" id="incReject"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"/><line x1="23" y1="1" x2="1" y2="23"/></svg><span>Rechazar</span></button>
-        <button class="call-btn accept" id="incAccept"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg><span>Aceptar</span></button>
+        <button class="call-btn reject" id="incReject">${ICON.hangup}<span>Rechazar</span></button>
+        <button class="call-btn accept" id="incAccept">${ICON.phone}<span>Aceptar</span></button>
       </div>
     </div>`;
   document.body.appendChild(ov);
@@ -2317,9 +2430,9 @@ function mostrarPantallaLlamada(nombre, avatar, estadoTxt) {
       </div>
     </div>
     <div class="call-controls">
-      <button class="call-btn" id="btnMute" title="Silenciar"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></button>
-      ${callKind === 'video' ? `<button class="call-btn" id="btnCam" title="Cámara"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></button>` : ''}
-      <button class="call-btn reject" id="btnHangup" title="Colgar"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"/><line x1="23" y1="1" x2="1" y2="23"/></svg></button>
+      <button class="call-btn" id="btnMute" title="Silenciar">${ICON.mic}</button>
+      ${callKind === 'video' ? `<button class="call-btn" id="btnCam" title="Cámara">${ICON.video}</button>` : ''}
+      <button class="call-btn reject" id="btnHangup" title="Colgar">${ICON.hangup}</button>
     </div>`;
   document.body.appendChild(ov);
   const lv = document.getElementById('localVideo');
