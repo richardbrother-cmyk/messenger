@@ -2602,80 +2602,6 @@ function enviarSenal(toUserId, event, payload) {
 
 // Cola de candidatos ICE (declaración arriba, junto a las funciones de envío)
 
-// Botón visible para activar el sonido en móvil (cuando el autoplay se bloquea)
-// Muestra diagnóstico de audio en pantalla (visible en móvil sin consola)
-let diagLineas = [];
-function diagAudio(msg) {
-  console.log('[CALL][audio]', msg);
-  let d = document.getElementById('audioDiag');
-  if (!d) {
-    const ov = document.getElementById('callOverlay');
-    if (!ov) return;
-    d = document.createElement('div');
-    d.id = 'audioDiag';
-    d.style.cssText = 'position:absolute;top:70px;left:8px;right:8px;background:rgba(0,0,0,.8);color:#0f0;font-size:11px;line-height:1.5;padding:8px;border-radius:6px;z-index:200;font-family:monospace;text-align:left;max-height:40vh;overflow-y:auto;';
-    ov.appendChild(d);
-  }
-  const hora = new Date().toLocaleTimeString().split(' ')[0];
-  diagLineas.push(hora + ' ' + msg);
-  if (diagLineas.length > 12) diagLineas.shift();  // últimas 12 líneas
-  d.textContent = diagLineas.join('\n');
-}
-
-function mostrarBotonSonido() {
-  if (document.getElementById('btnActivarSonido')) return;
-  const ov = document.getElementById('callOverlay');
-  if (!ov) return;
-  const btn = document.createElement('button');
-  btn.id = 'btnActivarSonido';
-  btn.className = 'activar-sonido';
-  btn.innerHTML = '🔊 Toca aquí para escuchar';
-  btn.onclick = (ev) => {
-    ev.stopPropagation();
-    const rv = document.getElementById('remoteVideo');
-    if (rv && remoteStream) {
-      // re-asignar el stream y reproducir DENTRO del gesto (clave en móvil)
-      rv.srcObject = remoteStream;
-      rv.muted = false;
-      rv.volume = 1.0;
-      rv.play().then(() => {
-        diagAudio('audio activado ✓');
-        btn.remove();
-      }).catch(err => diagAudio('falló: ' + err.name));
-    }
-  };
-  ov.appendChild(btn);
-}
-
-// Detección simple de móvil
-function esMovil() {
-  return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
-}
-
-// Monitorea bytes de audio recibidos y los muestra en pantalla (diagnóstico móvil)
-let monitorAudioTimer = null, ultimosBytesAudio = 0;
-function monitorearAudioEntrante() {
-  if (monitorAudioTimer) clearInterval(monitorAudioTimer);
-  monitorAudioTimer = setInterval(async () => {
-    if (!pc) { clearInterval(monitorAudioTimer); return; }
-    try {
-      const stats = await pc.getStats();
-      let bytes = 0, packets = 0;
-      stats.forEach(r => {
-        if (r.type === 'inbound-rtp' && r.kind === 'audio') {
-          bytes = r.bytesReceived || 0;
-          packets = r.packetsReceived || 0;
-        }
-      });
-      const delta = bytes - ultimosBytesAudio;
-      ultimosBytesAudio = bytes;
-      const rv = document.getElementById('remoteVideo');
-      const estadoRv = rv ? (rv.paused ? 'PAUSA' : 'play') + ' vol' + rv.volume + (rv.muted?' MUTE':'') : 'sin-elem';
-      diagAudio('audio RX: ' + bytes + 'b (+' + delta + ') pk:' + packets + ' | video:' + estadoRv);
-    } catch (e) {}
-  }, 2000);
-}
-
 function crearPeerConnection() {
   pc = new RTCPeerConnection({
     iceServers: ICE_SERVERS,
@@ -2688,16 +2614,6 @@ function crearPeerConnection() {
     e.streams[0].getTracks().forEach(t => remoteStream.addTrack(t));
     const rv = document.getElementById('remoteVideo');
     if (rv) { rv.srcObject = remoteStream; rv.play?.().catch(()=>{}); }
-    // diagnóstico visible en pantalla del móvil
-    diagAudio('ontrack ' + e.track.kind + ' | tracks audio: ' + remoteStream.getAudioTracks().length);
-    const at = remoteStream.getAudioTracks()[0];
-    if (at) {
-      diagAudio('audio: ' + at.readyState + '/' + (at.enabled?'on':'off') + '/' + (at.muted?'MUTED':'live'));
-      at.onunmute = () => diagAudio('audio des-muteado (fluyendo)');
-      at.onmute = () => diagAudio('audio muteado (sin datos)');
-    }
-    // a los 3s, medir bytes de audio recibidos (prueba definitiva)
-    setTimeout(() => monitorearAudioEntrante(), 3000);
   };
   pc.onicecandidate = (e) => {
     if (e.candidate) {
@@ -2966,8 +2882,6 @@ function finalizarLlamada(motivo) {
 function cerrarTodoLlamada() {
   if (callTimer) { clearInterval(callTimer); callTimer = null; }
   if (reconnTimer) { clearTimeout(reconnTimer); reconnTimer = null; }
-  if (monitorAudioTimer) { clearInterval(monitorAudioTimer); monitorAudioTimer = null; }
-  ultimosBytesAudio = 0; diagLineas = [];
   if (callRingTimeout) { clearTimeout(callRingTimeout); callRingTimeout = null; }
   callSeconds = 0;
   if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
@@ -2978,8 +2892,6 @@ function cerrarTodoLlamada() {
   misCandidatos = []; yaReenvie = false;
   document.getElementById('callOverlay')?.remove();
   document.getElementById('incomingOverlay')?.remove();
-  document.getElementById('btnActivarSonido')?.remove();
-  document.getElementById('audioDiag')?.remove();
   altavozActivo = true;
 }
 
