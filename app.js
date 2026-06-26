@@ -2536,21 +2536,49 @@ function pararInbox() {
 }
 
 // Canal de señalización entre dos personas (nombre compartido por hash)
+let callChannelListo = false;
+let iceQueue = [];   // candidatos ICE en espera de que el canal esté listo
 function abrirCanalSenal(otherId) {
   const par = [currentUser.id, otherId].sort();
   const nombre = 'call-' + hashCorto(par[0] + par[1]);
-  callChannel = sb.channel(nombre);
+  callChannelListo = false;
+  callChannel = sb.channel(nombre, {
+    config: { broadcast: { self: false, ack: true } }
+  });
   callChannel
     .on('broadcast', { event: 'call-answer' }, ({ payload }) => onAnswer(payload))
     .on('broadcast', { event: 'call-ice' }, ({ payload }) => onRemoteIce(payload))
     .on('broadcast', { event: 'call-reject' }, () => {
-      // si yo era quien llamaba, registrar como perdida/rechazada
       if (callRole === 'caller') registrarPerdida(callPeerId);
       finalizarLlamada('rechazada');
     })
     .on('broadcast', { event: 'call-busy' }, () => { finalizarLlamada('ocupado'); })
     .on('broadcast', { event: 'call-end' }, () => { finalizarLlamada('colgó'); })
-    .subscribe();
+    .subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        callChannelListo = true;
+        vaciarColaIce();   // enviar candidatos que se acumularon antes de estar listo
+      }
+    });
+}
+
+// Envío de candidatos ICE con cola: si el canal aún no está suscrito,
+// se acumulan y se envían en cuanto esté listo (evita el fallback a REST).
+function enviarIceSalida(candidate) {
+  if (callChannel && callChannelListo) {
+    callChannel.send({ type: 'broadcast', event: 'call-ice',
+      payload: { candidate, from: currentUser.id } });
+  } else {
+    iceQueue.push(candidate);
+  }
+}
+function vaciarColaIce() {
+  if (!callChannel || !callChannelListo) return;
+  while (iceQueue.length) {
+    const c = iceQueue.shift();
+    callChannel.send({ type: 'broadcast', event: 'call-ice',
+      payload: { candidate: c, from: currentUser.id } });
+  }
 }
 
 // Envía una señal puntual al inbox del otro (para la oferta inicial)
@@ -2564,29 +2592,7 @@ function enviarSenal(toUserId, event, payload) {
   });
 }
 
-// Cola de candidatos ICE: si el canal aún no está listo, se guardan y se
-// envían en cuanto se conecta (evita perder candidatos y que el ICE falle).
-let iceQueue = [];
-function enviarIce(candidate) {
-  if (callChannel && callChannel.state === 'joined') {
-    callChannel.send({ type: 'broadcast', event: 'call-ice',
-      payload: { candidate, from: currentUser.id } });
-  } else {
-    iceQueue.push(candidate);
-    // reintentar pronto
-    setTimeout(vaciarColaIce, 250);
-  }
-}
-function vaciarColaIce() {
-  if (!callChannel || callChannel.state !== 'joined') {
-    if (iceQueue.length) setTimeout(vaciarColaIce, 250);
-    return;
-  }
-  while (iceQueue.length) {
-    const c = iceQueue.shift();
-    callChannel.send({ type: 'broadcast', event: 'call-ice', payload: { candidate: c, from: currentUser.id } });
-  }
-}
+// Cola de candidatos ICE (declaración arriba, junto a las funciones de envío)
 
 function crearPeerConnection() {
   pc = new RTCPeerConnection({
@@ -2617,10 +2623,9 @@ function crearPeerConnection() {
     setTimeout(() => desbloquearAudioRemoto?.(), 100);
   };
   pc.onicecandidate = (e) => {
-    if (e.candidate && callChannel) {
+    if (e.candidate) {
       if (e.candidate.candidate.includes('relay')) console.log('[CALL] candidato RELAY (TURN) ok');
-      callChannel.send({ type: 'broadcast', event: 'call-ice',
-        payload: { candidate: e.candidate, from: currentUser.id } });
+      enviarIceSalida(e.candidate);
     }
   };
   pc.oniceconnectionstatechange = () => {
@@ -2848,7 +2853,7 @@ function cerrarTodoLlamada() {
   if (pc) { pc.close(); pc = null; }
   if (callChannel) { sb.removeChannel(callChannel); callChannel = null; }
   remoteStream = null; callPeerId = null; pendingOffer = null; callRole = null;
-  iceQueue = []; iceEntrantesEnEspera = []; remoteDescLista = false;
+  iceQueue = []; iceEntrantesEnEspera = []; remoteDescLista = false; callChannelListo = false;
   document.getElementById('callOverlay')?.remove();
   document.getElementById('incomingOverlay')?.remove();
   document.getElementById('remoteAudio')?.remove();
