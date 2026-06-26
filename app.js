@@ -169,22 +169,28 @@ if ('serviceWorker' in navigator) {
       abrirChatPorId(event.data.senderId, event.data.senderName);
     }
     if (event.data?.type === 'incoming-call' && event.data.callerId) {
-      // tocó la notificación de llamada: abrir el chat (la oferta llega por el inbox)
-      abrirChatPorId(event.data.callerId, event.data.callerName);
+      // tocó la notificación de llamada: mostrar pantalla de aceptar (recupera la oferta)
+      recuperarLlamadaPendiente(event.data.callerId, event.data.callerName);
     }
   });
 }
 
 function abrirChatDesdeURL() {
   const params = new URLSearchParams(location.search);
+  // ¿vino de una notificación de llamada (app cerrada)?
+  if (params.get('incomingCall') === '1') {
+    const callerId = params.get('callerId');
+    const callerName = params.get('callerName');
+    history.replaceState({}, '', location.pathname);
+    if (callerId) recuperarLlamadaPendiente(callerId, callerName);
+    return;
+  }
   const chatId = params.get('chat');
   const chatName = params.get('name');
   const callId = params.get('call');
   if (callId) {
-    // vino desde una notificación de llamada (app estaba cerrada)
     const callName = params.get('name');
     history.replaceState({}, '', location.pathname);
-    // buscar la oferta pendiente en la base (el broadcast en vivo pudo perderse)
     recuperarLlamadaPendiente(callId, callName);
     return;
   }

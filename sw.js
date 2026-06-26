@@ -2,7 +2,7 @@
 //  FAMILIA CHAT — sw.js  (v5: notificaciones + badge de no leídos)
 //  Reemplaza tu sw.js por este.
 // ============================================================
-const CACHE = 'familia-chat-v8';
+const CACHE = 'familia-chat-v7';
 const ASSETS = ['./index.html', './styles.css', './app.js', './manifest.json'];
 
 self.addEventListener('install', e => {
@@ -92,7 +92,9 @@ self.addEventListener('notificationclick', e => {
             return;
           }
         }
-        return clients.openWindow(d.url || './index.html');
+        // app cerrada: abrir con parámetros de llamada en la URL
+        const callUrl = `./index.html?incomingCall=1&callerId=${encodeURIComponent(d.callerId || '')}&callerName=${encodeURIComponent(d.callerName || '')}&kind=${encodeURIComponent(d.kind || 'audio')}`;
+        return clients.openWindow(callUrl);
       })
     );
     return;
