@@ -2655,10 +2655,24 @@ function crearPeerConnection() {
       }, 6000);
     } else if (st === 'connected') {
       clearTimeout(reconnTimer);
+      // monitor de stats SOLO en consola (no afecta audio)
+      if (statsTimer) clearInterval(statsTimer);
+      statsTimer = setInterval(async () => {
+        if (!pc) { clearInterval(statsTimer); return; }
+        try {
+          const s = await pc.getStats();
+          let rx=0, tx=0;
+          s.forEach(r => {
+            if (r.type==='inbound-rtp' && r.kind==='audio') rx = r.bytesReceived||0;
+            if (r.type==='outbound-rtp' && r.kind==='audio') tx = r.bytesSent||0;
+          });
+          console.log('[STATS] rol=' + callRole + ' RX=' + rx + ' TX=' + tx);
+        } catch(_) {}
+      }, 2000);
     }
   };
 }
-let reconnTimer = null;
+let reconnTimer = null, statsTimer = null;
 
 // Sube el bitrate del video saliente para mejor calidad
 async function subirCalidadVideo() {
@@ -2909,6 +2923,7 @@ function finalizarLlamada(motivo) {
 function cerrarTodoLlamada() {
   if (callTimer) { clearInterval(callTimer); callTimer = null; }
   if (reconnTimer) { clearTimeout(reconnTimer); reconnTimer = null; }
+  if (statsTimer) { clearInterval(statsTimer); statsTimer = null; }
   if (callRingTimeout) { clearTimeout(callRingTimeout); callRingTimeout = null; }
   callSeconds = 0;
   if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
