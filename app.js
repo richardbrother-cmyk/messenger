@@ -2816,16 +2816,21 @@ let iceEntrantesEnEspera = [], remoteDescLista = false;
 async function onRemoteIce(payload) {
   if (payload.from === currentUser.id) return;
   if (!pc) return;
+  const esRelay = payload.candidate?.candidate?.includes('relay');
+  console.log('[CALL] RECIBIDO candidato remoto', esRelay ? '(RELAY)' : '', remoteDescLista ? '' : '(encolado)');
   if (!remoteDescLista || !pc.remoteDescription) {
     iceEntrantesEnEspera.push(payload.candidate);   // aún no se puede aplicar: encolar
     return;
   }
-  try { await pc.addIceCandidate(new RTCIceCandidate(payload.candidate)); } catch (_) {}
+  try { await pc.addIceCandidate(new RTCIceCandidate(payload.candidate)); }
+  catch (err) { console.log('[CALL] error addIceCandidate:', err.message); }
 }
 async function aplicarIceEnEspera() {
+  console.log('[CALL] aplicando', iceEntrantesEnEspera.length, 'candidatos en espera');
   while (iceEntrantesEnEspera.length) {
     const c = iceEntrantesEnEspera.shift();
-    try { await pc.addIceCandidate(new RTCIceCandidate(c)); } catch (_) {}
+    try { await pc.addIceCandidate(new RTCIceCandidate(c)); }
+    catch (err) { console.log('[CALL] error addIceCandidate espera:', err.message); }
   }
 }
 
