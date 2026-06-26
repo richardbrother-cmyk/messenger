@@ -2,7 +2,7 @@
 //  FAMILIA CHAT — sw.js  (v8: app.js siempre de la red, sin caché viejo)
 //  Reemplaza tu sw.js por este.
 // ============================================================
-const CACHE = 'familia-chat-v8';
+const CACHE = 'familia-chat-v9';
 // Solo cacheamos lo estático que casi no cambia. El CÓDIGO (app.js, styles.css,
 // index.html) NO se precachea: siempre se baja fresco de la red, para evitar
 // que el service worker sirva versiones viejas.
