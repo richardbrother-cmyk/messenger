@@ -91,6 +91,8 @@ const ICON = {
   callLog: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.1-8.7A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg>',
   callIn: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="7 3 7 9 1 9"/><path d="M16 21a10 10 0 0 1-9-9"/><path d="M7 9L21 3"/></svg>',
   callOut: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 3 23 3 23 9"/><path d="M8 3a10 10 0 0 0 9 9"/><path d="M23 3L9 17"/></svg>',
+  speaker: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>',
+  speakerOff: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>',
 };
 function svgBtn(name, id, cls, title) {
   return `<button class="${cls || 'icon-btn'}" ${id ? `id="${id}"` : ''} ${title ? `title="${title}"` : ''} type="button">${ICON[name] || ''}</button>`;
@@ -2947,6 +2949,7 @@ function cerrarTodoLlamada() {
   document.getElementById('remoteAudio')?.remove();
   document.getElementById('btnActivarSonido')?.remove();
   document.getElementById('audioDiag')?.remove();
+  altavozActivo = true;
 }
 
 // === Tono de llamada ===
@@ -3027,6 +3030,7 @@ function mostrarPantallaLlamada(nombre, avatar, estadoTxt) {
     </div>
     <div class="call-controls">
       <button class="call-btn" id="btnMute" title="Silenciar">${ICON.mic}</button>
+      <button class="call-btn" id="btnSpeaker" title="Altavoz">${ICON.speaker}</button>
       ${callKind === 'video' ? `<button class="call-btn" id="btnCam" title="Cámara">${ICON.video}</button>` : ''}
       <button class="call-btn reject" id="btnHangup" title="Colgar">${ICON.hangup}</button>
     </div>`;
@@ -3035,6 +3039,8 @@ function mostrarPantallaLlamada(nombre, avatar, estadoTxt) {
   if (lv && localStream) lv.srcObject = localStream;
   document.getElementById('btnHangup').onclick = colgar;
   document.getElementById('btnMute').onclick = toggleMute;
+  const spkBtn = document.getElementById('btnSpeaker');
+  if (spkBtn) spkBtn.onclick = toggleAltavoz;
   const camBtn = document.getElementById('btnCam');
   if (camBtn) camBtn.onclick = toggleCam;
   // En móvil el audio puede estar bloqueado: cualquier toque en la pantalla
@@ -3084,6 +3090,37 @@ function toggleMute() {
   if (track) { track.enabled = !track.enabled;
     document.getElementById('btnMute').classList.toggle('off', !track.enabled);
   }
+}
+
+// Alterna salida de audio entre altavoz y auricular (donde el navegador lo permita)
+let altavozActivo = true;
+async function toggleAltavoz() {
+  const ra = document.getElementById('remoteAudio');
+  const btn = document.getElementById('btnSpeaker');
+  if (!ra) return;
+  altavozActivo = !altavozActivo;
+  // actualizar icono
+  if (btn) btn.innerHTML = altavozActivo ? ICON.speaker : ICON.speakerOff;
+  // intentar cambiar el dispositivo de salida (setSinkId) si está disponible
+  try {
+    if (typeof ra.setSinkId === 'function') {
+      const dispositivos = await navigator.mediaDevices.enumerateDevices();
+      const salidas = dispositivos.filter(d => d.kind === 'audiooutput');
+      if (altavozActivo) {
+        // altavoz: usar el dispositivo por defecto
+        const spk = salidas.find(d => /speaker|altavoz/i.test(d.label)) || salidas.find(d => d.deviceId === 'default') || salidas[0];
+        if (spk) await ra.setSinkId(spk.deviceId);
+      } else {
+        // auricular: buscar earpiece/headphone
+        const ear = salidas.find(d => /earpiece|headset|headphone|auricular/i.test(d.label));
+        if (ear) await ra.setSinkId(ear.deviceId);
+      }
+    }
+  } catch (e) {
+    console.log('[CALL] setSinkId no soportado:', e.name);
+  }
+  // ajuste de volumen como respaldo (auricular = más bajo)
+  ra.volume = altavozActivo ? 1.0 : 0.7;
 }
 
 function toggleCam() {
