@@ -2657,13 +2657,9 @@ function crearPeerConnection() {
   remoteStream = new MediaStream();
 
   pc.ontrack = (e) => {
-    const stream = e.streams[0] || remoteStream;
-    remoteStream = stream;
+    e.streams[0].getTracks().forEach(t => remoteStream.addTrack(t));
     const rv = document.getElementById('remoteVideo');
-    if (rv) {
-      rv.srcObject = stream;
-      rv.play?.().catch(()=>{});
-    }
+    if (rv) { rv.srcObject = remoteStream; rv.play?.().catch(()=>{}); }
   };
   pc.onicecandidate = (e) => {
     if (e.candidate) {
