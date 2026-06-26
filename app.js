@@ -2595,6 +2595,21 @@ function enviarSenal(toUserId, event, payload) {
 // Cola de candidatos ICE (declaración arriba, junto a las funciones de envío)
 
 // Botón visible para activar el sonido en móvil (cuando el autoplay se bloquea)
+// Muestra diagnóstico de audio en pantalla (visible en móvil sin consola)
+function diagAudio(msg) {
+  console.log('[CALL][audio]', msg);
+  let d = document.getElementById('audioDiag');
+  if (!d) {
+    const ov = document.getElementById('callOverlay');
+    if (!ov) return;
+    d = document.createElement('div');
+    d.id = 'audioDiag';
+    d.style.cssText = 'position:absolute;bottom:120px;left:10px;right:10px;background:rgba(0,0,0,.7);color:#0f0;font-size:11px;padding:6px 8px;border-radius:6px;z-index:200;font-family:monospace;text-align:center;';
+    ov.appendChild(d);
+  }
+  d.textContent = '🔉 ' + msg;
+}
+
 function mostrarBotonSonido() {
   if (document.getElementById('btnActivarSonido')) return;
   const ov = document.getElementById('callOverlay');
@@ -2629,12 +2644,9 @@ function crearPeerConnection() {
   pc.ontrack = (e) => {
     console.log('[CALL] ontrack:', e.track.kind);
     const stream = e.streams[0] || remoteStream;
-    // guardar referencia
     remoteStream = stream;
-    // VIDEO: si hay pista de video, al elemento de video
     const rv = document.getElementById('remoteVideo');
     if (rv) { rv.srcObject = stream; rv.play?.().catch(err => console.log('[CALL] video play:', err.name)); }
-    // AUDIO: elemento dedicado que suena aunque el video esté oculto
     let ra = document.getElementById('remoteAudio');
     if (!ra) {
       ra = document.createElement('audio');
@@ -2643,15 +2655,19 @@ function crearPeerConnection() {
       ra.setAttribute('playsinline', '');
       document.body.appendChild(ra);
     }
-    ra.srcObject = stream;        // asignar el stream del evento directamente
+    ra.srcObject = stream;
     ra.muted = false;
     ra.volume = 1.0;
+    // diagnóstico visible en pantalla (para el móvil, que no tiene consola)
+    const at = stream.getAudioTracks()[0];
+    diagAudio('track: ' + (at ? `${at.readyState}/${at.enabled?'on':'off'}/${at.muted?'muted':'live'}` : 'sin audio'));
     const p = ra.play();
-    if (p) p.then(() => console.log('[CALL] audio reproduciéndose'))
-           .catch(err => {
-             console.log('[CALL] audio BLOQUEADO:', err.name, '- mostrando botón');
-             mostrarBotonSonido();   // móvil: ofrecer botón para activar sonido
-           });
+    if (p) p.then(() => diagAudio('reproduciendo ✓'))
+           .catch(err => { diagAudio('BLOQUEADO: ' + err.name); mostrarBotonSonido(); });
+    // verificar a los 2s si de verdad está sonando (paused?)
+    setTimeout(() => {
+      if (ra) diagAudio('estado: ' + (ra.paused ? 'PAUSADO' : 'activo') + ' vol=' + ra.volume + ' mute=' + ra.muted);
+    }, 2000);
   };
   pc.onicecandidate = (e) => {
     if (e.candidate) {
@@ -2922,6 +2938,7 @@ function cerrarTodoLlamada() {
   document.getElementById('incomingOverlay')?.remove();
   document.getElementById('remoteAudio')?.remove();
   document.getElementById('btnActivarSonido')?.remove();
+  document.getElementById('audioDiag')?.remove();
 }
 
 // === Tono de llamada ===
