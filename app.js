@@ -2493,6 +2493,10 @@ function formatFechaHora(iso) {
 // móviles / redes difíciles. Pega aquí tus credenciales de Metered/Cloudflare.
 const ICE_SERVERS = [
   { urls: 'stun:stun.relay.metered.ca:80' },
+  { urls: 'turn:global.relay.metered.ca:80',
+    username: 'b291766bde5645c8a116d4ae', credential: 'P5i0Hx7sseoLtuF/' },
+  { urls: 'turn:global.relay.metered.ca:80?transport=tcp',
+    username: 'b291766bde5645c8a116d4ae', credential: 'P5i0Hx7sseoLtuF/' },
   { urls: 'turn:global.relay.metered.ca:443',
     username: 'b291766bde5645c8a116d4ae', credential: 'P5i0Hx7sseoLtuF/' },
   { urls: 'turns:global.relay.metered.ca:443?transport=tcp',
@@ -2585,7 +2589,10 @@ function vaciarColaIce() {
 }
 
 function crearPeerConnection() {
-  pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+  pc = new RTCPeerConnection({
+    iceServers: ICE_SERVERS,
+    iceTransportPolicy: 'relay',   // forzar TURN: imprescindible entre redes distintas
+  });
   remoteStream = new MediaStream();
 
   pc.ontrack = (e) => {
