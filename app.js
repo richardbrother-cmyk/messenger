@@ -2557,23 +2557,28 @@ function abrirCanalSenal(otherId) {
     });
 }
 
-// Envío de candidatos ICE con cola: si el canal aún no está suscrito,
-// se acumulan y se envían en cuanto esté listo (evita el fallback a REST).
+// Todos los candidatos ICE que genero (se conservan para reenviar)
+let misCandidatos = [];
+let yaReenvie = false;
 function enviarIceSalida(candidate) {
+  misCandidatos.push(candidate);   // guardar SIEMPRE (para poder reenviar)
   if (callChannel && callChannelListo) {
     callChannel.send({ type: 'broadcast', event: 'call-ice',
       payload: { candidate, from: currentUser.id } });
-  } else {
-    iceQueue.push(candidate);
   }
 }
-function vaciarColaIce() {
+// Reenvía TODOS mis candidatos (cuando sé que el otro ya está escuchando)
+function reenviarTodosLosCandidatos() {
   if (!callChannel || !callChannelListo) return;
-  while (iceQueue.length) {
-    const c = iceQueue.shift();
+  console.log('[CALL] reenviando', misCandidatos.length, 'candidatos al otro lado');
+  for (const c of misCandidatos) {
     callChannel.send({ type: 'broadcast', event: 'call-ice',
       payload: { candidate: c, from: currentUser.id } });
   }
+}
+function vaciarColaIce() {
+  // al suscribirse, mandar lo que ya tengamos acumulado
+  reenviarTodosLosCandidatos();
 }
 
 // Envía una señal puntual al inbox del otro (para la oferta inicial)
@@ -2795,6 +2800,7 @@ async function onAnswer(payload) {
   await pc.setRemoteDescription(new RTCSessionDescription(payload.sdp));
   remoteDescLista = true;
   await aplicarIceEnEspera();   // aplicar candidatos que llegaron antes
+  reenviarTodosLosCandidatos(); // el callee ya escucha: reenviar mis candidatos
   const estado = document.getElementById('callStatus');
   if (estado) estado.textContent = 'Conectado';
   iniciarContador();
@@ -2818,6 +2824,8 @@ async function onRemoteIce(payload) {
   if (!pc) return;
   const esRelay = payload.candidate?.candidate?.includes('relay');
   console.log('[CALL] RECIBIDO candidato remoto', esRelay ? '(RELAY)' : '', remoteDescLista ? '' : '(encolado)');
+  // primera vez que sé que el otro está en el canal: reenviar los míos
+  if (!yaReenvie) { yaReenvie = true; reenviarTodosLosCandidatos(); }
   if (!remoteDescLista || !pc.remoteDescription) {
     iceEntrantesEnEspera.push(payload.candidate);   // aún no se puede aplicar: encolar
     return;
@@ -2860,6 +2868,7 @@ function cerrarTodoLlamada() {
   if (callChannel) { sb.removeChannel(callChannel); callChannel = null; }
   remoteStream = null; callPeerId = null; pendingOffer = null; callRole = null;
   iceQueue = []; iceEntrantesEnEspera = []; remoteDescLista = false; callChannelListo = false;
+  misCandidatos = []; yaReenvie = false;
   document.getElementById('callOverlay')?.remove();
   document.getElementById('incomingOverlay')?.remove();
   document.getElementById('remoteAudio')?.remove();
