@@ -2493,13 +2493,8 @@ function formatFechaHora(iso) {
 // móviles / redes difíciles. Pega aquí tus credenciales de Metered/Cloudflare.
 const ICE_SERVERS = [
   { urls: 'stun:stun.relay.metered.ca:80' },
-  { urls: 'turn:global.relay.metered.ca:80',
-    username: 'b291766bde5645c8a116d4ae', credential: 'P5i0Hx7sseoLtuF/' },
-  { urls: 'turn:global.relay.metered.ca:80?transport=tcp',
-    username: 'b291766bde5645c8a116d4ae', credential: 'P5i0Hx7sseoLtuF/' },
+  // Solo el TURN verificado en Trickle ICE (generó candidato relay real)
   { urls: 'turn:global.relay.metered.ca:443',
-    username: 'b291766bde5645c8a116d4ae', credential: 'P5i0Hx7sseoLtuF/' },
-  { urls: 'turns:global.relay.metered.ca:443?transport=tcp',
     username: 'b291766bde5645c8a116d4ae', credential: 'P5i0Hx7sseoLtuF/' },
 ];
 
@@ -2597,7 +2592,7 @@ function enviarSenal(toUserId, event, payload) {
 function crearPeerConnection() {
   pc = new RTCPeerConnection({
     iceServers: ICE_SERVERS,
-    iceTransportPolicy: 'relay',   // forzar TURN: imprescindible entre redes distintas
+    iceTransportPolicy: 'all',   // diagnóstico: permitir todos para ver si se genera relay
   });
   remoteStream = new MediaStream();
 
@@ -2624,9 +2619,15 @@ function crearPeerConnection() {
   };
   pc.onicecandidate = (e) => {
     if (e.candidate) {
-      if (e.candidate.candidate.includes('relay')) console.log('[CALL] candidato RELAY (TURN) ok');
+      const tipo = e.candidate.type || (e.candidate.candidate.split(' ')[7]) || '?';
+      console.log('[CALL] candidato:', tipo, e.candidate.candidate.includes('relay') ? '(RELAY ok)' : '');
       enviarIceSalida(e.candidate);
+    } else {
+      console.log('[CALL] fin de candidatos (null)');
     }
+  };
+  pc.onicegatheringstatechange = () => {
+    console.log('[CALL] gathering:', pc?.iceGatheringState);
   };
   pc.oniceconnectionstatechange = () => {
     console.log('[CALL] ICE:', pc?.iceConnectionState);
