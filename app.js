@@ -2560,6 +2560,30 @@ function enviarSenal(toUserId, event, payload) {
   });
 }
 
+// Cola de candidatos ICE: si el canal aún no está listo, se guardan y se
+// envían en cuanto se conecta (evita perder candidatos y que el ICE falle).
+let iceQueue = [];
+function enviarIce(candidate) {
+  if (callChannel && callChannel.state === 'joined') {
+    callChannel.send({ type: 'broadcast', event: 'call-ice',
+      payload: { candidate, from: currentUser.id } });
+  } else {
+    iceQueue.push(candidate);
+    // reintentar pronto
+    setTimeout(vaciarColaIce, 250);
+  }
+}
+function vaciarColaIce() {
+  if (!callChannel || callChannel.state !== 'joined') {
+    if (iceQueue.length) setTimeout(vaciarColaIce, 250);
+    return;
+  }
+  while (iceQueue.length) {
+    const c = iceQueue.shift();
+    callChannel.send({ type: 'broadcast', event: 'call-ice', payload: { candidate: c, from: currentUser.id } });
+  }
+}
+
 function crearPeerConnection() {
   pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
   remoteStream = new MediaStream();
@@ -2586,13 +2610,17 @@ function crearPeerConnection() {
     setTimeout(() => desbloquearAudioRemoto?.(), 100);
   };
   pc.onicecandidate = (e) => {
-    if (e.candidate && callChannel) {
-      callChannel.send({ type: 'broadcast', event: 'call-ice',
-        payload: { candidate: e.candidate, from: currentUser.id } });
+    if (e.candidate) {
+      // log para diagnóstico: ¿hay candidatos relay (TURN)?
+      if (e.candidate.candidate.includes('relay')) console.log('[CALL] candidato RELAY (TURN) ok');
+      enviarIce(e.candidate);
     }
   };
   pc.oniceconnectionstatechange = () => {
-    console.log('[CALL] ICE:', pc?.iceConnectionState);
+    const st = pc?.iceConnectionState;
+    console.log('[CALL] ICE:', st);
+    // si falla, reintentar recolección de candidatos
+    if (st === 'failed') { try { pc.restartIce?.(); } catch(_){} }
   };
   pc.onconnectionstatechange = () => {
     console.log('[CALL] conn:', pc?.connectionState);
@@ -2613,6 +2641,7 @@ async function obtenerMedios(kind) {
 // === INICIAR (yo llamo) ===
 async function iniciarLlamada(otherId, otherName, otherAvatar, kind) {
   if (pc) { alert('Ya hay una llamada en curso.'); return; }
+  prepararAudioRemoto(); // desbloquear audio dentro del gesto (móvil)
   callPeerId = otherId; callKind = kind; callRole = 'caller';
   try {
     await obtenerMedios(kind);
@@ -2697,6 +2726,8 @@ async function aceptarLlamada() {
   localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
 
   await pc.setRemoteDescription(new RTCSessionDescription(pendingOffer));
+  remoteDescLista = true;
+  await aplicarIceEnEspera();
   const answer = await pc.createAnswer();
   await pc.setLocalDescription(answer);
 
@@ -2752,6 +2783,8 @@ async function onAnswer(payload) {
   if (callRingTimeout) { clearTimeout(callRingTimeout); callRingTimeout = null; }
   if (!pc) return;
   await pc.setRemoteDescription(new RTCSessionDescription(payload.sdp));
+  remoteDescLista = true;
+  await aplicarIceEnEspera();   // aplicar candidatos que llegaron antes
   const estado = document.getElementById('callStatus');
   if (estado) estado.textContent = 'Conectado';
   iniciarContador();
@@ -2768,10 +2801,22 @@ async function registrarPerdida(otherId) {
   } catch (_) {}
 }
 
+// Candidatos remotos que llegan antes de tener remoteDescription se guardan
+let iceEntrantesEnEspera = [], remoteDescLista = false;
 async function onRemoteIce(payload) {
   if (payload.from === currentUser.id) return;
   if (!pc) return;
+  if (!remoteDescLista || !pc.remoteDescription) {
+    iceEntrantesEnEspera.push(payload.candidate);   // aún no se puede aplicar: encolar
+    return;
+  }
   try { await pc.addIceCandidate(new RTCIceCandidate(payload.candidate)); } catch (_) {}
+}
+async function aplicarIceEnEspera() {
+  while (iceEntrantesEnEspera.length) {
+    const c = iceEntrantesEnEspera.shift();
+    try { await pc.addIceCandidate(new RTCIceCandidate(c)); } catch (_) {}
+  }
 }
 
 // === COLGAR / FINALIZAR ===
@@ -2799,6 +2844,7 @@ function cerrarTodoLlamada() {
   if (pc) { pc.close(); pc = null; }
   if (callChannel) { sb.removeChannel(callChannel); callChannel = null; }
   remoteStream = null; callPeerId = null; pendingOffer = null; callRole = null;
+  iceQueue = []; iceEntrantesEnEspera = []; remoteDescLista = false;
   document.getElementById('callOverlay')?.remove();
   document.getElementById('incomingOverlay')?.remove();
   document.getElementById('remoteAudio')?.remove();
@@ -2856,7 +2902,13 @@ function mostrarLlamadaEntrante(nombre, kind) {
       </div>
     </div>`;
   document.body.appendChild(ov);
-  document.getElementById('incAccept').onclick = () => { ov.remove(); aceptarLlamada(); };
+  document.getElementById('incAccept').onclick = () => {
+    // PREPARAR el audio dentro del gesto del usuario (clave en móvil):
+    // crear y "desbloquear" el elemento de audio AHORA, antes de los await.
+    prepararAudioRemoto();
+    ov.remove();
+    aceptarLlamada();
+  };
   document.getElementById('incReject').onclick = () => { ov.remove(); rechazarLlamada(); };
 }
 
@@ -2900,7 +2952,6 @@ function desbloquearAudioRemoto() {
     ra.volume = 1;
     const p = ra.play?.();
     if (p) p.catch(() => {
-      // si falla, reintentar al próximo toque global
       const reintento = () => { ra.play?.().catch(()=>{}); document.removeEventListener('touchend', reintento); document.removeEventListener('click', reintento); };
       document.addEventListener('touchend', reintento, { once: true });
       document.addEventListener('click', reintento, { once: true });
@@ -2908,6 +2959,24 @@ function desbloquearAudioRemoto() {
   }
   const rv = document.getElementById('remoteVideo');
   if (rv) { rv.play?.().catch(()=>{}); }
+}
+
+// Crea y "desbloquea" el elemento de audio DENTRO del gesto del usuario.
+// En móvil, reproducir aquí (aunque sea vacío) autoriza el audio para cuando
+// llegue el stream remoto, evitando el bloqueo de autoplay.
+function prepararAudioRemoto() {
+  let ra = document.getElementById('remoteAudio');
+  if (!ra) {
+    ra = document.createElement('audio');
+    ra.id = 'remoteAudio';
+    ra.autoplay = true;
+    ra.playsInline = true;
+    document.body.appendChild(ra);
+  }
+  ra.muted = false;
+  ra.volume = 1;
+  // intentar reproducir ahora (dentro del gesto) para desbloquear
+  ra.play?.().catch(() => {});
 }
 
 function toggleMute() {
