@@ -2657,25 +2657,13 @@ function crearPeerConnection() {
   remoteStream = new MediaStream();
 
   pc.ontrack = (e) => {
-    console.log('[CALL] ontrack:', e.track.kind);
     const stream = e.streams[0] || remoteStream;
     remoteStream = stream;
     const rv = document.getElementById('remoteVideo');
     if (rv) {
       rv.srcObject = stream;
-      rv.muted = false;
-      rv.volume = 1.0;
-      rv.setAttribute('playsinline', '');
-      rv.play?.().then(() => diagAudio('reproduciendo ✓'))
-                 .catch(err => diagAudio('auto bloqueado: ' + err.name));
+      rv.play?.().catch(()=>{});
     }
-    const at = stream.getAudioTracks()[0];
-    diagAudio('track: ' + (at ? `${at.readyState}/${at.enabled?'on':'off'}/${at.muted?'muted':'live'}` : 'sin audio'));
-    if (at) {
-      at.onunmute = () => { diagAudio('audio FLUYENDO ✓'); rv?.play?.().catch(()=>{}); };
-    }
-    // En móvil SIEMPRE mostrar el botón de sonido (no confiar en autoplay)
-    if (esMovil()) mostrarBotonSonido();
   };
   pc.onicecandidate = (e) => {
     if (e.candidate) {
