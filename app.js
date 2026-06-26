@@ -2613,7 +2613,12 @@ function crearPeerConnection() {
   pc.ontrack = (e) => {
     e.streams[0].getTracks().forEach(t => remoteStream.addTrack(t));
     const rv = document.getElementById('remoteVideo');
-    if (rv) { rv.srcObject = remoteStream; rv.play?.().catch(()=>{}); }
+    if (rv) {
+      rv.srcObject = remoteStream;
+      rv.muted = false;
+      rv.volume = 1.0;
+      rv.play?.().catch(()=>{});
+    }
   };
   pc.onicecandidate = (e) => {
     if (e.candidate) {
@@ -2655,12 +2660,28 @@ function crearPeerConnection() {
 }
 let reconnTimer = null;
 
+// Sube el bitrate del video saliente para mejor calidad
+async function subirCalidadVideo() {
+  if (!pc) return;
+  const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
+  if (!sender) return;
+  try {
+    const params = sender.getParameters();
+    if (!params.encodings || !params.encodings.length) params.encodings = [{}];
+    params.encodings[0].maxBitrate = 1_200_000; // ~1.2 Mbps (mejor calidad)
+    params.encodings[0].maxFramerate = 30;
+    await sender.setParameters(params);
+  } catch (e) {
+    console.log('[CALL] no se pudo subir calidad:', e.name);
+  }
+}
+
 async function obtenerMedios(kind) {
   const constraints = kind === 'video'
-    ? { audio: true, video: { facingMode: 'user' } }
-    : { audio: true, video: false };
+    ? { audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+        video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } } }
+    : { audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }, video: false };
   localStream = await navigator.mediaDevices.getUserMedia(constraints);
-  // diagnóstico: ¿el micrófono capturó audio?
   const at = localStream.getAudioTracks()[0];
   console.log('[CALL][mic] capturado:', at ? `${at.label} (${at.readyState}, enabled=${at.enabled}, muted=${at.muted})` : 'SIN MICRÓFONO');
   return localStream;
@@ -2678,10 +2699,15 @@ async function iniciarLlamada(otherId, otherName, otherAvatar, kind) {
     return;
   }
   abrirCanalSenal(otherId);
+
+  // mostrar la pantalla (crea #remoteVideo) ANTES de crear la conexión,
+  // para que el elemento exista cuando llegue el audio remoto (ontrack)
+  mostrarPantallaLlamada(otherName, otherAvatar, 'Llamando…');
+
   crearPeerConnection();
   localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
+  if (kind === 'video') subirCalidadVideo();
 
-  mostrarPantallaLlamada(otherName, otherAvatar, 'Llamando…');
   sonarTono('saliente');
 
   const offer = await pc.createOffer();
@@ -2760,6 +2786,7 @@ async function aceptarLlamada() {
 
   crearPeerConnection();
   localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
+  if (callKind === 'video') subirCalidadVideo();
 
   await pc.setRemoteDescription(new RTCSessionDescription(pendingOffer));
   remoteDescLista = true;
