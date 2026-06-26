@@ -2640,7 +2640,11 @@ function crearPeerConnection() {
     }
     const at = remoteStream.getAudioTracks()[0];
     diagBox('ontrack=' + e.track.kind + ' aTracks=' + remoteStream.getAudioTracks().length);
-    if (at) diagBox('track en=' + at.enabled + ' mut=' + at.muted + ' st=' + at.readyState);
+    if (at) {
+      diagBox('track en=' + at.enabled + ' mut=' + at.muted + ' st=' + at.readyState);
+      at.onunmute = () => diagBox('*** track DES-MUTEADO (audio real llegando) ***');
+      at.onmute = () => diagBox('track muteado');
+    }
     if (rv) diagBox('rv mut=' + rv.muted + ' vol=' + rv.volume + ' paus=' + rv.paused);
   };
   pc.onicecandidate = (e) => {
