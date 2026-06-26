@@ -2620,21 +2620,20 @@ function diag(msg) {
   if (diagLines.length > 14) diagLines.shift();
   d.textContent = diagLines.join('\n');
 }
-let monitorRXTimer = null, rxPrev = 0;
+let monitorRXTimer = null, rxPrev = 0, txPrev = 0;
 function monitorRX() {
   if (monitorRXTimer) clearInterval(monitorRXTimer);
   monitorRXTimer = setInterval(async () => {
     if (!pc) { clearInterval(monitorRXTimer); return; }
     try {
       const stats = await pc.getStats();
-      let bytes = 0, pk = 0;
+      let rxBytes = 0, rxPk = 0, txBytes = 0, txPk = 0;
       stats.forEach(r => {
-        if (r.type === 'inbound-rtp' && r.kind === 'audio') { bytes = r.bytesReceived||0; pk = r.packetsReceived||0; }
+        if (r.type === 'inbound-rtp' && r.kind === 'audio') { rxBytes = r.bytesReceived||0; rxPk = r.packetsReceived||0; }
+        if (r.type === 'outbound-rtp' && r.kind === 'audio') { txBytes = r.bytesSent||0; txPk = r.packetsSent||0; }
       });
-      const rv = document.getElementById('remoteVideo');
-      const estado = rv ? (rv.paused?'PAUSA':'play') + ' v' + rv.volume + (rv.muted?' MUTE':'') : 'sin-el';
-      diag('RX audio:' + bytes + 'b (+' + (bytes-rxPrev) + ') pk:' + pk + ' | vid:' + estado);
-      rxPrev = bytes;
+      diag('RX:' + rxBytes + 'b(+' + (rxBytes-rxPrev) + ') TX:' + txBytes + 'b(+' + (txBytes-txPrev) + ')');
+      rxPrev = rxBytes; txPrev = txBytes;
     } catch (_) {}
   }, 2000);
 }
@@ -2652,13 +2651,28 @@ function crearPeerConnection() {
     const rv = document.getElementById('remoteVideo');
     if (rv) {
       rv.srcObject = remoteStream;
-      rv.muted = false;
-      rv.volume = 1.0;
+      rv.muted = true;   // el sonido sale por el <audio> dedicado; el video solo muestra imagen
+      rv.volume = 0;
       rv.play?.().then(() => diag('play OK ' + e.track.kind))
                  .catch(err => diag('play FALLO: ' + err.name));
     } else {
       diag('SIN elemento remoteVideo!');
     }
+    // Elemento <audio> dedicado para la SALIDA de sonido (más fiable en móvil
+    // que sacar el audio del <video>, que el navegador puede silenciar).
+    let ra = document.getElementById('remoteAudioOut');
+    if (!ra) {
+      ra = document.createElement('audio');
+      ra.id = 'remoteAudioOut';
+      ra.autoplay = true;
+      ra.setAttribute('playsinline', '');
+      document.body.appendChild(ra);
+    }
+    ra.srcObject = remoteStream;
+    ra.muted = false;
+    ra.volume = 1.0;
+    ra.play?.().then(() => diag('audio-out OK'))
+               .catch(err => diag('audio-out FALLO: ' + err.name));
     // diagnóstico del track recibido
     const at = remoteStream.getAudioTracks()[0];
     diag('ontrack ' + e.track.kind + ' | audio tracks:' + remoteStream.getAudioTracks().length +
@@ -2968,9 +2982,10 @@ function cerrarTodoLlamada() {
   iceQueue = []; iceEntrantesEnEspera = []; remoteDescLista = false; callChannelListo = false;
   misCandidatos = []; yaReenvie = false;
   if (monitorRXTimer) { clearInterval(monitorRXTimer); monitorRXTimer = null; }
-  rxPrev = 0; diagLines = [];
+  rxPrev = 0; txPrev = 0; diagLines = [];
   document.getElementById('callOverlay')?.remove();
   document.getElementById('incomingOverlay')?.remove();
+  document.getElementById('remoteAudioOut')?.remove();
   altavozActivo = true;
 }
 
