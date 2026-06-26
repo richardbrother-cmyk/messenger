@@ -2621,7 +2621,8 @@ function mostrarBotonSonido() {
 function crearPeerConnection() {
   pc = new RTCPeerConnection({
     iceServers: ICE_SERVERS,
-    iceTransportPolicy: 'all',   // usa ruta directa si es posible, TURN (relay) si hace falta
+    iceTransportPolicy: 'relay',   // solo relay: conexión más rápida y estable entre redes
+    bundlePolicy: 'max-bundle',
   });
   remoteStream = new MediaStream();
 
@@ -2665,15 +2666,32 @@ function crearPeerConnection() {
     console.log('[CALL] gathering:', pc?.iceGatheringState);
   };
   pc.oniceconnectionstatechange = () => {
-    console.log('[CALL] ICE:', pc?.iceConnectionState);
+    const st = pc?.iceConnectionState;
+    console.log('[CALL] ICE:', st);
+    if (st === 'failed') {
+      // intentar reiniciar ICE una vez antes de rendirse
+      console.log('[CALL] ICE failed -> restartIce');
+      try { pc.restartIce?.(); } catch (_) {}
+    }
   };
   pc.onconnectionstatechange = () => {
-    console.log('[CALL] conn:', pc?.connectionState);
-    if (pc && (pc.connectionState === 'failed' || pc.connectionState === 'disconnected')) {
+    const st = pc?.connectionState;
+    console.log('[CALL] conn:', st);
+    if (st === 'failed') {
+      // solo cerrar si falla de forma definitiva
       finalizarLlamada('conexión perdida');
+    } else if (st === 'disconnected') {
+      // 'disconnected' suele ser temporal: dar margen para reconectar
+      clearTimeout(reconnTimer);
+      reconnTimer = setTimeout(() => {
+        if (pc && pc.connectionState === 'disconnected') finalizarLlamada('conexión perdida');
+      }, 6000);
+    } else if (st === 'connected') {
+      clearTimeout(reconnTimer);
     }
   };
 }
+let reconnTimer = null;
 
 async function obtenerMedios(kind) {
   const constraints = kind === 'video'
@@ -2891,6 +2909,7 @@ function finalizarLlamada(motivo) {
 
 function cerrarTodoLlamada() {
   if (callTimer) { clearInterval(callTimer); callTimer = null; }
+  if (reconnTimer) { clearTimeout(reconnTimer); reconnTimer = null; }
   if (callRingTimeout) { clearTimeout(callRingTimeout); callRingTimeout = null; }
   callSeconds = 0;
   if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
