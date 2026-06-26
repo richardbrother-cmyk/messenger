@@ -2651,28 +2651,13 @@ function crearPeerConnection() {
     const rv = document.getElementById('remoteVideo');
     if (rv) {
       rv.srcObject = remoteStream;
-      rv.muted = true;   // el sonido sale por el <audio> dedicado; el video solo muestra imagen
-      rv.volume = 0;
+      rv.muted = false;
+      rv.volume = 1.0;
       rv.play?.().then(() => diag('play OK ' + e.track.kind))
                  .catch(err => diag('play FALLO: ' + err.name));
     } else {
       diag('SIN elemento remoteVideo!');
     }
-    // Reutilizar el <audio> ya desbloqueado en el gesto de aceptar (si existe);
-    // si no (caso caller), crearlo ahora.
-    let ra = document.getElementById('remoteAudioOut');
-    if (!ra) {
-      ra = document.createElement('audio');
-      ra.id = 'remoteAudioOut';
-      ra.autoplay = true;
-      ra.setAttribute('playsinline', '');
-      document.body.appendChild(ra);
-    }
-    ra.srcObject = remoteStream;
-    ra.muted = false;
-    ra.volume = 1.0;
-    ra.play?.().then(() => diag('audio-out OK'))
-               .catch(err => diag('audio-out FALLO: ' + err.name));
     // diagnóstico del track recibido
     const at = remoteStream.getAudioTracks()[0];
     diag('ontrack ' + e.track.kind + ' | audio tracks:' + remoteStream.getAudioTracks().length +
@@ -3103,36 +3088,7 @@ function desbloquearAudioRemoto() {
 
 // Reservado: con el enfoque de reproducir por <video>, no se necesita
 // preparar un elemento de audio aparte. Se mantiene como no-op seguro.
-function prepararAudioRemoto() {
-  // Crear el elemento <audio> AHORA (dentro del gesto de aceptar) y desbloquearlo
-  // reproduciendo silencio. Así el navegador móvil autoriza el audio para cuando
-  // llegue el stream remoto. Sin este gesto, el audio se reproduce "mudo".
-  let ra = document.getElementById('remoteAudioOut');
-  if (!ra) {
-    ra = document.createElement('audio');
-    ra.id = 'remoteAudioOut';
-    ra.autoplay = true;
-    ra.setAttribute('playsinline', '');
-    document.body.appendChild(ra);
-  }
-  ra.muted = false;
-  ra.volume = 1.0;
-  // reproducir un tono silencioso brevísimo para desbloquear la salida de audio
-  try {
-    const AC = window.AudioContext || window.webkitAudioContext;
-    if (AC) {
-      if (!window._ac) window._ac = new AC();
-      if (window._ac.state === 'suspended') window._ac.resume();
-      const osc = window._ac.createOscillator();
-      const g = window._ac.createGain();
-      g.gain.value = 0; // silencio
-      osc.connect(g); g.connect(window._ac.destination);
-      osc.start(); osc.stop(window._ac.currentTime + 0.05);
-    }
-  } catch (_) {}
-  // intentar reproducir el elemento (aún sin fuente) para "armar" el permiso
-  ra.play?.().catch(()=>{});
-}
+function prepararAudioRemoto() { /* el audio se reproduce vía #remoteVideo */ }
 
 function toggleMute() {
   if (!localStream) return;
