@@ -2610,17 +2610,14 @@ function crearPeerConnection() {
     setTimeout(() => desbloquearAudioRemoto?.(), 100);
   };
   pc.onicecandidate = (e) => {
-    if (e.candidate) {
-      // log para diagnóstico: ¿hay candidatos relay (TURN)?
+    if (e.candidate && callChannel) {
       if (e.candidate.candidate.includes('relay')) console.log('[CALL] candidato RELAY (TURN) ok');
-      enviarIce(e.candidate);
+      callChannel.send({ type: 'broadcast', event: 'call-ice',
+        payload: { candidate: e.candidate, from: currentUser.id } });
     }
   };
   pc.oniceconnectionstatechange = () => {
-    const st = pc?.iceConnectionState;
-    console.log('[CALL] ICE:', st);
-    // si falla, reintentar recolección de candidatos
-    if (st === 'failed') { try { pc.restartIce?.(); } catch(_){} }
+    console.log('[CALL] ICE:', pc?.iceConnectionState);
   };
   pc.onconnectionstatechange = () => {
     console.log('[CALL] conn:', pc?.connectionState);
