@@ -2602,24 +2602,6 @@ function enviarSenal(toUserId, event, payload) {
 
 // Cola de candidatos ICE (declaración arriba, junto a las funciones de envío)
 
-// Recuadro de diagnóstico en pantalla (temporal)
-let _diagLines = [];
-function diagBox(msg) {
-  console.log('[AUDIO]', msg);
-  let d = document.getElementById('diagBoxEl');
-  if (!d) {
-    const ov = document.getElementById('callOverlay');
-    if (!ov) return;
-    d = document.createElement('div');
-    d.id = 'diagBoxEl';
-    d.style.cssText = 'position:absolute;top:60px;left:8px;right:8px;background:rgba(0,0,0,.85);color:#0f0;font:12px monospace;line-height:1.6;padding:8px;border-radius:6px;z-index:300;white-space:pre-wrap;';
-    ov.appendChild(d);
-  }
-  _diagLines.push(new Date().toLocaleTimeString().split(' ')[0] + ' ' + msg);
-  if (_diagLines.length > 10) _diagLines.shift();
-  d.textContent = _diagLines.join('\n');
-}
-
 function crearPeerConnection() {
   pc = new RTCPeerConnection({
     iceServers: ICE_SERVERS,
@@ -2630,37 +2612,28 @@ function crearPeerConnection() {
 
   pc.ontrack = (e) => {
     e.streams[0].getTracks().forEach(t => remoteStream.addTrack(t));
+    // El video muestra la imagen (su audio va silenciado).
     const rv = document.getElementById('remoteVideo');
     if (rv) {
       rv.srcObject = remoteStream;
-      rv.muted = true;   // el sonido sale por el <audio> dedicado; el video solo da imagen
+      rv.muted = true;
       rv.volume = 0;
-      rv.play?.().then(() => diagBox('play OK ' + e.track.kind))
-                 .catch(err => diagBox('play FALLO: ' + err.name));
+      rv.play?.().catch(()=>{});
     }
-    // PRUEBA Samsung: sacar el audio por un <audio> dedicado (no por el video).
-    // En algunos Samsung, Chrome no enruta el audio del <video> al altavoz.
+    // El SONIDO sale por un elemento <audio> dedicado. En varios móviles (p.ej.
+    // Samsung con Chrome), el audio de un <video> no se enruta al altavoz, pero
+    // el de un <audio> sí. Esto hace que la llamada se oiga de forma confiable.
     let ra = document.getElementById('audioOut');
     if (!ra) {
       ra = document.createElement('audio');
       ra.id = 'audioOut';
       ra.autoplay = true;
-      ra.controls = false;
       document.body.appendChild(ra);
     }
     ra.srcObject = remoteStream;
     ra.muted = false;
     ra.volume = 1.0;
-    ra.play?.().then(() => diagBox('AUDIO-OUT OK (suena por <audio>)'))
-               .catch(err => diagBox('AUDIO-OUT fallo: ' + err.name));
-    const at = remoteStream.getAudioTracks()[0];
-    diagBox('ontrack=' + e.track.kind + ' aTracks=' + remoteStream.getAudioTracks().length);
-    if (at) {
-      diagBox('track en=' + at.enabled + ' mut=' + at.muted + ' st=' + at.readyState);
-      at.onunmute = () => diagBox('*** track DES-MUTEADO (audio real llegando) ***');
-      at.onmute = () => diagBox('track muteado');
-    }
-    if (rv) diagBox('rv mut=' + rv.muted + ' vol=' + rv.volume + ' paus=' + rv.paused);
+    ra.play?.().catch(()=>{});
   };
   pc.onicecandidate = (e) => {
     if (e.candidate) {
@@ -2697,24 +2670,10 @@ function crearPeerConnection() {
       }, 6000);
     } else if (st === 'connected') {
       clearTimeout(reconnTimer);
-      // monitor de stats SOLO en consola (no afecta audio)
-      if (statsTimer) clearInterval(statsTimer);
-      statsTimer = setInterval(async () => {
-        if (!pc) { clearInterval(statsTimer); return; }
-        try {
-          const s = await pc.getStats();
-          let rx=0, tx=0;
-          s.forEach(r => {
-            if (r.type==='inbound-rtp' && r.kind==='audio') rx = r.bytesReceived||0;
-            if (r.type==='outbound-rtp' && r.kind==='audio') tx = r.bytesSent||0;
-          });
-          console.log('[STATS] rol=' + callRole + ' RX=' + rx + ' TX=' + tx);
-        } catch(_) {}
-      }, 2000);
     }
   };
 }
-let reconnTimer = null, statsTimer = null;
+let reconnTimer = null;
 
 // Sube el bitrate del video saliente para mejor calidad
 async function subirCalidadVideo() {
@@ -2965,7 +2924,6 @@ function finalizarLlamada(motivo) {
 function cerrarTodoLlamada() {
   if (callTimer) { clearInterval(callTimer); callTimer = null; }
   if (reconnTimer) { clearTimeout(reconnTimer); reconnTimer = null; }
-  if (statsTimer) { clearInterval(statsTimer); statsTimer = null; }
   if (callRingTimeout) { clearTimeout(callRingTimeout); callRingTimeout = null; }
   callSeconds = 0;
   if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
@@ -2976,7 +2934,6 @@ function cerrarTodoLlamada() {
   misCandidatos = []; yaReenvie = false;
   document.getElementById('callOverlay')?.remove();
   document.getElementById('audioOut')?.remove();
-  _diagLines = [];
   document.getElementById('incomingOverlay')?.remove();
   altavozActivo = true;
 }
