@@ -2799,11 +2799,17 @@ async function aceptarLlamada() {
   mostrarPantallaLlamada(nombreLlamante, '', 'Conectando…');
 
   crearPeerConnection();
+
+  // IMPORTANTE (callee): procesar la oferta remota ANTES de agregar nuestros
+  // tracks. Así nuestros tracks se aparean con los transceivers que la oferta
+  // ya definió (sendrecv) y el audio fluye en ambas direcciones. Si agregamos
+  // tracks antes, pueden quedar en transceivers que el caller no escucha.
+  await pc.setRemoteDescription(new RTCSessionDescription(pendingOffer));
+  remoteDescLista = true;
+
   localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
   if (callKind === 'video') subirCalidadVideo();
 
-  await pc.setRemoteDescription(new RTCSessionDescription(pendingOffer));
-  remoteDescLista = true;
   await aplicarIceEnEspera();
   const answer = await pc.createAnswer();
   await pc.setLocalDescription(answer);
@@ -3051,29 +3057,7 @@ function desbloquearAudioRemoto() {
 
 // Reservado: con el enfoque de reproducir por <video>, no se necesita
 // preparar un elemento de audio aparte. Se mantiene como no-op seguro.
-// Desbloquea la salida de audio del móvil DENTRO del gesto de aceptar.
-// En Chrome Android, reanudar un AudioContext dentro de un gesto autoriza
-// la salida de audio para el resto de la sesión.
-function prepararAudioRemoto() {
-  try {
-    const AC = window.AudioContext || window.webkitAudioContext;
-    if (AC) {
-      if (!window._callAudioCtx) window._callAudioCtx = new AC();
-      if (window._callAudioCtx.state === 'suspended') window._callAudioCtx.resume();
-    }
-  } catch (_) {}
-  // reintentar reproducir el video remoto durante unos segundos, por si el
-  // audio llega un instante después del gesto (cuando el móvil es callee)
-  let intentos = 0;
-  const reintentar = setInterval(() => {
-    const rv = document.getElementById('remoteVideo');
-    if (rv && rv.srcObject) {
-      rv.muted = false; rv.volume = 1.0;
-      rv.play?.().catch(()=>{});
-    }
-    if (++intentos >= 10 || !pc) clearInterval(reintentar);  // ~5s
-  }, 500);
-}
+function prepararAudioRemoto() { /* el audio se reproduce vía #remoteVideo */ }
 
 function toggleMute() {
   if (!localStream) return;
