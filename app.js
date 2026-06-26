@@ -2633,11 +2633,26 @@ function crearPeerConnection() {
     const rv = document.getElementById('remoteVideo');
     if (rv) {
       rv.srcObject = remoteStream;
-      rv.muted = false;
-      rv.volume = 1.0;
+      rv.muted = true;   // el sonido sale por el <audio> dedicado; el video solo da imagen
+      rv.volume = 0;
       rv.play?.().then(() => diagBox('play OK ' + e.track.kind))
                  .catch(err => diagBox('play FALLO: ' + err.name));
     }
+    // PRUEBA Samsung: sacar el audio por un <audio> dedicado (no por el video).
+    // En algunos Samsung, Chrome no enruta el audio del <video> al altavoz.
+    let ra = document.getElementById('audioOut');
+    if (!ra) {
+      ra = document.createElement('audio');
+      ra.id = 'audioOut';
+      ra.autoplay = true;
+      ra.controls = false;
+      document.body.appendChild(ra);
+    }
+    ra.srcObject = remoteStream;
+    ra.muted = false;
+    ra.volume = 1.0;
+    ra.play?.().then(() => diagBox('AUDIO-OUT OK (suena por <audio>)'))
+               .catch(err => diagBox('AUDIO-OUT fallo: ' + err.name));
     const at = remoteStream.getAudioTracks()[0];
     diagBox('ontrack=' + e.track.kind + ' aTracks=' + remoteStream.getAudioTracks().length);
     if (at) {
@@ -2960,6 +2975,7 @@ function cerrarTodoLlamada() {
   iceQueue = []; iceEntrantesEnEspera = []; remoteDescLista = false; callChannelListo = false;
   misCandidatos = []; yaReenvie = false;
   document.getElementById('callOverlay')?.remove();
+  document.getElementById('audioOut')?.remove();
   _diagLines = [];
   document.getElementById('incomingOverlay')?.remove();
   altavozActivo = true;
