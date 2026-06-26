@@ -3079,7 +3079,26 @@ function desbloquearAudioRemoto() {
 
 // Reservado: con el enfoque de reproducir por <video>, no se necesita
 // preparar un elemento de audio aparte. Se mantiene como no-op seguro.
-function prepararAudioRemoto() { /* el audio se reproduce vía #remoteVideo */ }
+function prepararAudioRemoto() {
+  // Desbloquear la salida de audio del móvil reproduciendo un sonido silencioso
+  // DENTRO del gesto del usuario. Esto autoriza a Chrome Android a reproducir
+  // el audio remoto después, aunque llegue fuera de un gesto.
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (AC) {
+      if (!window._unlockCtx) window._unlockCtx = new AC();
+      const ctx = window._unlockCtx;
+      if (ctx.state === 'suspended') ctx.resume();
+      // tono inaudible de 0.1s para "armar" la salida de audio
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      gain.gain.value = 0.0001;
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.1);
+    }
+  } catch (_) {}
+}
 
 function toggleMute() {
   if (!localStream) return;
