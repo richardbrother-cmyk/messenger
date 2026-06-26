@@ -2625,20 +2625,27 @@ function mostrarBotonSonido() {
   const btn = document.createElement('button');
   btn.id = 'btnActivarSonido';
   btn.className = 'activar-sonido';
-  btn.innerHTML = '🔊 Toca para activar el sonido';
+  btn.innerHTML = '🔊 Toca aquí para escuchar';
   btn.onclick = (ev) => {
     ev.stopPropagation();
     const rv = document.getElementById('remoteVideo');
-    if (rv) {
+    if (rv && remoteStream) {
+      // re-asignar el stream y reproducir DENTRO del gesto (clave en móvil)
+      rv.srcObject = remoteStream;
       rv.muted = false;
       rv.volume = 1.0;
       rv.play().then(() => {
-        console.log('[CALL] audio activado por botón');
+        diagAudio('audio activado ✓');
         btn.remove();
-      }).catch(err => console.log('[CALL] sigue bloqueado:', err.name));
+      }).catch(err => diagAudio('falló: ' + err.name));
     }
   };
   ov.appendChild(btn);
+}
+
+// Detección simple de móvil
+function esMovil() {
+  return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
 }
 
 function crearPeerConnection() {
@@ -2653,26 +2660,22 @@ function crearPeerConnection() {
     console.log('[CALL] ontrack:', e.track.kind);
     const stream = e.streams[0] || remoteStream;
     remoteStream = stream;
-    // Reproducir SIEMPRE a través del elemento <video> (saca audio de forma
-    // confiable en móvil, a diferencia de un <audio> dedicado).
     const rv = document.getElementById('remoteVideo');
     if (rv) {
       rv.srcObject = stream;
       rv.muted = false;
       rv.volume = 1.0;
+      rv.setAttribute('playsinline', '');
       rv.play?.().then(() => diagAudio('reproduciendo ✓'))
-                 .catch(err => { diagAudio('BLOQUEADO: ' + err.name); mostrarBotonSonido(); });
+                 .catch(err => diagAudio('auto bloqueado: ' + err.name));
     }
-    // diagnóstico del track
     const at = stream.getAudioTracks()[0];
     diagAudio('track: ' + (at ? `${at.readyState}/${at.enabled?'on':'off'}/${at.muted?'muted':'live'}` : 'sin audio'));
     if (at) {
       at.onunmute = () => { diagAudio('audio FLUYENDO ✓'); rv?.play?.().catch(()=>{}); };
-      at.onmute = () => diagAudio('audio cortado (mute)');
     }
-    setTimeout(() => {
-      if (rv) diagAudio('estado: ' + (rv.paused ? 'PAUSADO' : 'activo') + ' vol=' + rv.volume + ' mute=' + rv.muted);
-    }, 2000);
+    // En móvil SIEMPRE mostrar el botón de sonido (no confiar en autoplay)
+    if (esMovil()) mostrarBotonSonido();
   };
   pc.onicecandidate = (e) => {
     if (e.candidate) {

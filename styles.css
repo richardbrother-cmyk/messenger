@@ -1037,10 +1037,10 @@ button.link:hover { background: none; opacity: .8; }
 
 /* Botón para activar el sonido en móvil (autoplay bloqueado) */
 .activar-sonido {
-  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  position: absolute; left: 50%; top: 40%; transform: translate(-50%, -50%);
   z-index: 100; background: var(--primary); color: #fff;
   border: none; border-radius: var(--r-pill);
-  padding: 1rem 1.6rem; font-size: 1rem; font-weight: 700;
+  padding: 1.1rem 1.8rem; font-size: 1.05rem; font-weight: 700;
   box-shadow: var(--sh-pop); cursor: pointer; width: auto; min-height: auto;
   animation: pulse 1.5s infinite;
 }
