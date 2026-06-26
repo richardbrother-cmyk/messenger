@@ -2661,6 +2661,11 @@ function crearPeerConnection() {
     // diagnóstico visible en pantalla (para el móvil, que no tiene consola)
     const at = stream.getAudioTracks()[0];
     diagAudio('track: ' + (at ? `${at.readyState}/${at.enabled?'on':'off'}/${at.muted?'muted':'live'}` : 'sin audio'));
+    if (at) {
+      // el track remoto se des-mutea cuando empiezan a llegar datos de audio
+      at.onunmute = () => { diagAudio('audio FLUYENDO ✓'); ra.play?.().catch(()=>{}); };
+      at.onmute = () => diagAudio('audio cortado (mute)');
+    }
     const p = ra.play();
     if (p) p.then(() => diagAudio('reproduciendo ✓'))
            .catch(err => { diagAudio('BLOQUEADO: ' + err.name); mostrarBotonSonido(); });
@@ -2714,6 +2719,9 @@ async function obtenerMedios(kind) {
     ? { audio: true, video: { facingMode: 'user' } }
     : { audio: true, video: false };
   localStream = await navigator.mediaDevices.getUserMedia(constraints);
+  // diagnóstico: ¿el micrófono capturó audio?
+  const at = localStream.getAudioTracks()[0];
+  console.log('[CALL][mic] capturado:', at ? `${at.label} (${at.readyState}, enabled=${at.enabled}, muted=${at.muted})` : 'SIN MICRÓFONO');
   return localStream;
 }
 
