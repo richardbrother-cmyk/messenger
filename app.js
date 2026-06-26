@@ -2602,11 +2602,47 @@ function enviarSenal(toUserId, event, payload) {
 
 // Cola de candidatos ICE (declaración arriba, junto a las funciones de envío)
 
+// === DIAGNÓSTICO TEMPORAL (recuadro en pantalla del móvil) ===
+let diagLines = [];
+function diag(msg) {
+  console.log('[DIAG]', msg);
+  let d = document.getElementById('diagBox');
+  if (!d) {
+    const ov = document.getElementById('callOverlay');
+    if (!ov) return;
+    d = document.createElement('div');
+    d.id = 'diagBox';
+    d.style.cssText = 'position:absolute;top:60px;left:8px;right:8px;background:rgba(0,0,0,.85);color:#0f0;font:11px monospace;line-height:1.5;padding:8px;border-radius:6px;z-index:300;text-align:left;max-height:45vh;overflow-y:auto;white-space:pre-wrap;';
+    ov.appendChild(d);
+  }
+  const t = new Date().toLocaleTimeString().split(' ')[0];
+  diagLines.push(t + ' ' + msg);
+  if (diagLines.length > 14) diagLines.shift();
+  d.textContent = diagLines.join('\n');
+}
+let monitorRXTimer = null, rxPrev = 0;
+function monitorRX() {
+  if (monitorRXTimer) clearInterval(monitorRXTimer);
+  monitorRXTimer = setInterval(async () => {
+    if (!pc) { clearInterval(monitorRXTimer); return; }
+    try {
+      const stats = await pc.getStats();
+      let bytes = 0, pk = 0;
+      stats.forEach(r => {
+        if (r.type === 'inbound-rtp' && r.kind === 'audio') { bytes = r.bytesReceived||0; pk = r.packetsReceived||0; }
+      });
+      const rv = document.getElementById('remoteVideo');
+      const estado = rv ? (rv.paused?'PAUSA':'play') + ' v' + rv.volume + (rv.muted?' MUTE':'') : 'sin-el';
+      diag('RX audio:' + bytes + 'b (+' + (bytes-rxPrev) + ') pk:' + pk + ' | vid:' + estado);
+      rxPrev = bytes;
+    } catch (_) {}
+  }, 2000);
+}
+
 function crearPeerConnection() {
   pc = new RTCPeerConnection({
     iceServers: ICE_SERVERS,
-    // Se eliminó iceTransportPolicy: 'relay' para permitir candidatos directos y reflejados,
-    // mejorando la conectividad en ambos sentidos.
+    iceTransportPolicy: 'relay',   // solo relay: conexión más rápida y estable entre redes
     bundlePolicy: 'max-bundle',
   });
   remoteStream = new MediaStream();
@@ -2618,8 +2654,21 @@ function crearPeerConnection() {
       rv.srcObject = remoteStream;
       rv.muted = false;
       rv.volume = 1.0;
-      rv.play?.().catch(()=>{});
+      rv.play?.().then(() => diag('play OK ' + e.track.kind))
+                 .catch(err => diag('play FALLO: ' + err.name));
+    } else {
+      diag('SIN elemento remoteVideo!');
     }
+    // diagnóstico del track recibido
+    const at = remoteStream.getAudioTracks()[0];
+    diag('ontrack ' + e.track.kind + ' | audio tracks:' + remoteStream.getAudioTracks().length +
+         (at ? ' (' + at.readyState + '/' + (at.muted?'MUTED':'live') + ')' : ''));
+    if (at) {
+      at.onunmute = () => diag('audio des-muteado (fluye)');
+      at.onmute = () => diag('audio muteado');
+    }
+    // medir bytes recibidos a los 3s
+    setTimeout(() => monitorRX(), 3000);
   };
   pc.onicecandidate = (e) => {
     if (e.candidate) {
@@ -2918,6 +2967,8 @@ function cerrarTodoLlamada() {
   remoteStream = null; callPeerId = null; pendingOffer = null; callRole = null;
   iceQueue = []; iceEntrantesEnEspera = []; remoteDescLista = false; callChannelListo = false;
   misCandidatos = []; yaReenvie = false;
+  if (monitorRXTimer) { clearInterval(monitorRXTimer); monitorRXTimer = null; }
+  rxPrev = 0; diagLines = [];
   document.getElementById('callOverlay')?.remove();
   document.getElementById('incomingOverlay')?.remove();
   altavozActivo = true;
