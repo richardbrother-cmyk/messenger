@@ -2605,7 +2605,8 @@ function enviarSenal(toUserId, event, payload) {
 function crearPeerConnection() {
   pc = new RTCPeerConnection({
     iceServers: ICE_SERVERS,
-    iceTransportPolicy: 'relay',   // solo relay: conexión más rápida y estable entre redes
+    // Se eliminó iceTransportPolicy: 'relay' para permitir candidatos directos y reflejados,
+    // mejorando la conectividad en ambos sentidos.
     bundlePolicy: 'max-bundle',
   });
   remoteStream = new MediaStream();
@@ -2617,11 +2618,7 @@ function crearPeerConnection() {
       rv.srcObject = remoteStream;
       rv.muted = false;
       rv.volume = 1.0;
-      // intentar reproducir varias veces (el móvil-callee a veces necesita reintentos)
-      const intentarPlay = (n) => {
-        rv.play?.().catch(() => { if (n > 0) setTimeout(() => intentarPlay(n - 1), 300); });
-      };
-      intentarPlay(5);
+      rv.play?.().catch(()=>{});
     }
   };
   pc.onicecandidate = (e) => {
@@ -3040,26 +3037,7 @@ function desbloquearAudioRemoto() {
 
 // Reservado: con el enfoque de reproducir por <video>, no se necesita
 // preparar un elemento de audio aparte. Se mantiene como no-op seguro.
-// Desbloquea el audio dentro del gesto del usuario (clave en móvil).
-// Reproduce un audio silencioso brevísimo para que el navegador móvil
-// autorice la reproducción posterior del audio remoto.
-let audioDesbloqueado = false;
-function prepararAudioRemoto() {
-  audioDesbloqueado = true;
-  try {
-    // truco: un AudioContext reanudado dentro del gesto desbloquea el audio
-    if (!window._audioCtx) {
-      const AC = window.AudioContext || window.webkitAudioContext;
-      if (AC) window._audioCtx = new AC();
-    }
-    if (window._audioCtx && window._audioCtx.state === 'suspended') {
-      window._audioCtx.resume();
-    }
-    // además, intentar reproducir el video remoto si ya existe
-    const rv = document.getElementById('remoteVideo');
-    if (rv) { rv.muted = false; rv.volume = 1.0; rv.play?.().catch(()=>{}); }
-  } catch (_) {}
-}
+function prepararAudioRemoto() { /* el audio se reproduce vía #remoteVideo */ }
 
 function toggleMute() {
   if (!localStream) return;
