@@ -2628,11 +2628,11 @@ function mostrarBotonSonido() {
   btn.innerHTML = '🔊 Toca para activar el sonido';
   btn.onclick = (ev) => {
     ev.stopPropagation();
-    const ra = document.getElementById('remoteAudio');
-    if (ra) {
-      ra.muted = false;
-      ra.volume = 1.0;
-      ra.play().then(() => {
+    const rv = document.getElementById('remoteVideo');
+    if (rv) {
+      rv.muted = false;
+      rv.volume = 1.0;
+      rv.play().then(() => {
         console.log('[CALL] audio activado por botón');
         btn.remove();
       }).catch(err => console.log('[CALL] sigue bloqueado:', err.name));
@@ -2653,33 +2653,25 @@ function crearPeerConnection() {
     console.log('[CALL] ontrack:', e.track.kind);
     const stream = e.streams[0] || remoteStream;
     remoteStream = stream;
+    // Reproducir SIEMPRE a través del elemento <video> (saca audio de forma
+    // confiable en móvil, a diferencia de un <audio> dedicado).
     const rv = document.getElementById('remoteVideo');
-    if (rv) { rv.srcObject = stream; rv.play?.().catch(err => console.log('[CALL] video play:', err.name)); }
-    let ra = document.getElementById('remoteAudio');
-    if (!ra) {
-      ra = document.createElement('audio');
-      ra.id = 'remoteAudio';
-      ra.autoplay = true;
-      ra.setAttribute('playsinline', '');
-      document.body.appendChild(ra);
+    if (rv) {
+      rv.srcObject = stream;
+      rv.muted = false;
+      rv.volume = 1.0;
+      rv.play?.().then(() => diagAudio('reproduciendo ✓'))
+                 .catch(err => { diagAudio('BLOQUEADO: ' + err.name); mostrarBotonSonido(); });
     }
-    ra.srcObject = stream;
-    ra.muted = false;
-    ra.volume = 1.0;
-    // diagnóstico visible en pantalla (para el móvil, que no tiene consola)
+    // diagnóstico del track
     const at = stream.getAudioTracks()[0];
     diagAudio('track: ' + (at ? `${at.readyState}/${at.enabled?'on':'off'}/${at.muted?'muted':'live'}` : 'sin audio'));
     if (at) {
-      // el track remoto se des-mutea cuando empiezan a llegar datos de audio
-      at.onunmute = () => { diagAudio('audio FLUYENDO ✓'); ra.play?.().catch(()=>{}); };
+      at.onunmute = () => { diagAudio('audio FLUYENDO ✓'); rv?.play?.().catch(()=>{}); };
       at.onmute = () => diagAudio('audio cortado (mute)');
     }
-    const p = ra.play();
-    if (p) p.then(() => diagAudio('reproduciendo ✓'))
-           .catch(err => { diagAudio('BLOQUEADO: ' + err.name); mostrarBotonSonido(); });
-    // verificar a los 2s si de verdad está sonando (paused?)
     setTimeout(() => {
-      if (ra) diagAudio('estado: ' + (ra.paused ? 'PAUSADO' : 'activo') + ' vol=' + ra.volume + ' mute=' + ra.muted);
+      if (rv) diagAudio('estado: ' + (rv.paused ? 'PAUSADO' : 'activo') + ' vol=' + rv.volume + ' mute=' + rv.muted);
     }, 2000);
   };
   pc.onicecandidate = (e) => {
@@ -2952,7 +2944,6 @@ function cerrarTodoLlamada() {
   misCandidatos = []; yaReenvie = false;
   document.getElementById('callOverlay')?.remove();
   document.getElementById('incomingOverlay')?.remove();
-  document.getElementById('remoteAudio')?.remove();
   document.getElementById('btnActivarSonido')?.remove();
   document.getElementById('audioDiag')?.remove();
   altavozActivo = true;
@@ -3057,38 +3048,22 @@ function mostrarPantallaLlamada(nombre, avatar, estadoTxt) {
 
 // Fuerza la reproducción del audio remoto (necesario en móvil por autoplay)
 function desbloquearAudioRemoto() {
-  const ra = document.getElementById('remoteAudio');
-  if (ra) {
-    ra.muted = false;
-    ra.volume = 1;
-    const p = ra.play?.();
+  const rv = document.getElementById('remoteVideo');
+  if (rv) {
+    rv.muted = false;
+    rv.volume = 1;
+    const p = rv.play?.();
     if (p) p.catch(() => {
-      const reintento = () => { ra.play?.().catch(()=>{}); document.removeEventListener('touchend', reintento); document.removeEventListener('click', reintento); };
+      const reintento = () => { rv.play?.().catch(()=>{}); document.removeEventListener('touchend', reintento); document.removeEventListener('click', reintento); };
       document.addEventListener('touchend', reintento, { once: true });
       document.addEventListener('click', reintento, { once: true });
     });
   }
-  const rv = document.getElementById('remoteVideo');
-  if (rv) { rv.play?.().catch(()=>{}); }
 }
 
-// Crea y "desbloquea" el elemento de audio DENTRO del gesto del usuario.
-// En móvil, reproducir aquí (aunque sea vacío) autoriza el audio para cuando
-// llegue el stream remoto, evitando el bloqueo de autoplay.
-function prepararAudioRemoto() {
-  let ra = document.getElementById('remoteAudio');
-  if (!ra) {
-    ra = document.createElement('audio');
-    ra.id = 'remoteAudio';
-    ra.autoplay = true;
-    ra.playsInline = true;
-    document.body.appendChild(ra);
-  }
-  ra.muted = false;
-  ra.volume = 1;
-  // intentar reproducir ahora (dentro del gesto) para desbloquear
-  ra.play?.().catch(() => {});
-}
+// Reservado: con el enfoque de reproducir por <video>, no se necesita
+// preparar un elemento de audio aparte. Se mantiene como no-op seguro.
+function prepararAudioRemoto() { /* el audio se reproduce vía #remoteVideo */ }
 
 function toggleMute() {
   if (!localStream) return;
@@ -3101,23 +3076,19 @@ function toggleMute() {
 // Alterna salida de audio entre altavoz y auricular (donde el navegador lo permita)
 let altavozActivo = true;
 async function toggleAltavoz() {
-  const ra = document.getElementById('remoteAudio');
+  const ra = document.getElementById('remoteVideo');
   const btn = document.getElementById('btnSpeaker');
   if (!ra) return;
   altavozActivo = !altavozActivo;
-  // actualizar icono
   if (btn) btn.innerHTML = altavozActivo ? ICON.speaker : ICON.speakerOff;
-  // intentar cambiar el dispositivo de salida (setSinkId) si está disponible
   try {
     if (typeof ra.setSinkId === 'function') {
       const dispositivos = await navigator.mediaDevices.enumerateDevices();
       const salidas = dispositivos.filter(d => d.kind === 'audiooutput');
       if (altavozActivo) {
-        // altavoz: usar el dispositivo por defecto
         const spk = salidas.find(d => /speaker|altavoz/i.test(d.label)) || salidas.find(d => d.deviceId === 'default') || salidas[0];
         if (spk) await ra.setSinkId(spk.deviceId);
       } else {
-        // auricular: buscar earpiece/headphone
         const ear = salidas.find(d => /earpiece|headset|headphone|auricular/i.test(d.label));
         if (ear) await ra.setSinkId(ear.deviceId);
       }
@@ -3125,7 +3096,6 @@ async function toggleAltavoz() {
   } catch (e) {
     console.log('[CALL] setSinkId no soportado:', e.name);
   }
-  // ajuste de volumen como respaldo (auricular = más bajo)
   ra.volume = altavozActivo ? 1.0 : 0.7;
 }
 

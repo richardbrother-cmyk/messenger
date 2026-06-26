@@ -643,7 +643,10 @@ button.link:hover { background: none; opacity: .8; }
   border-radius: 14px; border: 2px solid rgba(255,255,255,.5); background: #000;
   z-index: 2;
 }
-.call-videos.audio-only #remoteVideo { display: none; }
+.call-videos.audio-only #remoteVideo {
+  /* no usar display:none: el video oculto debe seguir reproduciendo el audio */
+  position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none;
+}
 .call-videos.audio-only #localVideo { display: none; }
 .call-videos.audio-only {
   display: flex; align-items: center; justify-content: center;
