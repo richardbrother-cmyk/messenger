@@ -1,9 +1,12 @@
 // ============================================================
-//  FAMILIA CHAT — sw.js  (v5: notificaciones + badge de no leídos)
+//  FAMILIA CHAT — sw.js  (v8: app.js siempre de la red, sin caché viejo)
 //  Reemplaza tu sw.js por este.
 // ============================================================
-const CACHE = 'familia-chat-v9';
-const ASSETS = ['./index.html', './styles.css', './app.js', './manifest.json'];
+const CACHE = 'familia-chat-v8';
+// Solo cacheamos lo estático que casi no cambia. El CÓDIGO (app.js, styles.css,
+// index.html) NO se precachea: siempre se baja fresco de la red, para evitar
+// que el service worker sirva versiones viejas.
+const ASSETS = ['./manifest.json'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
@@ -11,13 +14,22 @@ self.addEventListener('install', e => {
 });
 
 self.addEventListener('activate', e => {
-  e.waitUntil(caches.keys().then(keys =>
-    Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
-  ));
+  e.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
+    ).then(() => self.clients.claim())
+  );
 });
 
 self.addEventListener('fetch', e => {
-  if (e.request.url.includes('supabase.co')) return;
+  const url = e.request.url;
+  if (url.includes('supabase.co')) return;
+  // El código de la app SIEMPRE de la red (nunca caché), para que no quede viejo.
+  if (url.includes('app.js') || url.includes('styles.css') || url.endsWith('/') || url.includes('index.html')) {
+    e.respondWith(fetch(e.request, { cache: 'no-store' }).catch(() => caches.match(e.request)));
+    return;
+  }
+  // El resto: red primero, caché de respaldo.
   e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
 });
 
