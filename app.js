@@ -2604,6 +2604,7 @@ function enviarSenal(toUserId, event, payload) {
 
 // Botón visible para activar el sonido en móvil (cuando el autoplay se bloquea)
 // Muestra diagnóstico de audio en pantalla (visible en móvil sin consola)
+let diagLineas = [];
 function diagAudio(msg) {
   console.log('[CALL][audio]', msg);
   let d = document.getElementById('audioDiag');
@@ -2612,10 +2613,13 @@ function diagAudio(msg) {
     if (!ov) return;
     d = document.createElement('div');
     d.id = 'audioDiag';
-    d.style.cssText = 'position:absolute;bottom:120px;left:10px;right:10px;background:rgba(0,0,0,.7);color:#0f0;font-size:11px;padding:6px 8px;border-radius:6px;z-index:200;font-family:monospace;text-align:center;';
+    d.style.cssText = 'position:absolute;top:70px;left:8px;right:8px;background:rgba(0,0,0,.8);color:#0f0;font-size:11px;line-height:1.5;padding:8px;border-radius:6px;z-index:200;font-family:monospace;text-align:left;max-height:40vh;overflow-y:auto;';
     ov.appendChild(d);
   }
-  d.textContent = '🔉 ' + msg;
+  const hora = new Date().toLocaleTimeString().split(' ')[0];
+  diagLineas.push(hora + ' ' + msg);
+  if (diagLineas.length > 12) diagLineas.shift();  // últimas 12 líneas
+  d.textContent = diagLineas.join('\n');
 }
 
 function mostrarBotonSonido() {
@@ -2648,6 +2652,30 @@ function esMovil() {
   return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
 }
 
+// Monitorea bytes de audio recibidos y los muestra en pantalla (diagnóstico móvil)
+let monitorAudioTimer = null, ultimosBytesAudio = 0;
+function monitorearAudioEntrante() {
+  if (monitorAudioTimer) clearInterval(monitorAudioTimer);
+  monitorAudioTimer = setInterval(async () => {
+    if (!pc) { clearInterval(monitorAudioTimer); return; }
+    try {
+      const stats = await pc.getStats();
+      let bytes = 0, packets = 0;
+      stats.forEach(r => {
+        if (r.type === 'inbound-rtp' && r.kind === 'audio') {
+          bytes = r.bytesReceived || 0;
+          packets = r.packetsReceived || 0;
+        }
+      });
+      const delta = bytes - ultimosBytesAudio;
+      ultimosBytesAudio = bytes;
+      const rv = document.getElementById('remoteVideo');
+      const estadoRv = rv ? (rv.paused ? 'PAUSA' : 'play') + ' vol' + rv.volume + (rv.muted?' MUTE':'') : 'sin-elem';
+      diagAudio('audio RX: ' + bytes + 'b (+' + delta + ') pk:' + packets + ' | video:' + estadoRv);
+    } catch (e) {}
+  }, 2000);
+}
+
 function crearPeerConnection() {
   pc = new RTCPeerConnection({
     iceServers: ICE_SERVERS,
@@ -2660,6 +2688,16 @@ function crearPeerConnection() {
     e.streams[0].getTracks().forEach(t => remoteStream.addTrack(t));
     const rv = document.getElementById('remoteVideo');
     if (rv) { rv.srcObject = remoteStream; rv.play?.().catch(()=>{}); }
+    // diagnóstico visible en pantalla del móvil
+    diagAudio('ontrack ' + e.track.kind + ' | tracks audio: ' + remoteStream.getAudioTracks().length);
+    const at = remoteStream.getAudioTracks()[0];
+    if (at) {
+      diagAudio('audio: ' + at.readyState + '/' + (at.enabled?'on':'off') + '/' + (at.muted?'MUTED':'live'));
+      at.onunmute = () => diagAudio('audio des-muteado (fluyendo)');
+      at.onmute = () => diagAudio('audio muteado (sin datos)');
+    }
+    // a los 3s, medir bytes de audio recibidos (prueba definitiva)
+    setTimeout(() => monitorearAudioEntrante(), 3000);
   };
   pc.onicecandidate = (e) => {
     if (e.candidate) {
@@ -2796,6 +2834,14 @@ async function aceptarLlamada() {
   }
   // el canal ya se abrió en recibirLlamada; no reabrir
   if (!callChannel) abrirCanalSenal(callPeerId);
+
+  // capturar el nombre antes de que se quite el overlay entrante
+  const nombreLlamante = document.getElementById('incomingName')?.textContent || 'Llamada';
+
+  // IMPORTANTE: mostrar la pantalla (que crea #remoteVideo) ANTES de crear la
+  // conexión, para que el elemento exista cuando llegue el audio remoto (ontrack).
+  mostrarPantallaLlamada(nombreLlamante, '', 'Conectando…');
+
   crearPeerConnection();
   localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
 
@@ -2814,7 +2860,6 @@ async function aceptarLlamada() {
       .eq('callee_id', currentUser.id).eq('caller_id', callPeerId).eq('status', 'ringing');
   } catch (_) {}
 
-  mostrarPantallaLlamada(document.getElementById('incomingName')?.textContent || 'Llamada', '', 'Conectando…');
   iniciarContador();
 }
 
@@ -2921,6 +2966,8 @@ function finalizarLlamada(motivo) {
 function cerrarTodoLlamada() {
   if (callTimer) { clearInterval(callTimer); callTimer = null; }
   if (reconnTimer) { clearTimeout(reconnTimer); reconnTimer = null; }
+  if (monitorAudioTimer) { clearInterval(monitorAudioTimer); monitorAudioTimer = null; }
+  ultimosBytesAudio = 0; diagLineas = [];
   if (callRingTimeout) { clearTimeout(callRingTimeout); callRingTimeout = null; }
   callSeconds = 0;
   if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
