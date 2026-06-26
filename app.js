@@ -2602,6 +2602,24 @@ function enviarSenal(toUserId, event, payload) {
 
 // Cola de candidatos ICE (declaración arriba, junto a las funciones de envío)
 
+// Recuadro de diagnóstico en pantalla (temporal)
+let _diagLines = [];
+function diagBox(msg) {
+  console.log('[AUDIO]', msg);
+  let d = document.getElementById('diagBoxEl');
+  if (!d) {
+    const ov = document.getElementById('callOverlay');
+    if (!ov) return;
+    d = document.createElement('div');
+    d.id = 'diagBoxEl';
+    d.style.cssText = 'position:absolute;top:60px;left:8px;right:8px;background:rgba(0,0,0,.85);color:#0f0;font:12px monospace;line-height:1.6;padding:8px;border-radius:6px;z-index:300;white-space:pre-wrap;';
+    ov.appendChild(d);
+  }
+  _diagLines.push(new Date().toLocaleTimeString().split(' ')[0] + ' ' + msg);
+  if (_diagLines.length > 10) _diagLines.shift();
+  d.textContent = _diagLines.join('\n');
+}
+
 function crearPeerConnection() {
   pc = new RTCPeerConnection({
     iceServers: ICE_SERVERS,
@@ -2617,8 +2635,13 @@ function crearPeerConnection() {
       rv.srcObject = remoteStream;
       rv.muted = false;
       rv.volume = 1.0;
-      rv.play?.().catch(()=>{});
+      rv.play?.().then(() => diagBox('play OK ' + e.track.kind))
+                 .catch(err => diagBox('play FALLO: ' + err.name));
     }
+    const at = remoteStream.getAudioTracks()[0];
+    diagBox('ontrack=' + e.track.kind + ' aTracks=' + remoteStream.getAudioTracks().length);
+    if (at) diagBox('track en=' + at.enabled + ' mut=' + at.muted + ' st=' + at.readyState);
+    if (rv) diagBox('rv mut=' + rv.muted + ' vol=' + rv.volume + ' paus=' + rv.paused);
   };
   pc.onicecandidate = (e) => {
     if (e.candidate) {
@@ -2799,17 +2822,11 @@ async function aceptarLlamada() {
   mostrarPantallaLlamada(nombreLlamante, '', 'Conectando…');
 
   crearPeerConnection();
-
-  // IMPORTANTE (callee): procesar la oferta remota ANTES de agregar nuestros
-  // tracks. Así nuestros tracks se aparean con los transceivers que la oferta
-  // ya definió (sendrecv) y el audio fluye en ambas direcciones. Si agregamos
-  // tracks antes, pueden quedar en transceivers que el caller no escucha.
-  await pc.setRemoteDescription(new RTCSessionDescription(pendingOffer));
-  remoteDescLista = true;
-
   localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
   if (callKind === 'video') subirCalidadVideo();
 
+  await pc.setRemoteDescription(new RTCSessionDescription(pendingOffer));
+  remoteDescLista = true;
   await aplicarIceEnEspera();
   const answer = await pc.createAnswer();
   await pc.setLocalDescription(answer);
@@ -2939,6 +2956,7 @@ function cerrarTodoLlamada() {
   iceQueue = []; iceEntrantesEnEspera = []; remoteDescLista = false; callChannelListo = false;
   misCandidatos = []; yaReenvie = false;
   document.getElementById('callOverlay')?.remove();
+  _diagLines = [];
   document.getElementById('incomingOverlay')?.remove();
   altavozActivo = true;
 }
