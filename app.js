@@ -2602,42 +2602,6 @@ function enviarSenal(toUserId, event, payload) {
 
 // Cola de candidatos ICE (declaración arriba, junto a las funciones de envío)
 
-// === DIAGNÓSTICO TEMPORAL (recuadro en pantalla del móvil) ===
-let diagLines = [];
-function diag(msg) {
-  console.log('[DIAG]', msg);
-  let d = document.getElementById('diagBox');
-  if (!d) {
-    const ov = document.getElementById('callOverlay');
-    if (!ov) return;
-    d = document.createElement('div');
-    d.id = 'diagBox';
-    d.style.cssText = 'position:absolute;top:60px;left:8px;right:8px;background:rgba(0,0,0,.85);color:#0f0;font:11px monospace;line-height:1.5;padding:8px;border-radius:6px;z-index:300;text-align:left;max-height:45vh;overflow-y:auto;white-space:pre-wrap;';
-    ov.appendChild(d);
-  }
-  const t = new Date().toLocaleTimeString().split(' ')[0];
-  diagLines.push(t + ' ' + msg);
-  if (diagLines.length > 14) diagLines.shift();
-  d.textContent = diagLines.join('\n');
-}
-let monitorRXTimer = null, rxPrev = 0, txPrev = 0;
-function monitorRX() {
-  if (monitorRXTimer) clearInterval(monitorRXTimer);
-  monitorRXTimer = setInterval(async () => {
-    if (!pc) { clearInterval(monitorRXTimer); return; }
-    try {
-      const stats = await pc.getStats();
-      let rxBytes = 0, rxPk = 0, txBytes = 0, txPk = 0;
-      stats.forEach(r => {
-        if (r.type === 'inbound-rtp' && r.kind === 'audio') { rxBytes = r.bytesReceived||0; rxPk = r.packetsReceived||0; }
-        if (r.type === 'outbound-rtp' && r.kind === 'audio') { txBytes = r.bytesSent||0; txPk = r.packetsSent||0; }
-      });
-      diag('RX:' + rxBytes + 'b(+' + (rxBytes-rxPrev) + ') TX:' + txBytes + 'b(+' + (txBytes-txPrev) + ')');
-      rxPrev = rxBytes; txPrev = txBytes;
-    } catch (_) {}
-  }, 2000);
-}
-
 function crearPeerConnection() {
   pc = new RTCPeerConnection({
     iceServers: ICE_SERVERS,
@@ -2653,21 +2617,8 @@ function crearPeerConnection() {
       rv.srcObject = remoteStream;
       rv.muted = false;
       rv.volume = 1.0;
-      rv.play?.().then(() => diag('play OK ' + e.track.kind))
-                 .catch(err => diag('play FALLO: ' + err.name));
-    } else {
-      diag('SIN elemento remoteVideo!');
+      rv.play?.().catch(()=>{});
     }
-    // diagnóstico del track recibido
-    const at = remoteStream.getAudioTracks()[0];
-    diag('ontrack ' + e.track.kind + ' | audio tracks:' + remoteStream.getAudioTracks().length +
-         (at ? ' (' + at.readyState + '/' + (at.muted?'MUTED':'live') + ')' : ''));
-    if (at) {
-      at.onunmute = () => diag('audio des-muteado (fluye)');
-      at.onmute = () => diag('audio muteado');
-    }
-    // medir bytes recibidos a los 3s
-    setTimeout(() => monitorRX(), 3000);
   };
   pc.onicecandidate = (e) => {
     if (e.candidate) {
@@ -2966,11 +2917,8 @@ function cerrarTodoLlamada() {
   remoteStream = null; callPeerId = null; pendingOffer = null; callRole = null;
   iceQueue = []; iceEntrantesEnEspera = []; remoteDescLista = false; callChannelListo = false;
   misCandidatos = []; yaReenvie = false;
-  if (monitorRXTimer) { clearInterval(monitorRXTimer); monitorRXTimer = null; }
-  rxPrev = 0; txPrev = 0; diagLines = [];
   document.getElementById('callOverlay')?.remove();
   document.getElementById('incomingOverlay')?.remove();
-  document.getElementById('remoteAudioOut')?.remove();
   altavozActivo = true;
 }
 
