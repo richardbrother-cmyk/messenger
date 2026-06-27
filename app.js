@@ -14,7 +14,7 @@ const MAX_AVATAR_BYTES = 2 * 1024 * 1024;  // 2 MB avatar
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const app = document.getElementById('app');
 let currentUser = null, currentProfile = null, activeChat = null, channel = null;
-let pendingFile = null;
+let pendingFiles = [];
 let pendingChat = null; // { id, name } chat a abrir cuando haya sesión
 let activeIsGroup = false; // si la conversación abierta es un grupo
 let memberNames = {};      // cache id->nombre para mostrar autores en grupos
@@ -761,10 +761,18 @@ function chatShell(titleHtml, withClear, conLlamadas) {
       ${EMOJIS.map(e => `<button class="emoji" type="button">${e}</button>`).join('')}
     </div>
     <div id="filePreview" class="file-preview hidden"></div>
+    <div id="attachMenu" class="attach-menu hidden">
+      <button class="attach-opt" data-act="gallery"><span class="ao-ico ao-gallery">${ICON.images}</span><span>Galería</span></button>
+      <button class="attach-opt" data-act="camera"><span class="ao-ico ao-camera">${ICON.camera}</span><span>Cámara</span></button>
+      <button class="attach-opt" data-act="contact"><span class="ao-ico ao-contact">${ICON.user}</span><span>Contacto</span></button>
+      <button class="attach-opt" data-act="document"><span class="ao-ico ao-doc">${ICON.file}</span><span>Documento</span></button>
+    </div>
     <div class="composer">
       ${svgBtn('emoji', 'emojiBtn', 'icon-btn', 'Emojis')}
       ${svgBtn('attach', 'attachBtn', 'icon-btn', 'Adjuntar')}
-      <input id="fileInput" type="file" hidden>
+      <input id="fileInputGallery" type="file" accept="image/*,video/*" multiple hidden>
+      <input id="fileInputCamera" type="file" accept="image/*" capture="environment" hidden>
+      <input id="fileInputDoc" type="file" multiple hidden>
       <input id="msgInput" placeholder="Mensaje..." autocomplete="off">
       ${svgBtn('mic', 'micBtn', 'icon-btn', 'Mantén presionado para grabar')}
       ${svgBtn('send', 'sendBtn', 'icon-btn send-btn', 'Enviar')}
@@ -778,8 +786,34 @@ function chatShell(titleHtml, withClear, conLlamadas) {
 
 function wireComposer() {
   document.getElementById('sendBtn').onclick = sendMessage;
-  document.getElementById('attachBtn').onclick = () => document.getElementById('fileInput').click();
-  document.getElementById('fileInput').addEventListener('change', onFilePicked);
+  // Menú de adjuntos tipo WhatsApp
+  const menu = document.getElementById('attachMenu');
+  document.getElementById('attachBtn').onclick = (ev) => {
+    ev.stopPropagation();
+    menu.classList.toggle('hidden');
+  };
+  // cerrar el menú al tocar fuera
+  document.addEventListener('click', (ev) => {
+    if (!menu.classList.contains('hidden') &&
+        !menu.contains(ev.target) &&
+        ev.target.id !== 'attachBtn' &&
+        !ev.target.closest('#attachBtn')) {
+      menu.classList.add('hidden');
+    }
+  });
+  menu.querySelectorAll('.attach-opt').forEach(b => {
+    b.onclick = () => {
+      const act = b.dataset.act;
+      menu.classList.add('hidden');
+      if (act === 'gallery') document.getElementById('fileInputGallery').click();
+      else if (act === 'camera') document.getElementById('fileInputCamera').click();
+      else if (act === 'document') document.getElementById('fileInputDoc').click();
+      else if (act === 'contact') elegirContacto();
+    };
+  });
+  document.getElementById('fileInputGallery').addEventListener('change', onFilesPicked);
+  document.getElementById('fileInputCamera').addEventListener('change', onFilesPicked);
+  document.getElementById('fileInputDoc').addEventListener('change', onFilesPicked);
   document.getElementById('msgInput').addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(); });
   // Emojis
   const panel = document.getElementById('emojiPanel');
@@ -1043,7 +1077,7 @@ async function openChat(otherId, otherName, otherAvatar) {
   activeChat = otherId;
   activeChatName = otherName;
   activeIsGroup = false;
-  pendingFile = null; replyingTo = null; editandoMsg = null; searchMatches = []; searchIdx = -1; modoSeleccion = false; seleccionados.clear();
+  pendingFiles = []; replyingTo = null; editandoMsg = null; searchMatches = []; searchIdx = -1; modoSeleccion = false; seleccionados.clear();
   if (otherAvatar === undefined) {
     const { data } = await sb.from('profiles').select('avatar_url, avatar_version').eq('id', otherId).single();
     otherAvatar = avatarUrl(data);
@@ -1066,7 +1100,7 @@ async function openGroup(groupId, groupName, groupAvatar) {
   activeChat = groupId;
   activeChatName = groupName;
   activeIsGroup = true;
-  pendingFile = null; replyingTo = null; editandoMsg = null; searchMatches = []; searchIdx = -1; modoSeleccion = false; seleccionados.clear();
+  pendingFiles = []; replyingTo = null; editandoMsg = null; searchMatches = []; searchIdx = -1; modoSeleccion = false; seleccionados.clear();
   // cargar nombres de miembros para mostrar autores
   memberNames = {};
   const { data: members } = await sb.from('group_members').select('user_id').eq('group_id', groupId);
@@ -2131,26 +2165,89 @@ async function hydrateAttachments(box) {
   }
 }
 
-function onFilePicked(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  if (file.size > MAX_FILE_BYTES) {
-    alert(`El archivo supera el máximo de 10 MB (pesa ${formatSize(file.size)}).`);
-    e.target.value = ''; return;
+const MAX_ADJUNTOS = 20;
+function onFilesPicked(e) {
+  const files = Array.from(e.target.files || []);
+  if (!files.length) return;
+  for (const file of files) {
+    if (pendingFiles.length >= MAX_ADJUNTOS) {
+      alert(`Máximo ${MAX_ADJUNTOS} adjuntos a la vez.`);
+      break;
+    }
+    if (file.size > MAX_FILE_BYTES) {
+      alert(`"${file.name}" supera el máximo de 10 MB (pesa ${formatSize(file.size)}).`);
+      continue;
+    }
+    pendingFiles.push(file);
   }
-  pendingFile = file;
-  const preview = document.getElementById('filePreview');
-  preview.classList.remove('hidden');
-  preview.innerHTML = `<span>📎 ${esc(file.name)} <small>${formatSize(file.size)}</small></span><button id="cancelFile" class="link">✕</button>`;
-  document.getElementById('cancelFile').onclick = clearPendingFile;
+  e.target.value = '';
+  renderPreviewAdjuntos();
 }
 
-function clearPendingFile() {
-  pendingFile = null;
-  const fi = document.getElementById('fileInput');
-  if (fi) fi.value = '';
+function renderPreviewAdjuntos() {
   const preview = document.getElementById('filePreview');
-  if (preview) { preview.classList.add('hidden'); preview.innerHTML = ''; }
+  if (!preview) return;
+  if (!pendingFiles.length) {
+    preview.classList.add('hidden');
+    preview.innerHTML = '';
+    return;
+  }
+  preview.classList.remove('hidden');
+  const items = pendingFiles.map((f, i) => {
+    const esImg = (f.type || '').startsWith('image/');
+    const thumb = esImg
+      ? `<img src="${URL.createObjectURL(f)}" alt="">`
+      : `<span class="ap-ico">${ICON.file}</span>`;
+    return `<div class="attach-pill" data-i="${i}">
+      <div class="ap-thumb">${thumb}</div>
+      <span class="ap-name">${esc(f.name)}</span>
+      <button class="ap-x" data-i="${i}" title="Quitar">✕</button>
+    </div>`;
+  }).join('');
+  const total = pendingFiles.length;
+  preview.innerHTML = `<div class="ap-head">${total} adjunto${total>1?'s':''}${total>=MAX_ADJUNTOS?' (máx)':''}<button id="apClear" class="link">Quitar todos</button></div><div class="ap-list">${items}</div>`;
+  preview.querySelectorAll('.ap-x').forEach(b => {
+    b.onclick = () => { pendingFiles.splice(+b.dataset.i, 1); renderPreviewAdjuntos(); };
+  });
+  document.getElementById('apClear').onclick = clearPendingFiles;
+}
+
+function clearPendingFiles() {
+  pendingFiles = [];
+  renderPreviewAdjuntos();
+}
+
+// Compartir un contacto: elige un usuario y lo envía como mensaje
+async function elegirContacto() {
+  const { data: profiles } = await sb.from('profiles').select('*').neq('id', currentUser.id).order('display_name');
+  const ov = document.createElement('div');
+  ov.className = 'sheet-overlay';
+  ov.innerHTML = `
+    <div class="sheet">
+      <div class="sheet-head"><h3>Compartir contacto</h3><button class="sheet-close">✕</button></div>
+      <div class="sheet-body">
+        ${(profiles || []).map(p => `
+          <button class="contact-pick" data-name="${esc(p.display_name || p.username || 'Usuario')}" data-user="${esc(p.username || '')}">
+            <span class="cp-avatar">${esc((p.display_name || '?')[0])}</span>
+            <span class="cp-name">${esc(p.display_name || p.username || 'Usuario')}</span>
+          </button>`).join('') || '<p class="empty small">No hay contactos para compartir.</p>'}
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+  ov.querySelector('.sheet-close').onclick = () => ov.remove();
+  ov.onclick = (e) => { if (e.target === ov) ov.remove(); };
+  ov.querySelectorAll('.contact-pick').forEach(b => {
+    b.onclick = async () => {
+      const nombre = b.dataset.name;
+      const user = b.dataset.user;
+      ov.remove();
+      const texto = `👤 Contacto: ${nombre}${user ? ' (@' + user + ')' : ''}`;
+      const row = { sender_id: currentUser.id, content: texto };
+      if (activeIsGroup) row.group_id = activeChat; else row.recipient_id = activeChat;
+      const { data: inserted } = await sb.from('messages').insert(row).select().single();
+      if (inserted) pintarMensajePropio(inserted);
+    };
+  });
 }
 
 async function sendMessage() {
@@ -2158,51 +2255,59 @@ async function sendMessage() {
   if (editandoMsg) { guardarEdicion(); return; }
   const input = document.getElementById('msgInput');
   const content = input.value.trim();
-  if (!content && !pendingFile) return;
+  if (!content && !pendingFiles.length) return;
   const sendBtn = document.getElementById('sendBtn');
   sendBtn.disabled = true;
 
-  let attachment = null;
-  if (pendingFile) {
-    try {
-      const safeName = pendingFile.name.replace(/[^\w.\-]/g, '_');
-      const path = `${currentUser.id}/${Date.now()}-${safeName}`;
-      const { error: upErr } = await sb.storage.from('attachments')
-        .upload(path, pendingFile, { contentType: pendingFile.type || 'application/octet-stream' });
-      if (upErr) throw upErr;
-      attachment = {
-        attachment_path: path, attachment_name: pendingFile.name,
-        attachment_type: pendingFile.type || 'application/octet-stream', attachment_size: pendingFile.size
-      };
-    } catch (err) {
-      alert('No se pudo subir el archivo: ' + err.message);
-      sendBtn.disabled = false; return;
-    }
+  const baseRow = {};
+  if (activeIsGroup) baseRow.group_id = activeChat;
+  else baseRow.recipient_id = activeChat;
+  if (replyingTo) {
+    baseRow.reply_to = replyingTo.id;
+    baseRow.reply_preview = replyingTo.preview;
+    baseRow.reply_author = replyingTo.author;
   }
 
+  // Copia de los adjuntos a enviar y limpieza inmediata de la UI
+  const archivos = pendingFiles.slice();
+  const texto = content;
   input.value = '';
+  clearPendingFiles();
+  cancelarRespuesta();
   const panel = document.getElementById('emojiPanel');
   if (panel) panel.classList.add('hidden');
 
-  const row = {
-    sender_id: currentUser.id,
-    content: content || null,
-    ...(attachment || {})
-  };
-  if (activeIsGroup) row.group_id = activeChat;
-  else row.recipient_id = activeChat;
-
-  // Si estoy respondiendo, adjunta la cita
-  if (replyingTo) {
-    row.reply_to = replyingTo.id;
-    row.reply_preview = replyingTo.preview;
-    row.reply_author = replyingTo.author;
+  try {
+    // Enviar cada adjunto como su propio mensaje (como WhatsApp)
+    for (let i = 0; i < archivos.length; i++) {
+      const f = archivos[i];
+      const safeName = f.name.replace(/[^\w.\-]/g, '_');
+      const path = `${currentUser.id}/${Date.now()}-${i}-${safeName}`;
+      const { error: upErr } = await sb.storage.from('attachments')
+        .upload(path, f, { contentType: f.type || 'application/octet-stream' });
+      if (upErr) throw upErr;
+      const row = {
+        sender_id: currentUser.id,
+        content: null,
+        attachment_path: path,
+        attachment_name: f.name,
+        attachment_type: f.type || 'application/octet-stream',
+        attachment_size: f.size,
+        ...baseRow
+      };
+      const { data: inserted } = await sb.from('messages').insert(row).select().single();
+      if (inserted) pintarMensajePropio(inserted);
+    }
+    // Enviar el texto (si lo hay) como mensaje aparte
+    if (texto) {
+      const row = { sender_id: currentUser.id, content: texto, ...baseRow };
+      const { data: inserted } = await sb.from('messages').insert(row).select().single();
+      if (inserted) pintarMensajePropio(inserted);
+    }
+  } catch (err) {
+    alert('No se pudo enviar un adjunto: ' + (err.message || err));
   }
 
-  const { data: inserted } = await sb.from('messages').insert(row).select().single();
-  if (inserted) pintarMensajePropio(inserted);
-  cancelarRespuesta();
-  clearPendingFile();
   sendBtn.disabled = false;
 }
 

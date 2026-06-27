@@ -96,6 +96,7 @@ body {
   flex-direction: column;
   min-height: 0;
   background: var(--ink);
+  position: relative;
 }
 
 /* Scrollbars finos y discretos */
@@ -347,12 +348,60 @@ button.link:hover { background: none; opacity: .8; }
 
 /* === Adjuntos === */
 .file-preview {
-  display: flex; justify-content: space-between; align-items: center; gap: .5rem;
-  padding: .65rem 1rem; background: var(--surface-1); border-top: 1px solid var(--line); font-size: .9rem;
-  flex: 0 0 auto;
+  display: block;
+  padding: .55rem .8rem; background: var(--surface-1); border-top: 1px solid var(--line); font-size: .9rem;
+  flex: 0 0 auto; max-height: 38vh; overflow-y: auto;
 }
 .file-preview.hidden { display: none; }
 .file-preview small { color: var(--text-dim); margin-left: .3rem; }
+.ap-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: .5rem; color: var(--text-dim); font-size: .82rem; }
+.ap-list { display: flex; flex-wrap: wrap; gap: .5rem; }
+.attach-pill {
+  display: flex; align-items: center; gap: .4rem; background: var(--surface-2);
+  border-radius: 12px; padding: .35rem .5rem .35rem .35rem; max-width: 100%;
+}
+.ap-thumb { width: 40px; height: 40px; border-radius: 8px; overflow: hidden; flex: 0 0 auto;
+  display: flex; align-items: center; justify-content: center; background: var(--surface-3); }
+.ap-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.ap-ico svg, .ao-ico svg { width: 20px; height: 20px; }
+.ap-name { font-size: .8rem; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ap-x { background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: .9rem; padding: .1rem .2rem; }
+.ap-x:hover { color: var(--ink); }
+
+/* Menú de adjuntos tipo WhatsApp */
+.attach-menu {
+  position: absolute; bottom: 70px; left: 10px; z-index: 50;
+  background: var(--surface-1); border: 1px solid var(--line);
+  border-radius: 16px; padding: .5rem; box-shadow: var(--sh-pop);
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: .4rem; min-width: 240px;
+}
+.attach-menu.hidden { display: none; }
+.attach-opt {
+  display: flex; flex-direction: column; align-items: center; gap: .35rem;
+  background: none; border: none; cursor: pointer; padding: .7rem .5rem;
+  border-radius: 12px; color: var(--ink); font-size: .8rem;
+}
+.attach-opt:hover { background: var(--surface-2); }
+.ao-ico { width: 46px; height: 46px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; }
+.ao-ico svg { width: 22px; height: 22px; }
+.ao-gallery { background: #7C4DFF; }
+.ao-camera  { background: #EC407A; }
+.ao-contact { background: #29B6F6; }
+.ao-doc     { background: #5C6BC0; }
+
+/* Hoja de elegir contacto */
+.contact-pick {
+  display: flex; align-items: center; gap: .7rem; width: 100%;
+  background: none; border: none; cursor: pointer; padding: .65rem .4rem;
+  border-radius: 10px; color: var(--ink); text-align: left;
+}
+.contact-pick:hover { background: var(--surface-2); }
+.cp-avatar {
+  width: 40px; height: 40px; border-radius: 50%; flex: 0 0 auto;
+  background: var(--primary); color: #fff; display: flex; align-items: center; justify-content: center;
+  font-weight: 700; text-transform: uppercase;
+}
+.cp-name { font-size: .95rem; }
 .attach-img img { max-width: 230px; max-height: 270px; border-radius: 12px; display: block; cursor: pointer; margin-bottom: .35rem; }
 .attach-img .loading { display: inline-block; padding: 1rem; font-size: .85rem; opacity: .7; }
 .attach-file {
