@@ -359,6 +359,7 @@ button.link:hover { background: none; opacity: .8; }
 .attach-pill {
   display: flex; align-items: center; gap: .4rem; background: var(--surface-2);
   border-radius: 12px; padding: .35rem .5rem .35rem .35rem; max-width: 100%;
+  color: var(--text);
 }
 .ap-thumb { width: 40px; height: 40px; border-radius: 8px; overflow: hidden; flex: 0 0 auto;
   display: flex; align-items: center; justify-content: center; background: var(--surface-3); }
@@ -366,7 +367,7 @@ button.link:hover { background: none; opacity: .8; }
 .ap-ico svg, .ao-ico svg { width: 20px; height: 20px; }
 .ap-name { font-size: .8rem; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ap-x { background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: .9rem; padding: .1rem .2rem; }
-.ap-x:hover { color: var(--ink); }
+.ap-x:hover { color: var(--text); }
 
 /* Menú de adjuntos tipo WhatsApp */
 .attach-menu {
@@ -379,7 +380,7 @@ button.link:hover { background: none; opacity: .8; }
 .attach-opt {
   display: flex; flex-direction: column; align-items: center; gap: .35rem;
   background: none; border: none; cursor: pointer; padding: .7rem .5rem;
-  border-radius: 12px; color: var(--ink); font-size: .8rem;
+  border-radius: 12px; color: var(--text); font-size: .8rem;
 }
 .attach-opt:hover { background: var(--surface-2); }
 .ao-ico { width: 46px; height: 46px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; }
@@ -393,7 +394,7 @@ button.link:hover { background: none; opacity: .8; }
 .contact-pick {
   display: flex; align-items: center; gap: .7rem; width: 100%;
   background: none; border: none; cursor: pointer; padding: .65rem .4rem;
-  border-radius: 10px; color: var(--ink); text-align: left;
+  border-radius: 10px; color: var(--text); text-align: left;
 }
 .contact-pick:hover { background: var(--surface-2); }
 .cp-avatar {
