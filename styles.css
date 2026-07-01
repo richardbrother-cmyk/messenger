@@ -264,6 +264,9 @@ button.link:hover { background: none; opacity: .8; }
   color: #fff;
   border-bottom-right-radius: 6px;
 }
+.msg-link { color: inherit; text-decoration: underline; word-break: break-all; }
+.bubble.mine .msg-link { color: #fff; }
+.bubble.theirs .msg-link { color: var(--primary); }
 .bubble.theirs {
   align-self: flex-start;
   background: var(--surface-2);

@@ -1426,7 +1426,7 @@ function renderBubble(m) {
       inner += `<div class="attach-wrap"><a class="attach-file" data-path="${esc(m.attachment_path)}" href="#"><span class="file-ico">${ICON.file}</span> ${esc(m.attachment_name || 'archivo')} <small>${formatSize(m.attachment_size)}</small></a>${fwd}</div>`;
     }
   }
-  if (m.content) inner += `<div class="text">${esc(m.content)}</div>`;
+  if (m.content) inner += `<div class="text">${linkify(m.content)}</div>`;
 
   // Pie del mensaje: hora + "editado" + palomitas
   let meta = '<span class="hora">' + esc(formatHora(m.created_at)) + '</span>';
@@ -2094,9 +2094,20 @@ async function hydrateAttachments(box) {
     } else { el.innerHTML = '<span class="loading">No disponible</span>'; }
   }
   for (const el of box.querySelectorAll('.attach-file')) {
+    if (el.dataset.ready) continue;
+    el.dataset.ready = '1';
     const path = el.dataset.path;
-    const { data } = await sb.storage.from('attachments').createSignedUrl(path, 3600);
-    if (data?.signedUrl) { el.href = data.signedUrl; el.target = '_blank'; }
+    el.addEventListener('click', async (ev) => {
+      ev.preventDefault();
+      // generar URL firmada FRESCA en el momento del clic (evita expiración
+      // y el problema de tener que tocar 2-3 veces)
+      const { data } = await sb.storage.from('attachments').createSignedUrl(path, 3600);
+      if (data?.signedUrl) {
+        window.open(data.signedUrl, '_blank', 'noopener');
+      } else {
+        alert('No se pudo abrir el archivo.');
+      }
+    });
   }
   // Notas de voz: reproductor con onda, tiempo y velocidad
   for (const el of box.querySelectorAll('.voice-note')) {
@@ -2413,6 +2424,22 @@ function unsubscribe() {
 // === HELPERS ===
 const val = id => document.getElementById(id).value;
 const esc = s => (s || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+// Convierte URLs del texto en enlaces clicables. Escapa primero (seguridad),
+// luego detecta http(s):// y www. y los envuelve en <a>.
+function linkify(text) {
+  const escaped = esc(text);
+  const urlRe = /\b((?:https?:\/\/|www\.)[^\s<]+)/gi;
+  return escaped.replace(urlRe, (url) => {
+    let href = url;
+    if (/^www\./i.test(href)) href = 'https://' + href;
+    // no incluir signos de puntuación finales en el enlace
+    let trail = '';
+    const m = url.match(/[.,;:!?)]+$/);
+    if (m) { trail = url.slice(url.length - m[0].length); href = href.slice(0, href.length - m[0].length); url = url.slice(0, url.length - m[0].length); }
+    return `<a href="${href}" target="_blank" rel="noopener noreferrer" class="msg-link">${url}</a>${trail}`;
+  });
+}
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 // Pone el número de no leídos en el ícono de la app (PWA instalada).
 function actualizarBadge(n) {
