@@ -1423,7 +1423,7 @@ function renderBubble(m) {
         <button class="voice-speed" type="button" title="Velocidad">1x</button>
       </div>${fwd}</div>`;
     } else {
-      inner += `<div class="attach-wrap"><a class="attach-file" data-path="${esc(m.attachment_path)}" href="#"><span class="file-ico">${ICON.file}</span> ${esc(m.attachment_name || 'archivo')} <small>${formatSize(m.attachment_size)}</small></a>${fwd}</div>`;
+      inner += `<div class="attach-wrap"><a class="attach-file" data-path="${esc(m.attachment_path)}" data-name="${esc(m.attachment_name || 'archivo')}" href="#"><span class="file-ico">${ICON.file}</span> ${esc(m.attachment_name || 'archivo')} <small>${formatSize(m.attachment_size)}</small></a>${fwd}</div>`;
     }
   }
   if (m.content) inner += `<div class="text">${linkify(m.content)}</div>`;
@@ -2084,6 +2084,47 @@ async function reenviarMensaje(m, destType, destId) {
   if (data) pintarMensajePropio(data);
 }
 
+// Menú al tocar un archivo adjunto: Abrir o Descargar
+function abrirMenuArchivo(path, nombre) {
+  const ov = document.createElement('div');
+  ov.className = 'sheet-overlay overlay-bottom';
+  ov.innerHTML = `
+    <div class="sheet sheet-bottom">
+      <div class="sheet-head"><h3>${esc(nombre)}</h3><button class="sheet-close">✕</button></div>
+      <div class="sheet-body">
+        <button class="file-act" id="fileOpen"><span class="fa-ico">${ICON.file}</span><span>Abrir</span></button>
+        <button class="file-act" id="fileDownload"><span class="fa-ico">${ICON.attach}</span><span>Descargar</span></button>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+  const cerrar = () => ov.remove();
+  ov.querySelector('.sheet-close').onclick = cerrar;
+  ov.onclick = (e) => { if (e.target === ov) cerrar(); };
+
+  document.getElementById('fileOpen').onclick = async () => {
+    cerrar();
+    const { data } = await sb.storage.from('attachments').createSignedUrl(path, 3600);
+    if (data?.signedUrl) window.open(data.signedUrl, '_blank', 'noopener');
+    else alert('No se pudo abrir el archivo.');
+  };
+  document.getElementById('fileDownload').onclick = async () => {
+    cerrar();
+    // URL firmada con descarga forzada (el navegador lo baja en vez de mostrarlo)
+    const { data } = await sb.storage.from('attachments')
+      .createSignedUrl(path, 3600, { download: nombre });
+    if (data?.signedUrl) {
+      const a = document.createElement('a');
+      a.href = data.signedUrl;
+      a.download = nombre;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } else {
+      alert('No se pudo descargar el archivo.');
+    }
+  };
+}
+
 async function hydrateAttachments(box) {
   for (const el of box.querySelectorAll('.attach-img')) {
     const path = el.dataset.path;
@@ -2097,16 +2138,10 @@ async function hydrateAttachments(box) {
     if (el.dataset.ready) continue;
     el.dataset.ready = '1';
     const path = el.dataset.path;
-    el.addEventListener('click', async (ev) => {
+    const nombre = el.dataset.name || 'archivo';
+    el.addEventListener('click', (ev) => {
       ev.preventDefault();
-      // generar URL firmada FRESCA en el momento del clic (evita expiración
-      // y el problema de tener que tocar 2-3 veces)
-      const { data } = await sb.storage.from('attachments').createSignedUrl(path, 3600);
-      if (data?.signedUrl) {
-        window.open(data.signedUrl, '_blank', 'noopener');
-      } else {
-        alert('No se pudo abrir el archivo.');
-      }
+      abrirMenuArchivo(path, nombre);
     });
   }
   // Notas de voz: reproductor con onda, tiempo y velocidad
@@ -2232,9 +2267,9 @@ function clearPendingFiles() {
 async function elegirContacto() {
   const { data: profiles } = await sb.from('profiles').select('*').neq('id', currentUser.id).order('display_name');
   const ov = document.createElement('div');
-  ov.className = 'sheet-overlay';
+  ov.className = 'sheet-overlay overlay-bottom';
   ov.innerHTML = `
-    <div class="sheet">
+    <div class="sheet sheet-bottom">
       <div class="sheet-head"><h3>Compartir contacto</h3><button class="sheet-close">✕</button></div>
       <div class="sheet-body">
         ${(profiles || []).map(p => `

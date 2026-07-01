@@ -1033,6 +1033,29 @@ button.link:hover { background: none; opacity: .8; }
 .sheet-head .link svg { width: 22px; height: 22px; }
 .sheet-title { font-weight: 600; font-size: 1.05rem; }
 
+/* Hoja inferior compacta (menú de archivo, elegir contacto) */
+.sheet-overlay.overlay-bottom { background: rgba(0,0,0,.5); justify-content: flex-end; }
+.sheet-overlay:has(.sheet-bottom) { background: rgba(0,0,0,.5); justify-content: flex-end; }
+.sheet-bottom {
+  height: auto; background: var(--surface-1);
+  border-radius: 18px 18px 0 0; max-height: 70vh; overflow: hidden;
+  animation: sheetUp .2s ease;
+}
+@keyframes sheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.sheet-bottom .sheet-head { border-bottom: 1px solid var(--line); border-radius: 18px 18px 0 0; }
+.sheet-bottom .sheet-head h3 { flex: 1; font-size: 1rem; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sheet-close { background: none; border: none; color: var(--text-dim); font-size: 1.1rem; cursor: pointer; padding: .3rem .5rem; }
+.sheet-bottom .sheet-body { padding: .5rem; overflow-y: auto; }
+.file-act {
+  display: flex; align-items: center; gap: .8rem; width: 100%;
+  background: none; border: none; cursor: pointer; padding: .9rem .8rem;
+  border-radius: 12px; color: var(--text); font-size: 1rem; text-align: left;
+}
+.file-act:hover { background: var(--surface-2); }
+.fa-ico { width: 40px; height: 40px; border-radius: 50%; background: var(--primary-soft);
+  display: flex; align-items: center; justify-content: center; color: var(--primary); }
+.fa-ico svg { width: 20px; height: 20px; }
+
 /* Galería en cuadrícula */
 .gallery-grid {
   flex: 1 1 auto; overflow-y: auto; min-height: 0;
