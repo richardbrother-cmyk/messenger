@@ -1779,10 +1779,10 @@ async function abrirReenviarMultiple(msgs) {
     <div class="fwd-box">
       <p class="crop-title">Reenviar ${msgs.length} mensaje(s) a…</p>
       <div class="fwd-list">
-        ${groups.map(g => `<div class="fwd-item" data-type="group" data-id="${g.id}">
+        ${groups.map(g => `<div class="fwd-item" data-type="group" data-id="${g.id}" data-name="${esc(g.name||'')}">
           ${avatarUrl(g) ? `<img class="avatar-img sm" src="${esc(avatarUrl(g))}">` : `<div class="avatar sm group-av">${esc((g.name||'?')[0])}</div>`}
           <span>${esc(g.name)}</span></div>`).join('')}
-        ${profiles.map(p => `<div class="fwd-item" data-type="user" data-id="${p.id}">
+        ${profiles.map(p => `<div class="fwd-item" data-type="user" data-id="${p.id}" data-name="${esc(p.display_name||'')}">
           ${avatarUrl(p) ? `<img class="avatar-img sm" src="${esc(avatarUrl(p))}">` : `<div class="avatar sm">${esc((p.display_name||'?')[0])}</div>`}
           <span>${esc(p.display_name)}</span></div>`).join('')}
       </div>
@@ -1794,10 +1794,13 @@ async function abrirReenviarMultiple(msgs) {
   document.getElementById('fwdCancel').onclick = close;
   overlay.querySelectorAll('.fwd-item').forEach(it => {
     it.onclick = async () => {
-      for (const m of msgs) await reenviarMensaje(m, it.dataset.type, it.dataset.id);
+      const tipo = it.dataset.type, id = it.dataset.id, nombre = it.dataset.name;
+      for (const m of msgs) await reenviarMensaje(m, tipo, id);
       close();
       salirModoSeleccion();
-      alert('Mensajes reenviados ✓');
+      // llevar directo a la conversación destino (sin alert)
+      if (tipo === 'group') openGroup(id, nombre);
+      else openChat(id, nombre);
     };
   });
 }
@@ -2037,10 +2040,10 @@ async function abrirReenviar(m) {
     <div class="fwd-box">
       <p class="crop-title">Reenviar a…</p>
       <div class="fwd-list">
-        ${groups.map(g => `<div class="fwd-item" data-type="group" data-id="${g.id}">
+        ${groups.map(g => `<div class="fwd-item" data-type="group" data-id="${g.id}" data-name="${esc(g.name||'')}">
           ${avatarUrl(g) ? `<img class="avatar-img sm" src="${esc(avatarUrl(g))}">` : `<div class="avatar sm group-av">${esc((g.name||'?')[0])}</div>`}
           <span>${esc(g.name)}</span></div>`).join('')}
-        ${profiles.map(p => `<div class="fwd-item" data-type="user" data-id="${p.id}">
+        ${profiles.map(p => `<div class="fwd-item" data-type="user" data-id="${p.id}" data-name="${esc(p.display_name||'')}">
           ${avatarUrl(p) ? `<img class="avatar-img sm" src="${esc(avatarUrl(p))}">` : `<div class="avatar sm">${esc((p.display_name||'?')[0])}</div>`}
           <span>${esc(p.display_name)}</span></div>`).join('')}
       </div>
@@ -2052,9 +2055,12 @@ async function abrirReenviar(m) {
   document.getElementById('fwdCancel').onclick = close;
   overlay.querySelectorAll('.fwd-item').forEach(it => {
     it.onclick = async () => {
-      await reenviarMensaje(m, it.dataset.type, it.dataset.id);
+      const tipo = it.dataset.type, id = it.dataset.id, nombre = it.dataset.name;
+      await reenviarMensaje(m, tipo, id);
       close();
-      alert('Mensaje reenviado ✓');
+      // llevar directo a la conversación destino (sin alert)
+      if (tipo === 'group') openGroup(id, nombre);
+      else openChat(id, nombre);
     };
   });
 }
