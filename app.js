@@ -3113,20 +3113,44 @@ function cerrarTodoLlamada() {
 
 // === Tono de llamada ===
 function sonarTono(tipo) {
-  // beep simple generado, para no depender de archivos
+  // Timbre clásico "ring-ring": dos tonos alternados con envolvente suave,
+  // agrupados y con pausa entre repeticiones. Generado, sin archivos.
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
     ringAudio = ctx;
-    const beep = () => {
-      if (!ringAudio) return;
-      const o = ctx.createOscillator(); const g = ctx.createGain();
-      o.connect(g); g.connect(ctx.destination);
-      o.frequency.value = tipo === 'entrante' ? 520 : 440;
-      g.gain.value = 0.1;
-      o.start(); o.stop(ctx.currentTime + 0.4);
+
+    // Un "ring" = dos frecuencias que suenan juntas (como el timbre analógico),
+    // con fade-in/out para que no suene brusco.
+    const ring = (t0, dur) => {
+      const f1 = tipo === 'entrante' ? 480 : 440;
+      const f2 = tipo === 'entrante' ? 620 : 480;
+      [f1, f2].forEach(freq => {
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.type = 'sine';
+        o.frequency.value = freq;
+        o.connect(g); g.connect(ctx.destination);
+        // envolvente suave: sube y baja el volumen en vez de cortar seco
+        g.gain.setValueAtTime(0.0001, t0);
+        g.gain.exponentialRampToValueAtTime(0.15, t0 + 0.04);
+        g.gain.setValueAtTime(0.15, t0 + dur - 0.06);
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+        o.start(t0);
+        o.stop(t0 + dur + 0.02);
+      });
     };
-    beep();
-    ringAudio._interval = setInterval(beep, 2000);
+
+    // Patrón "ring-ring": dos rings cortos seguidos, luego pausa.
+    const patron = () => {
+      if (!ringAudio) return;
+      const now = ctx.currentTime;
+      ring(now, 0.4);          // primer "ring"
+      ring(now + 0.6, 0.4);    // segundo "ring"
+    };
+
+    patron();
+    // repetir el par cada 3 segundos (0.4+0.2+0.4 de sonido, resto en silencio)
+    ringAudio._interval = setInterval(patron, 3000);
   } catch (_) {}
 }
 
