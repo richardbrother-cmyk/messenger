@@ -703,8 +703,11 @@ button.link:hover { background: none; opacity: .8; }
 .call-videos.audio-only #localVideo { display: none; }
 .call-videos.audio-only {
   display: flex; align-items: center; justify-content: center;
-  background: linear-gradient(160deg, var(--ink), var(--surface-2));
+  background: linear-gradient(160deg, #1a1f35, #0d0f18);
 }
+.call-videos.audio-only .call-name,
+.call-videos.audio-only .call-info { color: #fff; }
+.call-videos.audio-only .call-sub { color: rgba(255,255,255,.75); }
 .call-info {
   position: absolute; top: 2rem; left: 0; right: 0;
   text-align: center; z-index: 1; text-shadow: 0 1px 4px rgba(0,0,0,.6);
@@ -713,14 +716,22 @@ button.link:hover { background: none; opacity: .8; }
 .call-controls {
   display: flex; gap: 1.5rem; justify-content: center; align-items: center;
   padding: 2rem; padding-bottom: calc(2rem + env(safe-area-inset-bottom));
-  width: 100%; background: rgba(0,0,0,.3);
+  width: 100%; background: #0d0f18;
 }
 .call-controls .call-btn {
   width: 60px; height: 60px; min-height: 60px; min-width: 60px; padding: 0;
   border-radius: 50%; font-size: 1.4rem;
   display: inline-flex; align-items: center; justify-content: center;
   flex: 0 0 auto;
+  background: rgba(255,255,255,.16); color: #fff;
 }
+.call-controls .call-btn:hover { background: rgba(255,255,255,.26); }
+.call-controls .call-btn svg { stroke: #fff; color: #fff; }
+.call-controls .call-btn.off { background: rgba(255,255,255,.32); }
+.call-controls .call-btn.reject { background: var(--danger); }
+.call-controls .call-btn.reject:hover { background: var(--danger-600); }
+.call-controls .call-btn.reject svg { stroke: #fff; }
+.call-controls .call-btn.accept { background: var(--ok); }
 
 /* === Perfil de otro usuario === */
 .chat-head-info { display: flex; align-items: center; gap: .2rem; flex: 1 1 auto; min-width: 0; cursor: pointer; }
