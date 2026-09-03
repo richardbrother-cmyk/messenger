@@ -27,7 +27,24 @@ let seleccionados = new Set();
 let listaChannel = null;   // canal de realtime para la lista de contactos
 
 // Emojis más usados para el selector simple
+// Lista corta para el selector de reacciones
 const EMOJIS = ['😀','😂','🥰','😍','😘','😎','🤔','😴','😭','😡','👍','👎','👏','🙏','💪','🔥','🎉','❤️','💔','✨','⭐','🌟','💯','✅','❌','🤣','😅','😉','😊','🙂','😇','🤗','🤩','😋','😜','🤪','😏','🥺','😩','😤','👋','🤝','✌️','🤞','👌','🙌','💀','👀','💩','🥳','😱','😬','🤯','🫶','💕','💖','🎂','🍕','☕','🌹'];
+
+// Catálogo completo de emojis por categoría (para el panel del compositor)
+const EMOJI_CATS = [
+  { id: 'recent', ico: '🕘', label: 'Recientes' },
+  { id: 'caras', ico: '😀', label: 'Caras', list: '😀 😃 😄 😁 😆 😅 🤣 😂 🙂 🙃 🫠 😉 😊 😇 🥰 😍 🤩 😘 😗 ☺️ 😚 😙 🥲 😋 😛 😜 🤪 😝 🤑 🤗 🤭 🫢 🫣 🤫 🤔 🫡 🤐 🤨 😐 😑 😶 🫥 😶‍🌫️ 😏 😒 🙄 😬 😮‍💨 🤥 🫨 😌 😔 😪 🤤 😴 😷 🤒 🤕 🤢 🤮 🤧 🥵 🥶 🥴 😵 😵‍💫 🤯 🤠 🥳 🥸 😎 🤓 🧐 😕 🫤 😟 🙁 ☹️ 😮 😯 😲 😳 🥺 🥹 😦 😧 😨 😰 😥 😢 😭 😱 😖 😣 😞 😓 😩 😫 🥱 😤 😡 😠 🤬 😈 👿 💀 ☠️ 💩 🤡 👹 👺 👻 👽 👾 🤖 😺 😸 😹 😻 😼 😽 🙀 😿 😾 🙈 🙉 🙊' },
+  { id: 'gestos', ico: '👍', label: 'Gestos y personas', list: '👋 🤚 🖐️ ✋ 🖖 🫱 🫲 🫳 🫴 🫷 🫸 👌 🤌 🤏 ✌️ 🤞 🫰 🤟 🤘 🤙 👈 👉 👆 🖕 👇 ☝️ 🫵 👍 👎 ✊ 👊 🤛 🤜 👏 🙌 🫶 👐 🤲 🤝 🙏 ✍️ 💅 🤳 💪 🦾 🦿 🦵 🦶 👂 🦻 👃 🧠 🫀 🫁 🦷 🦴 👀 👁️ 👅 👄 🫦 👶 🧒 👦 👧 🧑 👱 👨 🧔 👩 🧓 👴 👵 🙍 🙎 🙅 🙆 💁 🙋 🧏 🙇 🤦 🤷 👮 🕵️ 💂 🥷 👷 🫅 🤴 👸 👳 👲 🧕 🤵 👰 🤰 🫃 🫄 🤱 👼 🎅 🤶 🦸 🦹 🧙 🧚 🧛 🧜 🧝 🧞 🧟 🧌 💆 💇 🚶 🧍 🧎 🏃 💃 🕺 🕴️ 👯 🧖 🧗 🤺 🏇 ⛷️ 🏂 🏌️ 🏄 🚣 🏊 ⛹️ 🏋️ 🚴 🚵 🤸 🤼 🤽 🤾 🤹 🧘 🛀 🛌 👭 👫 👬 💏 💑 👪 👨‍👩‍👧 👨‍👩‍👧‍👦 👨‍👩‍👦‍👦 👨‍👩‍👧‍👧 🗣️ 👤 👥 🫂' },
+  { id: 'animales', ico: '🐶', label: 'Animales y naturaleza', list: '🐶 🐱 🐭 🐹 🐰 🦊 🐻 🐼 🐻‍❄️ 🐨 🐯 🦁 🐮 🐷 🐽 🐸 🐵 🐒 🐔 🐧 🐦 🐤 🐣 🐥 🦆 🦅 🦉 🦇 🐺 🐗 🐴 🦄 🐝 🪱 🐛 🦋 🐌 🐞 🐜 🪰 🪲 🪳 🦟 🦗 🕷️ 🕸️ 🦂 🐢 🐍 🦎 🦖 🦕 🐙 🦑 🦐 🦞 🦀 🐡 🐠 🐟 🐬 🐳 🐋 🦈 🐊 🐅 🐆 🦓 🦍 🦧 🦣 🐘 🦛 🦏 🐪 🐫 🦒 🦘 🦬 🐃 🐂 🐄 🐎 🐖 🐏 🐑 🦙 🐐 🦌 🐕 🐩 🦮 🐕‍🦺 🐈 🐈‍⬛ 🪶 🐓 🦃 🦤 🦚 🦜 🦢 🦩 🕊️ 🐇 🦝 🦨 🦡 🦫 🦦 🦥 🐁 🐀 🐿️ 🦔 🐾 🐉 🐲 🌵 🎄 🌲 🌳 🌴 🪵 🌱 🌿 ☘️ 🍀 🎍 🪴 🎋 🍃 🍂 🍁 🍄 🐚 🪸 🪨 🌾 💐 🌷 🪷 🌹 🥀 🌺 🌸 🌼 🌻 🌞 🌝 🌛 🌜 🌚 🌕 🌖 🌗 🌘 🌑 🌒 🌓 🌔 🌙 🌎 🌍 🌏 🪐 💫 ⭐ 🌟 ✨ ⚡ ☄️ 💥 🔥 🌪️ 🌈 ☀️ 🌤️ ⛅ 🌥️ ☁️ 🌦️ 🌧️ ⛈️ 🌩️ 🌨️ ❄️ ☃️ ⛄ 🌬️ 💨 💧 💦 🫧 ☔ ☂️ 🌊 🌫️' },
+  { id: 'comida', ico: '🍔', label: 'Comida y bebida', list: '🍏 🍎 🍐 🍊 🍋 🍌 🍉 🍇 🍓 🫐 🍈 🍒 🍑 🥭 🍍 🥥 🥝 🍅 🍆 🥑 🥦 🥬 🥒 🌶️ 🫑 🌽 🥕 🫒 🧄 🧅 🥔 🍠 🫚 🥐 🥯 🍞 🥖 🥨 🧀 🥚 🍳 🧈 🥞 🧇 🥓 🥩 🍗 🍖 🌭 🍔 🍟 🍕 🫓 🥪 🥙 🧆 🌮 🌯 🫔 🥗 🥘 🫕 🥫 🍝 🍜 🍲 🍛 🍣 🍱 🥟 🦪 🍤 🍙 🍚 🍘 🍥 🥠 🥮 🍢 🍡 🍧 🍨 🍦 🥧 🧁 🍰 🎂 🍮 🍭 🍬 🍫 🍿 🍩 🍪 🌰 🥜 🫘 🍯 🥛 🍼 🫖 ☕ 🍵 🧃 🥤 🧋 🍶 🍺 🍻 🥂 🍷 🥃 🍸 🍹 🧉 🍾 🧊 🥄 🍴 🍽️ 🥣 🥡 🥢 🧂' },
+  { id: 'actividades', ico: '⚽', label: 'Actividades', list: '⚽ 🏀 🏈 ⚾ 🥎 🎾 🏐 🏉 🥏 🎱 🪀 🏓 🏸 🏒 🏑 🥍 🏏 🪃 🥅 ⛳ 🪁 🏹 🎣 🤿 🥊 🥋 🎽 🛹 🛼 🛷 ⛸️ 🥌 🎿 🪂 🏆 🥇 🥈 🥉 🏅 🎖️ 🏵️ 🎗️ 🎫 🎟️ 🎪 🎭 🩰 🎨 🎬 🎤 🎧 🎼 🎹 🥁 🪘 🎷 🎺 🪗 🎸 🪕 🎻 🎲 ♟️ 🎯 🎳 🎮 🕹️ 🎰 🧩 🎉 🎊 🎈 🎁 🎀 🪅 🪩 🎏 🎐 🧧 🎎 🎑 🎃 🎄 🎆 🎇 🧨' },
+  { id: 'viajes', ico: '🚗', label: 'Viajes y lugares', list: '🚗 🚕 🚙 🚌 🚎 🏎️ 🚓 🚑 🚒 🚐 🛻 🚚 🚛 🚜 🦯 🦽 🦼 🛴 🚲 🛵 🏍️ 🛺 🚨 🚔 🚍 🚘 🚖 🛞 🚡 🚠 🚟 🚃 🚋 🚞 🚝 🚄 🚅 🚈 🚂 🚆 🚇 🚊 🚉 ✈️ 🛫 🛬 🛩️ 💺 🛰️ 🚀 🛸 🚁 🛶 ⛵ 🚤 🛥️ 🛳️ ⛴️ 🚢 ⚓ 🛟 ⛽ 🚧 🚦 🚥 🚏 🗺️ 🗿 🗽 🗼 🏰 🏯 🏟️ 🎡 🎢 🎠 ⛲ ⛱️ 🏖️ 🏝️ 🏜️ 🌋 ⛰️ 🏔️ 🗻 🏕️ ⛺ 🛖 🏠 🏡 🏘️ 🏚️ 🏗️ 🏭 🏢 🏬 🏣 🏤 🏥 🏦 🏨 🏪 🏫 🏩 💒 🏛️ ⛪ 🕌 🕍 🛕 🕋 ⛩️ 🛤️ 🛣️ 🗾 🏞️ 🌅 🌄 🌠 🌇 🌆 🏙️ 🌃 🌌 🌉 🌁' },
+  { id: 'objetos', ico: '💡', label: 'Objetos', list: '⌚ 📱 📲 💻 ⌨️ 🖥️ 🖨️ 🖱️ 🖲️ 💽 💾 💿 📀 📼 📷 📸 📹 🎥 📽️ 🎞️ 📞 ☎️ 📟 📠 📺 📻 🎙️ 🎚️ 🎛️ 🧭 ⏱️ ⏲️ ⏰ 🕰️ ⌛ ⏳ 📡 🔋 🪫 🔌 💡 🔦 🕯️ 🪔 🧯 🛢️ 💸 💵 💴 💶 💷 🪙 💰 💳 🧾 💎 ⚖️ 🪜 🧰 🪛 🔧 🔨 ⚒️ 🛠️ ⛏️ 🪚 🔩 ⚙️ 🪤 🧱 ⛓️ 🧲 🔫 💣 🪓 🔪 🗡️ ⚔️ 🛡️ 🚬 ⚰️ 🪦 ⚱️ 🏺 🔮 📿 🧿 🪬 💈 ⚗️ 🔭 🔬 🕳️ 🩹 🩺 🩻 🩼 💊 💉 🩸 🧬 🦠 🧫 🧪 🌡️ 🧹 🪠 🧺 🧻 🚽 🚰 🚿 🛁 🧼 🪥 🪒 🧽 🪣 🧴 🛎️ 🔑 🗝️ 🚪 🪑 🛋️ 🛏️ 🧸 🪆 🖼️ 🪞 🪟 🛍️ 🛒 🪄 🏮 ✉️ 📩 📨 📧 💌 📥 📤 📦 🏷️ 🪧 📪 📫 📬 📭 📮 📯 📜 📃 📄 📑 📊 📈 📉 🗒️ 🗓️ 📆 📅 🗑️ 📇 🗃️ 🗳️ 🗄️ 📋 📁 📂 🗂️ 🗞️ 📰 📓 📔 📒 📕 📗 📘 📙 📚 📖 🔖 🧷 🔗 📎 🖇️ 📐 📏 🧮 📌 📍 ✂️ 🖊️ 🖋️ ✒️ 🖌️ 🖍️ 📝 ✏️ 🔍 🔎 🔏 🔐 🔒 🔓 👓 🕶️ 🥽 🥼 🦺 👔 👕 👖 🧣 🧤 🧥 🧦 👗 👘 🥻 🩱 🩲 🩳 👙 👚 🪭 👛 👜 👝 🎒 🩴 👞 👟 🥾 🥿 👠 👡 👢 👑 👒 🎩 🎓 🧢 🪖 ⛑️ 💄 💍 💼' },
+  { id: 'simbolos', ico: '❤️', label: 'Símbolos', list: '❤️ 🩷 🧡 💛 💚 💙 🩵 💜 🖤 🩶 🤍 🤎 💔 ❤️‍🔥 ❤️‍🩹 ❣️ 💕 💞 💓 💗 💖 💘 💝 💟 ☮️ ✝️ ☪️ 🕉️ ☸️ ✡️ 🔯 🕎 ☯️ ☦️ 🛐 ⛎ ♈ ♉ ♊ ♋ ♌ ♍ ♎ ♏ ♐ ♑ ♒ ♓ 🆔 ⚛️ ☢️ ☣️ 📴 📳 🆚 💮 🅰️ 🅱️ 🆎 🆑 🅾️ 🆘 ❌ ⭕ 🛑 ⛔ 📛 🚫 💯 💢 ♨️ 🚷 🚯 🚳 🚱 🔞 📵 🚭 ❗ ❕ ❓ ❔ ‼️ ⁉️ 🔅 🔆 〽️ ⚠️ 🚸 🔱 ⚜️ 🔰 ♻️ ✅ 💹 ❇️ ✳️ ❎ 🌐 💠 Ⓜ️ 🌀 💤 🏧 🚾 ♿ 🅿️ 🛗 🛂 🛃 🛄 🛅 🚹 🚺 🚼 ⚧️ 🚻 🚮 🎦 📶 🔣 ℹ️ 🔤 🔡 🔠 🆖 🆗 🆙 🆒 🆕 🆓 0️⃣ 1️⃣ 2️⃣ 3️⃣ 4️⃣ 5️⃣ 6️⃣ 7️⃣ 8️⃣ 9️⃣ 🔟 🔢 #️⃣ *️⃣ ⏏️ ▶️ ⏸️ ⏯️ ⏹️ ⏺️ ⏭️ ⏮️ ⏩ ⏪ ⏫ ⏬ ◀️ 🔼 🔽 ➡️ ⬅️ ⬆️ ⬇️ ↗️ ↘️ ↙️ ↖️ ↕️ ↔️ ↪️ ↩️ ⤴️ ⤵️ 🔀 🔁 🔂 🔄 🔃 🎵 🎶 ➕ ➖ ➗ ✖️ 🟰 ♾️ 💲 💱 ™️ ©️ ®️ 〰️ ➰ ➿ 🔚 🔙 🔛 🔝 🔜 ✔️ ☑️ 🔘 🔴 🟠 🟡 🟢 🔵 🟣 ⚫ ⚪ 🟤 🔺 🔻 🔸 🔹 🔶 🔷 🔳 🔲 ▪️ ▫️ ◾ ◽ ◼️ ◻️ 🟥 🟧 🟨 🟩 🟦 🟪 ⬛ ⬜ 🟫 🔈 🔇 🔉 🔊 🔔 🔕 📣 📢 💬 💭 🗯️ ♠️ ♣️ ♥️ ♦️ 🃏 🎴 🀄 🕐 🕑 🕒 🕓 🕔 🕕 🕖 🕗 🕘 🕙 🕚 🕛' },
+  { id: 'banderas', ico: '🏳️', label: 'Banderas', list: '🏳️ 🏴 🏁 🚩 🏳️‍🌈 🏳️‍⚧️ 🏴‍☠️ 🇲🇽 🇺🇸 🇨🇦 🇪🇸 🇦🇷 🇧🇷 🇨🇱 🇨🇴 🇵🇪 🇻🇪 🇪🇨 🇧🇴 🇺🇾 🇵🇾 🇨🇷 🇵🇦 🇬🇹 🇭🇳 🇸🇻 🇳🇮 🇨🇺 🇩🇴 🇵🇷 🇯🇲 🇭🇹 🇧🇸 🇧🇿 🇹🇹 🇬🇾 🇸🇷 🇫🇷 🇩🇪 🇮🇹 🇬🇧 🇵🇹 🇳🇱 🇧🇪 🇨🇭 🇦🇹 🇸🇪 🇳🇴 🇩🇰 🇫🇮 🇮🇸 🇮🇪 🇵🇱 🇨🇿 🇭🇺 🇷🇴 🇧🇬 🇬🇷 🇭🇷 🇷🇸 🇸🇰 🇸🇮 🇱🇹 🇱🇻 🇪🇪 🇺🇦 🇧🇾 🇷🇺 🇹🇷 🇬🇪 🇦🇲 🇰🇿 🇮🇱 🇸🇦 🇦🇪 🇶🇦 🇮🇷 🇮🇶 🇯🇵 🇨🇳 🇰🇷 🇹🇼 🇭🇰 🇮🇳 🇵🇰 🇧🇩 🇱🇰 🇳🇵 🇹🇭 🇻🇳 🇵🇭 🇮🇩 🇲🇾 🇸🇬 🇲🇲 🇰🇭 🇱🇦 🇲🇳 🇦🇺 🇳🇿 🇿🇦 🇪🇬 🇲🇦 🇩🇿 🇹🇳 🇳🇬 🇰🇪 🇪🇹 🇬🇭 🇸🇳 🇨🇮 🇨🇲 🇦🇴 🇹🇿 🇺🇬 🇲🇿 🇺🇳 🇪🇺' },
+  { id: 'stickers', ico: 'sticker', label: 'Stickers' },
+];
+const RECIENTES_KEY = 'emojiRecientes';
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
 
@@ -72,6 +89,7 @@ const ICON = {
   select: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>',
   close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>',
   emoji: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>',
+  sticker: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h6"/><path d="M20 12h-4a4 4 0 0 0-4 4v4"/><path d="M20 12c0 4-4 8-8 8"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="14" y1="9" x2="14.01" y2="9"/></svg>',
   attach: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.4 11.05l-9.19 9.19a5 5 0 0 1-7.07-7.07l9.19-9.19a3.33 3.33 0 0 1 4.71 4.71l-9.2 9.19a1.67 1.67 0 0 1-2.36-2.36l8.49-8.48"/></svg>',
   mic: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>',
   send: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>',
@@ -758,7 +776,10 @@ function chatShell(titleHtml, withClear, conLlamadas) {
       <div class="messages" id="messages"></div>
     </div>
     <div id="emojiPanel" class="emoji-panel hidden">
-      ${EMOJIS.map(e => `<button class="emoji" type="button">${e}</button>`).join('')}
+      <div class="ep-tabs" id="epTabs">
+        ${EMOJI_CATS.map(c => `<button class="ep-tab" data-cat="${c.id}" title="${esc(c.label)}">${c.ico === 'sticker' ? ICON.sticker : c.ico}</button>`).join('')}
+      </div>
+      <div class="ep-body" id="epBody"></div>
     </div>
     <div id="filePreview" class="file-preview hidden"></div>
     <div id="attachMenu" class="attach-menu hidden">
@@ -773,6 +794,7 @@ function chatShell(titleHtml, withClear, conLlamadas) {
       <input id="fileInputGallery" type="file" accept="image/*,video/*" multiple hidden>
       <input id="fileInputCamera" type="file" accept="image/*" capture="environment" hidden>
       <input id="fileInputDoc" type="file" multiple hidden>
+      <input id="stickerInput" type="file" accept="image/*" hidden>
       <input id="msgInput" placeholder="Mensaje..." autocomplete="off">
       ${svgBtn('mic', 'micBtn', 'icon-btn', 'Mantén presionado para grabar')}
       ${svgBtn('send', 'sendBtn', 'icon-btn send-btn', 'Enviar')}
@@ -782,6 +804,175 @@ function chatShell(titleHtml, withClear, conLlamadas) {
       <span id="recTime">0:00</span>
       <span class="rec-hint">Suelta para enviar · desliza fuera para cancelar</span>
     </div>`;
+}
+
+// === PANEL DE EMOJIS (categorías + recientes) ===
+function leerRecientes() {
+  try { return JSON.parse(localStorage.getItem(RECIENTES_KEY) || '[]'); } catch (_) { return []; }
+}
+function guardarReciente(e) {
+  const rec = leerRecientes().filter(x => x !== e);
+  rec.unshift(e);
+  localStorage.setItem(RECIENTES_KEY, JSON.stringify(rec.slice(0, 32)));
+}
+function mostrarCategoriaEmoji(catId) {
+  const body = document.getElementById('epBody');
+  if (!body) return;
+  document.querySelectorAll('.ep-tab').forEach(t => t.classList.toggle('active', t.dataset.cat === catId));
+  if (catId === 'stickers') { renderStickers(); return; }
+  const cat = EMOJI_CATS.find(c => c.id === catId);
+  const lista = catId === 'recent' ? leerRecientes() : (cat?.list || '').split(' ').filter(Boolean);
+  if (!lista.length) {
+    body.innerHTML = '<p class="ep-empty">Aún no hay emojis recientes.</p>';
+    return;
+  }
+  body.className = 'ep-body ep-grid';
+  body.innerHTML = lista.map(e => `<button class="emoji" type="button" data-e="${e}">${e}</button>`).join('');
+  body.scrollTop = 0;
+}
+// Inserta el emoji en la posición del cursor del input
+function insertarEmoji(e) {
+  const input = document.getElementById('msgInput');
+  if (!input) return;
+  const start = input.selectionStart ?? input.value.length;
+  const end = input.selectionEnd ?? input.value.length;
+  input.value = input.value.slice(0, start) + e + input.value.slice(end);
+  const pos = start + e.length;
+  input.focus();
+  input.setSelectionRange(pos, pos);
+  guardarReciente(e);
+}
+
+// === STICKERS ===
+// Los stickers se guardan en el bucket 'attachments' bajo <uid>/stickers/ y
+// se registran en la tabla 'stickers' (owner_id, path). Se envían como
+// mensaje con attachment_type = 'sticker'.
+let misStickers = null;          // caché [{id, path}]
+let modoEditarStickers = false;
+const stickerUrlCache = {};      // path -> { url, exp }
+
+async function urlSticker(path) {
+  const c = stickerUrlCache[path];
+  if (c && c.exp > Date.now()) return c.url;
+  const { data } = await sb.storage.from('attachments').createSignedUrl(path, 3600);
+  if (!data?.signedUrl) return null;
+  stickerUrlCache[path] = { url: data.signedUrl, exp: Date.now() + 50 * 60 * 1000 };
+  return data.signedUrl;
+}
+
+async function cargarMisStickers(force) {
+  if (misStickers && !force) return misStickers;
+  const { data } = await sb.from('stickers').select('id, path').eq('owner_id', currentUser.id).order('created_at', { ascending: false });
+  misStickers = data || [];
+  return misStickers;
+}
+
+async function renderStickers() {
+  const body = document.getElementById('epBody');
+  if (!body) return;
+  body.className = 'ep-body ep-stickers';
+  body.innerHTML = '<p class="ep-empty">Cargando stickers…</p>';
+  const lista = await cargarMisStickers();
+  const head = `<div class="st-head">
+    <button id="stickerAdd" class="st-add" type="button">${ICON.plus}<span>Crear sticker</span></button>
+    ${lista.length ? `<button id="stickerEdit" class="link" type="button">${modoEditarStickers ? 'Listo' : 'Editar'}</button>` : ''}
+  </div>`;
+  if (!lista.length) {
+    body.innerHTML = head + '<p class="ep-empty">Aún no tienes stickers. Toca "Crear sticker" y elige una imagen.</p>';
+    return;
+  }
+  body.innerHTML = head + `<div class="st-grid">${lista.map(s =>
+    `<div class="sticker-item" data-id="${s.id}" data-path="${esc(s.path)}">
+       <img alt="" loading="lazy">
+       ${modoEditarStickers ? `<button class="sticker-del" data-id="${s.id}" type="button" title="Quitar">✕</button>` : ''}
+     </div>`).join('')}</div>`;
+  // cargar imágenes (URLs firmadas)
+  for (const item of body.querySelectorAll('.sticker-item')) {
+    const url = await urlSticker(item.dataset.path);
+    const img = item.querySelector('img');
+    if (url && img) img.src = url;
+  }
+}
+
+// Convierte una imagen elegida en sticker 512x512 (WebP) y lo guarda
+async function crearStickerDesdeImagen(e) {
+  const file = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  try {
+    const blob = await imagenASticker(file);
+    const path = `${currentUser.id}/stickers/${Date.now()}.webp`;
+    const { error: upErr } = await sb.storage.from('attachments').upload(path, blob, { contentType: blob.type || 'image/webp' });
+    if (upErr) throw upErr;
+    const { error: insErr } = await sb.from('stickers').insert({ owner_id: currentUser.id, path });
+    if (insErr) throw insErr;
+    await cargarMisStickers(true);
+    renderStickers();
+  } catch (err) {
+    alert('No se pudo crear el sticker: ' + (err.message || err));
+  }
+}
+
+// Escala la imagen a 512x512 manteniendo proporción (fondo transparente)
+function imagenASticker(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const S = 512;
+      const c = document.createElement('canvas');
+      c.width = S; c.height = S;
+      const ctx = c.getContext('2d');
+      const r = Math.min(S / img.width, S / img.height);
+      const w = Math.round(img.width * r), h = Math.round(img.height * r);
+      ctx.drawImage(img, (S - w) / 2, (S - h) / 2, w, h);
+      c.toBlob(b => {
+        if (b) resolve(b);
+        else c.toBlob(b2 => b2 ? resolve(b2) : reject(new Error('No se pudo procesar la imagen')), 'image/png');
+      }, 'image/webp', 0.9);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Imagen no válida')); };
+    img.src = url;
+  });
+}
+
+async function enviarSticker(path) {
+  if (!activeChat) return;
+  const panel = document.getElementById('emojiPanel');
+  if (panel) panel.classList.add('hidden');
+  const row = {
+    sender_id: currentUser.id, content: null,
+    attachment_path: path, attachment_name: 'sticker.webp',
+    attachment_type: 'sticker', attachment_size: 0
+  };
+  if (activeIsGroup) row.group_id = activeChat; else row.recipient_id = activeChat;
+  if (replyingTo) { row.reply_to = replyingTo.id; row.reply_preview = replyingTo.preview; row.reply_author = replyingTo.author; }
+  const { data: inserted, error } = await sb.from('messages').insert(row).select().single();
+  if (error) { alert('No se pudo enviar el sticker: ' + error.message); return; }
+  if (inserted) pintarMensajePropio(inserted);
+  cancelarRespuesta();
+}
+
+async function borrarSticker(id) {
+  const s = (misStickers || []).find(x => x.id === id);
+  await sb.from('stickers').delete().eq('id', id).eq('owner_id', currentUser.id);
+  // borrar el archivo solo si es mío (si lo guardé de otro, la ruta es ajena)
+  if (s && s.path.startsWith(currentUser.id + '/')) {
+    try { await sb.storage.from('attachments').remove([s.path]); } catch (_) {}
+  }
+  await cargarMisStickers(true);
+  renderStickers();
+}
+
+// Guardar en mi colección un sticker que recibí
+async function guardarStickerRecibido(path) {
+  const lista = await cargarMisStickers();
+  if (lista.some(s => s.path === path)) { alert('Ese sticker ya está en tu colección.'); return; }
+  const { error } = await sb.from('stickers').insert({ owner_id: currentUser.id, path });
+  if (error) { alert('No se pudo guardar: ' + error.message); return; }
+  await cargarMisStickers(true);
+  alert('Sticker guardado en tu colección ✓');
 }
 
 function wireComposer() {
@@ -815,15 +1006,32 @@ function wireComposer() {
   document.getElementById('fileInputCamera').addEventListener('change', onFilesPicked);
   document.getElementById('fileInputDoc').addEventListener('change', onFilesPicked);
   document.getElementById('msgInput').addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(); });
-  // Emojis
+  // Emojis y stickers (panel con pestañas)
   const panel = document.getElementById('emojiPanel');
-  document.getElementById('emojiBtn').onclick = () => panel.classList.toggle('hidden');
-  panel.querySelectorAll('.emoji').forEach(b =>
-    b.onclick = () => {
-      const input = document.getElementById('msgInput');
-      input.value += b.textContent;
-      input.focus();
-    });
+  document.getElementById('emojiBtn').onclick = () => {
+    panel.classList.toggle('hidden');
+    if (!panel.classList.contains('hidden') && !panel.dataset.init) {
+      panel.dataset.init = '1';
+      // primera apertura: recientes si hay, si no, caras
+      const rec = leerRecientes();
+      mostrarCategoriaEmoji(rec.length ? 'recent' : 'caras');
+    }
+  };
+  document.getElementById('epTabs').addEventListener('click', (ev) => {
+    const tab = ev.target.closest('.ep-tab');
+    if (tab) mostrarCategoriaEmoji(tab.dataset.cat);
+  });
+  document.getElementById('epBody').addEventListener('click', (ev) => {
+    const e = ev.target.closest('.emoji');
+    if (e) { insertarEmoji(e.dataset.e); return; }
+    const st = ev.target.closest('.sticker-item');
+    if (st) { enviarSticker(st.dataset.path, st.dataset.id); return; }
+    if (ev.target.closest('#stickerAdd')) { document.getElementById('stickerInput').click(); return; }
+    if (ev.target.closest('#stickerEdit')) { modoEditarStickers = !modoEditarStickers; renderStickers(); return; }
+    const del = ev.target.closest('.sticker-del');
+    if (del) { ev.stopPropagation(); borrarSticker(del.dataset.id); return; }
+  });
+  document.getElementById('stickerInput').addEventListener('change', crearStickerDesdeImagen);
   // Búsqueda en conversación
   document.getElementById('searchBtn').onclick = abrirBusqueda;
   // "Está escribiendo…": emite señal al teclear (máx 1 cada 2s)
@@ -1406,10 +1614,13 @@ function renderBubble(m) {
   if (m.attachment_path) {
     const type = m.attachment_type || '';
     const path = m.attachment_path || '';
+    const isSticker = type === 'sticker';
     const isImage = type.startsWith('image/');
     const isAudio = type.startsWith('audio/') || /\.(webm|m4a|mp3|ogg|wav|aac)$/i.test(path) || /voz/i.test(path);
     const fwd = `<button class="obj-forward" title="Reenviar">${ICON.forward}</button>`;
-    if (isImage) {
+    if (isSticker) {
+      inner += `<div class="attach-wrap"><div class="attach-sticker" data-path="${esc(m.attachment_path)}" data-mine="${mine ? 1 : 0}"></div>${fwd}</div>`;
+    } else if (isImage) {
       inner += `<div class="attach-wrap"><div class="attach-img" data-path="${esc(m.attachment_path)}"><span class="loading">Cargando imagen…</span></div>${fwd}</div>`;
     } else if (isAudio) {
       // 28 barras de onda (placeholder; se rellenan al cargar el audio)
@@ -1436,7 +1647,8 @@ function renderBubble(m) {
   }
   inner += `<div class="meta">${meta}</div>`;
 
-  return `<div class="bubble ${mine ? 'mine' : 'theirs'}" data-id="${m.id}">${inner}<button class="bubble-menu-btn" title="Acciones">${ICON.forward}</button></div>`;
+  const esSticker = m.attachment_type === 'sticker' ? ' sticker-bubble' : '';
+  return `<div class="bubble ${mine ? 'mine' : 'theirs'}${esSticker}" data-id="${m.id}">${inner}<button class="bubble-menu-btn" title="Acciones">${ICON.forward}</button></div>`;
 }
 
 // Doble palomita SVG
@@ -1478,7 +1690,7 @@ function previewTexto(m) {
   if (m.deleted_at) return 'Mensaje eliminado';
   if (m.content) return m.content;
   const t = m.attachment_type || '';
-  const path = (m.attachment_name || '') + (m.attachment_type || '');
+  if (t === 'sticker') return '🩷 Sticker';
   if (t.startsWith('image/')) return '📷 Foto';
   if (t.startsWith('audio/') || /voz/i.test(m.attachment_name || '')) return '🎤 Nota de voz';
   if (t.startsWith('video/')) return '🎥 Video';
@@ -2078,7 +2290,8 @@ async function reenviarMensaje(m, destType, destId) {
       if (file) {
         const safeName = (m.attachment_name || 'archivo').replace(/[^\w.\-]/g, '_');
         const newPath = `${currentUser.id}/${Date.now()}-${safeName}`;
-        await sb.storage.from('attachments').upload(newPath, file, { contentType: m.attachment_type || 'application/octet-stream' });
+        const ct = m.attachment_type === 'sticker' ? 'image/webp' : (m.attachment_type || 'application/octet-stream');
+        await sb.storage.from('attachments').upload(newPath, file, { contentType: ct });
         row.attachment_path = newPath;
         row.attachment_name = m.attachment_name;
         row.attachment_type = m.attachment_type;
@@ -2132,6 +2345,20 @@ function abrirMenuArchivo(path, nombre) {
 }
 
 async function hydrateAttachments(box) {
+  for (const el of box.querySelectorAll('.attach-sticker')) {
+    if (el.dataset.ready) continue;
+    el.dataset.ready = '1';
+    const path = el.dataset.path;
+    const url = await urlSticker(path);
+    if (!url) { el.innerHTML = '<span class="loading">No disponible</span>'; continue; }
+    el.innerHTML = `<img src="${url}" alt="sticker" loading="lazy">`;
+    // tocar un sticker recibido → guardarlo en mi colección
+    if (el.dataset.mine !== '1') {
+      el.querySelector('img').onclick = () => {
+        if (confirm('¿Guardar este sticker en tu colección?')) guardarStickerRecibido(path);
+      };
+    }
+  }
   for (const el of box.querySelectorAll('.attach-img')) {
     const path = el.dataset.path;
     const { data } = await sb.storage.from('attachments').createSignedUrl(path, 3600);
