@@ -38,7 +38,10 @@ Deno.serve(async (req) => {
     // Cuerpo según tipo de contenido
     let body: string;
     if (msg.content) body = String(msg.content).slice(0, 140);
-    else if (msg.attachment_type?.startsWith('image/')) body = '📷 Te envió una foto';
+    else if (msg.attachment_type === 'sticker') body = '🎟️ Sticker';
+    else if (msg.attachment_type?.startsWith('image/')) body = '📷 Foto';
+    else if (msg.attachment_type?.startsWith('video/')) body = '🎥 Video';
+    else if (msg.attachment_type?.startsWith('audio/')) body = '🎤 Nota de voz';
     else if (msg.attachment_path) body = `📎 ${msg.attachment_name ?? 'Archivo adjunto'}`;
     else body = 'Nuevo mensaje';
 
