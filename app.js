@@ -42,7 +42,6 @@ const EMOJI_CATS = [
   { id: 'objetos', ico: '💡', label: 'Objetos', list: '⌚ 📱 📲 💻 ⌨️ 🖥️ 🖨️ 🖱️ 🖲️ 💽 💾 💿 📀 📼 📷 📸 📹 🎥 📽️ 🎞️ 📞 ☎️ 📟 📠 📺 📻 🎙️ 🎚️ 🎛️ 🧭 ⏱️ ⏲️ ⏰ 🕰️ ⌛ ⏳ 📡 🔋 🪫 🔌 💡 🔦 🕯️ 🪔 🧯 🛢️ 💸 💵 💴 💶 💷 🪙 💰 💳 🧾 💎 ⚖️ 🪜 🧰 🪛 🔧 🔨 ⚒️ 🛠️ ⛏️ 🪚 🔩 ⚙️ 🪤 🧱 ⛓️ 🧲 🔫 💣 🪓 🔪 🗡️ ⚔️ 🛡️ 🚬 ⚰️ 🪦 ⚱️ 🏺 🔮 📿 🧿 🪬 💈 ⚗️ 🔭 🔬 🕳️ 🩹 🩺 🩻 🩼 💊 💉 🩸 🧬 🦠 🧫 🧪 🌡️ 🧹 🪠 🧺 🧻 🚽 🚰 🚿 🛁 🧼 🪥 🪒 🧽 🪣 🧴 🛎️ 🔑 🗝️ 🚪 🪑 🛋️ 🛏️ 🧸 🪆 🖼️ 🪞 🪟 🛍️ 🛒 🪄 🏮 ✉️ 📩 📨 📧 💌 📥 📤 📦 🏷️ 🪧 📪 📫 📬 📭 📮 📯 📜 📃 📄 📑 📊 📈 📉 🗒️ 🗓️ 📆 📅 🗑️ 📇 🗃️ 🗳️ 🗄️ 📋 📁 📂 🗂️ 🗞️ 📰 📓 📔 📒 📕 📗 📘 📙 📚 📖 🔖 🧷 🔗 📎 🖇️ 📐 📏 🧮 📌 📍 ✂️ 🖊️ 🖋️ ✒️ 🖌️ 🖍️ 📝 ✏️ 🔍 🔎 🔏 🔐 🔒 🔓 👓 🕶️ 🥽 🥼 🦺 👔 👕 👖 🧣 🧤 🧥 🧦 👗 👘 🥻 🩱 🩲 🩳 👙 👚 🪭 👛 👜 👝 🎒 🩴 👞 👟 🥾 🥿 👠 👡 👢 👑 👒 🎩 🎓 🧢 🪖 ⛑️ 💄 💍 💼' },
   { id: 'simbolos', ico: '❤️', label: 'Símbolos', list: '❤️ 🩷 🧡 💛 💚 💙 🩵 💜 🖤 🩶 🤍 🤎 💔 ❤️‍🔥 ❤️‍🩹 ❣️ 💕 💞 💓 💗 💖 💘 💝 💟 ☮️ ✝️ ☪️ 🕉️ ☸️ ✡️ 🔯 🕎 ☯️ ☦️ 🛐 ⛎ ♈ ♉ ♊ ♋ ♌ ♍ ♎ ♏ ♐ ♑ ♒ ♓ 🆔 ⚛️ ☢️ ☣️ 📴 📳 🆚 💮 🅰️ 🅱️ 🆎 🆑 🅾️ 🆘 ❌ ⭕ 🛑 ⛔ 📛 🚫 💯 💢 ♨️ 🚷 🚯 🚳 🚱 🔞 📵 🚭 ❗ ❕ ❓ ❔ ‼️ ⁉️ 🔅 🔆 〽️ ⚠️ 🚸 🔱 ⚜️ 🔰 ♻️ ✅ 💹 ❇️ ✳️ ❎ 🌐 💠 Ⓜ️ 🌀 💤 🏧 🚾 ♿ 🅿️ 🛗 🛂 🛃 🛄 🛅 🚹 🚺 🚼 ⚧️ 🚻 🚮 🎦 📶 🔣 ℹ️ 🔤 🔡 🔠 🆖 🆗 🆙 🆒 🆕 🆓 0️⃣ 1️⃣ 2️⃣ 3️⃣ 4️⃣ 5️⃣ 6️⃣ 7️⃣ 8️⃣ 9️⃣ 🔟 🔢 #️⃣ *️⃣ ⏏️ ▶️ ⏸️ ⏯️ ⏹️ ⏺️ ⏭️ ⏮️ ⏩ ⏪ ⏫ ⏬ ◀️ 🔼 🔽 ➡️ ⬅️ ⬆️ ⬇️ ↗️ ↘️ ↙️ ↖️ ↕️ ↔️ ↪️ ↩️ ⤴️ ⤵️ 🔀 🔁 🔂 🔄 🔃 🎵 🎶 ➕ ➖ ➗ ✖️ 🟰 ♾️ 💲 💱 ™️ ©️ ®️ 〰️ ➰ ➿ 🔚 🔙 🔛 🔝 🔜 ✔️ ☑️ 🔘 🔴 🟠 🟡 🟢 🔵 🟣 ⚫ ⚪ 🟤 🔺 🔻 🔸 🔹 🔶 🔷 🔳 🔲 ▪️ ▫️ ◾ ◽ ◼️ ◻️ 🟥 🟧 🟨 🟩 🟦 🟪 ⬛ ⬜ 🟫 🔈 🔇 🔉 🔊 🔔 🔕 📣 📢 💬 💭 🗯️ ♠️ ♣️ ♥️ ♦️ 🃏 🎴 🀄 🕐 🕑 🕒 🕓 🕔 🕕 🕖 🕗 🕘 🕙 🕚 🕛' },
   { id: 'banderas', ico: '🏳️', label: 'Banderas', list: '🏳️ 🏴 🏁 🚩 🏳️‍🌈 🏳️‍⚧️ 🏴‍☠️ 🇲🇽 🇺🇸 🇨🇦 🇪🇸 🇦🇷 🇧🇷 🇨🇱 🇨🇴 🇵🇪 🇻🇪 🇪🇨 🇧🇴 🇺🇾 🇵🇾 🇨🇷 🇵🇦 🇬🇹 🇭🇳 🇸🇻 🇳🇮 🇨🇺 🇩🇴 🇵🇷 🇯🇲 🇭🇹 🇧🇸 🇧🇿 🇹🇹 🇬🇾 🇸🇷 🇫🇷 🇩🇪 🇮🇹 🇬🇧 🇵🇹 🇳🇱 🇧🇪 🇨🇭 🇦🇹 🇸🇪 🇳🇴 🇩🇰 🇫🇮 🇮🇸 🇮🇪 🇵🇱 🇨🇿 🇭🇺 🇷🇴 🇧🇬 🇬🇷 🇭🇷 🇷🇸 🇸🇰 🇸🇮 🇱🇹 🇱🇻 🇪🇪 🇺🇦 🇧🇾 🇷🇺 🇹🇷 🇬🇪 🇦🇲 🇰🇿 🇮🇱 🇸🇦 🇦🇪 🇶🇦 🇮🇷 🇮🇶 🇯🇵 🇨🇳 🇰🇷 🇹🇼 🇭🇰 🇮🇳 🇵🇰 🇧🇩 🇱🇰 🇳🇵 🇹🇭 🇻🇳 🇵🇭 🇮🇩 🇲🇾 🇸🇬 🇲🇲 🇰🇭 🇱🇦 🇲🇳 🇦🇺 🇳🇿 🇿🇦 🇪🇬 🇲🇦 🇩🇿 🇹🇳 🇳🇬 🇰🇪 🇪🇹 🇬🇭 🇸🇳 🇨🇮 🇨🇲 🇦🇴 🇹🇿 🇺🇬 🇲🇿 🇺🇳 🇪🇺' },
-  { id: 'stickers', ico: 'sticker', label: 'Stickers' },
 ];
 const RECIENTES_KEY = 'emojiRecientes';
 
@@ -63,7 +62,7 @@ function aplicarTema(pref) {
   else root.removeAttribute('data-theme');
   // actualizar el color de la barra del navegador
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute('content', efectivo === 'light' ? '#FFFFFF' : '#101321');
+  if (meta) meta.setAttribute('content', efectivo === 'light' ? '#FFFFFF' : '#111B21');
 }
 function guardarTema(pref) {
   try { localStorage.setItem('tema', pref); } catch (_) {}
@@ -111,6 +110,20 @@ const ICON = {
   callOut: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 3 23 3 23 9"/><path d="M8 3a10 10 0 0 0 9 9"/><path d="M23 3L9 17"/></svg>',
   speaker: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>',
   speakerOff: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>',
+  more: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>',
+  chats: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 21l1.9-5.4A8 8 0 1 1 21 12z"/></svg>',
+  chatsFill: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3a9 9 0 0 0-7.7 13.6L3 21l4.6-1.2A9 9 0 1 0 12 3z"/></svg>',
+  newChat: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 21l1.9-5.4A8 8 0 1 1 21 12z"/><line x1="12" y1="8.5" x2="12" y2="15.5"/><line x1="8.5" y1="12" x2="15.5" y2="12"/></svg>',
+  settings: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>',
+  star: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
+  starFill: '<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
+  backspace: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg>',
+  info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>',
+  music: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>',
+  text: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>',
+  download: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>',
+  lock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
+  moon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>',
 };
 function svgBtn(name, id, cls, title) {
   return `<button class="${cls || 'icon-btn'}" ${id ? `id="${id}"` : ''} ${title ? `title="${title}"` : ''} type="button">${ICON[name] || ''}</button>`;
@@ -260,6 +273,7 @@ async function init() {
     renderChats();
     setupPush();
     iniciarInbox();   // escuchar llamadas entrantes
+    iniciarPresencia();
     if (pendingChat) { abrirChatPorId(pendingChat.id, pendingChat.name); pendingChat = null; }
     abrirChatDesdeURL();
   } else {
@@ -275,16 +289,20 @@ async function loadProfile() {
 function renderAuth() {
   app.innerHTML = `
     <div class="auth">
+      <div class="auth-logo">${ICON.chatsFill}</div>
       <h1>Familia Chat</h1>
+      <p class="auth-sub">Mensajes, fotos, stickers y llamadas con tu familia.</p>
       <input id="username" placeholder="Usuario" autocapitalize="off">
       <input id="password" type="password" placeholder="Contraseña">
       <input id="displayName" placeholder="Nombre (solo al registrarte)">
-      <button id="loginBtn">Entrar</button>
-      <button id="signupBtn" class="secondary">Crear usuario</button>
+      <button id="loginBtn" type="button">Entrar</button>
+      <button id="signupBtn" class="secondary" type="button">Crear usuario</button>
       <p id="msg" class="error"></p>
+      <p class="auth-foot">${ICON.lock} Chat privado solo para la familia</p>
     </div>`;
   document.getElementById('loginBtn').onclick = login;
   document.getElementById('signupBtn').onclick = signup;
+  document.getElementById('password').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
 }
 
 async function signup() {
@@ -305,12 +323,64 @@ async function login() {
   renderChats();
   setupPush();
   iniciarInbox();   // escuchar llamadas entrantes
+  iniciarPresencia();
   if (pendingChat) { abrirChatPorId(pendingChat.id, pendingChat.name); pendingChat = null; }
 }
 
 async function logout() { await sb.auth.signOut(); location.reload(); }
 
-// === LISTA DE CONTACTOS Y GRUPOS ===
+// === LISTA DE CHATS (estilo WhatsApp: grupos y contactos juntos, por actividad) ===
+let listaFiltro = '';
+
+// Barra de navegación inferior (Chats / Llamadas / Ajustes)
+function bottomNavHtml(activo) {
+  const item = (id, ico, label) =>
+    `<button class="nav-item ${activo === id ? 'active' : ''}" data-nav="${id}" type="button">
+       <span class="nav-ico">${ico}</span><span>${label}</span></button>`;
+  return `<nav class="bottom-nav">
+    ${item('chats', activo === 'chats' ? ICON.chatsFill : ICON.chats, 'Chats')}
+    ${item('llamadas', ICON.phone, 'Llamadas')}
+    ${item('ajustes', ICON.settings, 'Ajustes')}
+  </nav>`;
+}
+function wireBottomNav() {
+  document.querySelectorAll('.bottom-nav .nav-item').forEach(b => {
+    b.onclick = () => {
+      const nav = b.dataset.nav;
+      if (nav === 'chats') renderChats();
+      else if (nav === 'llamadas') renderLlamadas();
+      else if (nav === 'ajustes') renderProfile();
+    };
+  });
+}
+
+// Menú desplegable (los tres puntos) anclado a un botón
+function abrirMenuPopup(anchorBtn, items) {
+  document.getElementById('popMenu')?.remove();
+  const menu = document.createElement('div');
+  menu.id = 'popMenu';
+  menu.className = 'pop-menu';
+  menu.innerHTML = items.map((it, i) =>
+    `<button class="pop-item ${it.danger ? 'danger-text' : ''}" data-i="${i}" type="button">${it.icon ? ICON[it.icon] : ''}<span>${esc(it.label)}</span></button>`).join('');
+  document.body.appendChild(menu);
+  const r = anchorBtn.getBoundingClientRect();
+  menu.style.top = `${r.bottom + 4}px`;
+  menu.style.right = `${Math.max(8, window.innerWidth - r.right)}px`;
+  const cerrar = () => { menu.remove(); document.removeEventListener('click', onDoc, true); };
+  const onDoc = (ev) => { if (!menu.contains(ev.target)) cerrar(); };
+  setTimeout(() => document.addEventListener('click', onDoc, true), 0);
+  menu.querySelectorAll('.pop-item').forEach(b => {
+    b.onclick = (ev) => { ev.stopPropagation(); cerrar(); items[+b.dataset.i].onClick(); };
+  });
+}
+
+// Avatar (imagen o inicial) como HTML
+function avatarHtml(av, nombre, extraClass = '') {
+  return av
+    ? `<img class="avatar-img ${extraClass}" src="${esc(av)}" alt="">`
+    : `<div class="avatar ${extraClass}">${esc((nombre || '?')[0])}</div>`;
+}
+
 async function renderChats() {
   activeChat = null;        // ya no estoy dentro de un chat
   activeIsGroup = false;
@@ -326,7 +396,8 @@ async function renderChats() {
     const { data: gs } = await sb.from('groups').select('*').in('id', groupIds).order('name');
     groups = gs || [];
   }
-  const myAvatar = avatarUrl(currentProfile);
+  const nombres = { [currentUser.id]: 'Tú' };
+  for (const p of (profiles || [])) nombres[p.id] = p.display_name;
 
   // === No leídos por contacto: mensajes hacia mí, sin leer, no borrados ===
   const unread = {};
@@ -342,12 +413,10 @@ async function renderChats() {
   const totalNoLeidos = Object.values(unread).reduce((a, b) => a + b, 0);
   actualizarBadge(totalNoLeidos);
 
-  // === Último mensaje por contacto (para vista previa) ===
-  // Traigo los mensajes 1-a-1 donde participo, recientes primero, y me quedo
-  // con el primero (más nuevo) de cada contraparte.
-  const ultimoMsg = {};   // otherId -> { texto, hora, ts }
+  // === Último mensaje por contacto y por grupo (para vista previa) ===
+  const ultimoMsg = {};   // otherId | 'g:'+groupId -> { texto, hora, ts, mine, read, autor }
   const { data: recientes } = await sb.from('messages')
-    .select('sender_id, recipient_id, content, attachment_type, attachment_name, created_at, deleted_at')
+    .select('sender_id, recipient_id, content, attachment_type, attachment_name, created_at, deleted_at, read_at')
     .or(`sender_id.eq.${currentUser.id},recipient_id.eq.${currentUser.id}`)
     .is('group_id', null)
     .order('created_at', { ascending: false })
@@ -356,77 +425,221 @@ async function renderChats() {
     const otro = m.sender_id === currentUser.id ? m.recipient_id : m.sender_id;
     if (!otro || ultimoMsg[otro]) continue;  // ya tengo el más nuevo de este contacto
     ultimoMsg[otro] = {
-      texto: previewTexto(m),
-      hora: formatHora(m.created_at),
-      ts: new Date(m.created_at).getTime()
+      texto: previewTexto(m), hora: horaLista(m.created_at),
+      ts: new Date(m.created_at).getTime(),
+      mine: m.sender_id === currentUser.id, read: !!m.read_at, deleted: !!m.deleted_at
     };
   }
+  if (groupIds.length) {
+    const { data: recG } = await sb.from('messages')
+      .select('group_id, sender_id, content, attachment_type, attachment_name, created_at, deleted_at')
+      .in('group_id', groupIds)
+      .order('created_at', { ascending: false })
+      .limit(200);
+    for (const m of (recG || [])) {
+      const k = 'g:' + m.group_id;
+      if (ultimoMsg[k]) continue;
+      ultimoMsg[k] = {
+        texto: previewTexto(m), hora: horaLista(m.created_at),
+        ts: new Date(m.created_at).getTime(),
+        mine: m.sender_id === currentUser.id, autor: nombres[m.sender_id] || 'Alguien', deleted: !!m.deleted_at
+      };
+    }
+  }
 
-  // Ordenar contactos: por no leídos primero, luego por actividad reciente
-  const contactos = [...(profiles || [])].sort((a, b) => {
-    const ua = unread[a.id] || 0, ub = unread[b.id] || 0;
-    if (ua !== ub) return ub - ua;                       // más no leídos primero
-    const ta = ultimoMsg[a.id]?.ts || 0, tb = ultimoMsg[b.id]?.ts || 0;
+  // Filas unificadas (grupos + contactos), ordenadas como WhatsApp: por actividad
+  const filas = [
+    ...groups.map(g => ({ tipo: 'group', id: g.id, nombre: g.name || 'Grupo', avatar: avatarUrl(g), last: ultimoMsg['g:' + g.id], unread: 0 })),
+    ...(profiles || []).map(p => ({ tipo: 'user', id: p.id, nombre: p.display_name || p.username || 'Usuario', avatar: avatarUrl(p), last: ultimoMsg[p.id], unread: unread[p.id] || 0 })),
+  ].sort((a, b) => {
+    const ta = a.last?.ts || 0, tb = b.last?.ts || 0;
     if (ta !== tb) return tb - ta;                        // conversación más reciente arriba
-    return (a.display_name || '').localeCompare(b.display_name || '');
+    if (a.unread !== b.unread) return b.unread - a.unread;
+    return a.nombre.localeCompare(b.nombre);
   });
 
+  const filaHtml = (f) => {
+    const last = f.last;
+    let preview = '';
+    if (last) {
+      if (last.mine && f.tipo === 'user' && !last.deleted) preview += `<span class="ticks ${last.read ? 'read' : ''}">${ticksSvg()}</span>`;
+      if (f.tipo === 'group' && last.autor && !last.deleted) preview += `<span class="prev-autor">${esc(last.mine ? 'Tú' : last.autor)}:</span> `;
+      preview += esc(last.texto);
+    } else {
+      preview = f.tipo === 'group' ? 'Toca para ver el grupo' : 'Toca para empezar a chatear';
+    }
+    return `<div class="contact ${f.unread ? 'has-unread' : ''}" data-type="${f.tipo}" data-id="${f.id}" data-name="${esc(f.nombre)}" data-avatar="${esc(f.avatar)}">
+      ${avatarHtml(f.avatar, f.nombre, f.tipo === 'group' ? 'group-av' : '')}
+      <div class="contact-main">
+        <div class="contact-top">
+          <span class="contact-name">${esc(f.nombre)}</span>
+          ${last ? `<span class="contact-time">${esc(last.hora)}</span>` : ''}
+        </div>
+        <div class="contact-bottom">
+          <span class="contact-preview">${preview}</span>
+          ${f.unread ? `<span class="unread-badge">${f.unread > 99 ? '99+' : f.unread}</span>` : ''}
+        </div>
+      </div></div>`;
+  };
+
   app.innerHTML = `
-    <div class="header">
-      <div class="me" id="openProfile">
-        ${myAvatar
-          ? `<img class="avatar-img" src="${esc(myAvatar)}" alt="yo">`
-          : `<div class="avatar">${esc((currentProfile.display_name||'?')[0])}</div>`}
-        <span>Hola, ${esc(currentProfile.display_name)}</span>
+    <div class="header list-header">
+      <span class="app-title">Familia Chat</span>
+      <div class="header-actions">
+        ${svgBtn('camera', 'listCamBtn', 'link', 'Cámara')}
+        ${svgBtn('search', 'listSearchBtn', 'link', 'Buscar')}
+        ${svgBtn('more', 'listMenuBtn', 'link', 'Menú')}
       </div>
-      <button class="link" id="logoutBtn" title="Salir">${ICON.logout}</button>
+    </div>
+    <div id="listSearch" class="search-bar hidden">
+      ${svgBtn('back', 'listSearchClose', 'link')}
+      <input id="listSearchInput" placeholder="Buscar…" autocomplete="off">
+    </div>
+    <div class="contacts" id="chatList">
+      ${filas.map(filaHtml).join('') || `<div class="empty-state">${ICON.chats}<p>Aún no hay conversaciones.</p><p class="small">Toca el botón verde para empezar un chat.</p></div>`}
+      <div class="list-lock"><span>${ICON.lock}</span> Chat privado solo para la familia</div>
+    </div>
+    <button class="fab" id="newChatBtn" title="Nuevo chat" type="button">${ICON.newChat}</button>
+    ${bottomNavHtml('chats')}`;
+
+  wireBottomNav();
+  document.querySelectorAll('.contact').forEach(c => {
+    c.onclick = () => c.dataset.type === 'group'
+      ? openGroup(c.dataset.id, c.dataset.name, c.dataset.avatar)
+      : openChat(c.dataset.id, c.dataset.name, c.dataset.avatar);
+  });
+  document.getElementById('newChatBtn').onclick = abrirNuevoChat;
+  document.getElementById('listCamBtn').onclick = abrirNuevoChat;
+  document.getElementById('listMenuBtn').onclick = (ev) => abrirMenuPopup(ev.currentTarget, [
+    { label: 'Nuevo grupo', icon: 'group', onClick: renderCreateGroup },
+    { label: 'Perfil', icon: 'user', onClick: renderProfile },
+    { label: 'Cerrar sesión', icon: 'logout', danger: true, onClick: logout },
+  ]);
+  // Búsqueda en la lista (filtra por nombre y vista previa)
+  const barra = document.getElementById('listSearch');
+  const inp = document.getElementById('listSearchInput');
+  const filtrar = () => {
+    listaFiltro = inp.value.trim().toLowerCase();
+    document.querySelectorAll('#chatList .contact').forEach(c => {
+      const txt = (c.dataset.name + ' ' + (c.querySelector('.contact-preview')?.textContent || '')).toLowerCase();
+      c.classList.toggle('hidden', !!listaFiltro && !txt.includes(listaFiltro));
+    });
+  };
+  document.getElementById('listSearchBtn').onclick = () => {
+    barra.classList.remove('hidden');
+    document.querySelector('.list-header').classList.add('hidden');
+    inp.focus();
+  };
+  document.getElementById('listSearchClose').onclick = () => {
+    barra.classList.add('hidden');
+    document.querySelector('.list-header').classList.remove('hidden');
+    inp.value = ''; filtrar();
+  };
+  inp.oninput = filtrar;
+}
+
+// Hora para la lista: hora si es hoy, "Ayer", o fecha corta
+function horaLista(iso) {
+  const d = new Date(iso), hoy = new Date();
+  const mismo = (a, b) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  if (mismo(d, hoy)) return formatHora(iso);
+  const ayer = new Date(); ayer.setDate(hoy.getDate() - 1);
+  if (mismo(d, ayer)) return 'Ayer';
+  return `${d.getDate()}/${d.getMonth() + 1}/${String(d.getFullYear()).slice(2)}`;
+}
+
+// Hoja "Nuevo chat": lista de contactos + acceso a crear grupo
+async function abrirNuevoChat() {
+  const { data: profiles } = await sb.from('profiles').select('*').neq('id', currentUser.id).order('display_name');
+  const ov = document.createElement('div');
+  ov.className = 'sheet-overlay overlay-bottom';
+  ov.innerHTML = `
+    <div class="sheet sheet-bottom">
+      <div class="sheet-head"><h3>Nuevo chat</h3><button class="sheet-close" type="button">${ICON.close}</button></div>
+      <div class="sheet-body">
+        <button class="contact-pick" id="ncGroup" type="button">
+          <span class="cp-avatar cp-green">${ICON.group}</span><span class="cp-name">Nuevo grupo</span>
+        </button>
+        <div class="section-head"><span>Contactos</span></div>
+        ${(profiles || []).map(p => `
+          <button class="contact-pick" data-id="${p.id}" data-name="${esc(p.display_name || p.username || 'Usuario')}" data-avatar="${esc(avatarUrl(p))}" type="button">
+            ${avatarHtml(avatarUrl(p), p.display_name, 'sm')}
+            <span class="cp-name">${esc(p.display_name || p.username || 'Usuario')}</span>
+          </button>`).join('') || '<p class="empty small">Aún no hay otros usuarios.</p>'}
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+  const cerrar = () => ov.remove();
+  ov.querySelector('.sheet-close').onclick = cerrar;
+  ov.onclick = (e) => { if (e.target === ov) cerrar(); };
+  document.getElementById('ncGroup').onclick = () => { cerrar(); renderCreateGroup(); };
+  ov.querySelectorAll('.contact-pick[data-id]').forEach(b => {
+    b.onclick = () => { cerrar(); openChat(b.dataset.id, b.dataset.name, b.dataset.avatar); };
+  });
+}
+
+// === PESTAÑA DE LLAMADAS (historial global) ===
+async function renderLlamadas() {
+  activeChat = null; activeIsGroup = false;
+  cancelarLista();
+  const { data: profiles } = await sb.from('profiles').select('id, display_name, avatar_url, avatar_version').neq('id', currentUser.id);
+  const perf = {};
+  for (const p of (profiles || [])) perf[p.id] = p;
+  const { data: calls } = await sb.from('calls')
+    .select('*')
+    .or(`caller_id.eq.${currentUser.id},callee_id.eq.${currentUser.id}`)
+    .order('started_at', { ascending: false })
+    .limit(100);
+
+  const filas = (calls || []).map(c => {
+    const saliente = c.caller_id === currentUser.id;
+    const otroId = saliente ? c.callee_id : c.caller_id;
+    const p = perf[otroId] || {};
+    const nombre = p.display_name || 'Usuario';
+    const av = avatarUrl(p);
+    const perdida = c.status === 'missed' || c.status === 'rejected' || (c.status === 'ringing' && !c.duration_seconds);
+    return `<div class="contact call-item ${perdida ? 'missed' : ''}" data-id="${otroId}" data-name="${esc(nombre)}" data-avatar="${esc(av)}" data-kind="${c.kind || 'audio'}">
+      ${avatarHtml(av, nombre)}
+      <div class="contact-main">
+        <div class="contact-top"><span class="contact-name">${esc(nombre)}</span></div>
+        <div class="contact-bottom">
+          <span class="contact-preview"><span class="call-dir">${saliente ? ICON.callOut : ICON.callIn}</span> ${esc(formatFechaHora(c.started_at))}</span>
+        </div>
+      </div>
+      <button class="link call-back" type="button" title="Llamar">${c.kind === 'video' ? ICON.video : ICON.phone}</button>
+    </div>`;
+  }).join('');
+
+  app.innerHTML = `
+    <div class="header list-header">
+      <span class="app-title plain">Llamadas</span>
+      <div class="header-actions">${svgBtn('more', 'listMenuBtn', 'link', 'Menú')}</div>
     </div>
     <div class="contacts">
-      <div class="section-head">
-        <span>Grupos</span>
-        <button class="link" id="newGroupBtn" title="Crear grupo">${ICON.plus}</button>
-      </div>
-      ${groups.map(g => {
-        const av = avatarUrl(g);
-        return `<div class="contact group" data-gid="${g.id}" data-name="${esc(g.name)}" data-avatar="${esc(av)}">
-          ${av ? `<img class="avatar-img" src="${esc(av)}" alt="">`
-               : `<div class="avatar group-av">${esc((g.name||'?')[0])}</div>`}
-          <span>${esc(g.name)}</span></div>`;
-      }).join('') || '<p class="empty small">Sin grupos todavía.</p>'}
-
-      <div class="section-head"><span>Contactos</span></div>
-      ${contactos.map(p => {
-        const av = avatarUrl(p);
-        const n = unread[p.id] || 0;
-        const last = ultimoMsg[p.id];
-        return `<div class="contact ${n ? 'has-unread' : ''}" data-id="${p.id}" data-name="${esc(p.display_name)}" data-avatar="${esc(av)}">
-        ${av
-          ? `<img class="avatar-img" src="${esc(av)}" alt="">`
-          : `<div class="avatar">${esc((p.display_name||'?')[0])}</div>`}
-        <div class="contact-main">
-          <div class="contact-top">
-            <span class="contact-name">${esc(p.display_name)}</span>
-            ${last ? `<span class="contact-time">${esc(last.hora)}</span>` : ''}
-          </div>
-          <div class="contact-bottom">
-            <span class="contact-preview">${last ? esc(last.texto) : ''}</span>
-            ${n ? `<span class="unread-badge">${n > 99 ? '99+' : n}</span>` : ''}
-          </div>
-        </div></div>`;
-      }).join('') || '<p class="empty small">Aún no hay otros usuarios.</p>'}
-    </div>`;
-
-  document.getElementById('logoutBtn').onclick = logout;
-  document.getElementById('openProfile').onclick = renderProfile;
-  document.getElementById('newGroupBtn').onclick = renderCreateGroup;
-  document.querySelectorAll('.contact:not(.group)').forEach(c =>
-    c.onclick = () => openChat(c.dataset.id, c.dataset.name, c.dataset.avatar));
-  document.querySelectorAll('.contact.group').forEach(c =>
-    c.onclick = () => openGroup(c.dataset.gid, c.dataset.name, c.dataset.avatar));
+      <div class="section-head"><span>Recientes</span></div>
+      ${filas || '<div class="empty-state">' + ICON.phone + '<p>No hay llamadas todavía.</p><p class="small">Llama a un contacto desde su chat.</p></div>'}
+    </div>
+    <button class="fab" id="newCallBtn" title="Nueva llamada" type="button">${ICON.phone}</button>
+    ${bottomNavHtml('llamadas')}`;
+  wireBottomNav();
+  document.getElementById('listMenuBtn').onclick = (ev) => abrirMenuPopup(ev.currentTarget, [
+    { label: 'Perfil', icon: 'user', onClick: renderProfile },
+    { label: 'Cerrar sesión', icon: 'logout', danger: true, onClick: logout },
+  ]);
+  document.getElementById('newCallBtn').onclick = abrirNuevoChat;
+  document.querySelectorAll('.call-item').forEach(row => {
+    const abrir = () => openChat(row.dataset.id, row.dataset.name, row.dataset.avatar);
+    row.onclick = abrir;
+    row.querySelector('.call-back').onclick = (e) => {
+      e.stopPropagation();
+      iniciarLlamada(row.dataset.id, row.dataset.name, row.dataset.avatar, row.dataset.kind);
+    };
+  });
 }
 
 // === CREAR GRUPO ===
 async function renderCreateGroup() {
+  cancelarLista();
   const { data: profiles } = await sb.from('profiles').select('*').neq('id', currentUser.id).order('display_name');
   app.innerHTML = `
     <div class="header">
@@ -479,46 +692,60 @@ async function crearGrupo() {
 
 // === PANTALLA DE PERFIL ===
 function renderProfile() {
+  activeChat = null; activeIsGroup = false;
+  cancelarLista();
   const av = avatarUrl(currentProfile);
   app.innerHTML = `
-    <div class="header">
-      ${svgBtn('back', 'backBtn', 'link')}
-      <span class="chat-title">Mi perfil</span>
+    <div class="header list-header">
+      <span class="app-title plain">Ajustes</span>
     </div>
     <div class="profile">
-      <div class="profile-avatar">
+      <div class="profile-card">
         ${av ? `<img class="avatar-lg" id="avatarPreview" src="${esc(av)}" alt="avatar">`
              : `<div class="avatar-lg placeholder" id="avatarPreview">${esc((currentProfile.display_name||'?')[0])}</div>`}
-        <button class="link with-text" id="changePhoto">${ICON.camera}<span>Cambiar foto</span></button>
+        <div class="profile-card-text">
+          <div class="profile-name">${esc(currentProfile.display_name || '')}</div>
+          <div class="profile-user">@${esc(currentProfile.username || '')}</div>
+        </div>
+        <button class="link with-text" id="changePhoto" type="button">${ICON.camera}<span>Foto</span></button>
         <input id="avatarInput" type="file" accept="image/*" hidden>
       </div>
 
-      <label class="field-label">Nombre</label>
-      <input id="newName" value="${esc(currentProfile.display_name || '')}" placeholder="Tu nombre">
-      <button id="saveName" class="btn-ico">${ICON.check}<span>Guardar nombre</span></button>
+      <div class="settings-section">
+        <div class="settings-title">${ICON.user}<span>Cuenta</span></div>
+        <label class="field-label">Nombre</label>
+        <input id="newName" value="${esc(currentProfile.display_name || '')}" placeholder="Tu nombre">
+        <button id="saveName" class="btn-ico" type="button">${ICON.check}<span>Guardar nombre</span></button>
 
-      <label class="field-label">Cambiar contraseña</label>
-      <input id="newPass" type="password" placeholder="Nueva contraseña">
-      <button id="savePass" class="btn-ico">${ICON.key}<span>Actualizar contraseña</span></button>
-
-      <label class="field-label">Apariencia</label>
-      <div class="theme-options" id="themeOptions">
-        <button class="theme-opt" data-tema="system">Sistema</button>
-        <button class="theme-opt" data-tema="light">Claro</button>
-        <button class="theme-opt" data-tema="dark">Oscuro</button>
+        <label class="field-label">Cambiar contraseña</label>
+        <input id="newPass" type="password" placeholder="Nueva contraseña">
+        <button id="savePass" class="btn-ico" type="button">${ICON.key}<span>Actualizar contraseña</span></button>
       </div>
 
-      <hr class="sep">
-      <button id="deleteAccount" class="danger btn-ico">${ICON.trash}<span>Eliminar mi cuenta</span></button>
+      <div class="settings-section">
+        <div class="settings-title">${ICON.moon}<span>Tema</span></div>
+        <div class="theme-options" id="themeOptions">
+          <button class="theme-opt" data-tema="system" type="button">Sistema</button>
+          <button class="theme-opt" data-tema="light" type="button">Claro</button>
+          <button class="theme-opt" data-tema="dark" type="button">Oscuro</button>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <button id="logoutBtn" class="secondary btn-ico" type="button">${ICON.logout}<span>Cerrar sesión</span></button>
+        <button id="deleteAccount" class="danger btn-ico" type="button">${ICON.trash}<span>Eliminar mi cuenta</span></button>
+      </div>
 
       <p id="profileMsg" class="ok"></p>
-    </div>`;
+    </div>
+    ${bottomNavHtml('ajustes')}`;
 
-  document.getElementById('backBtn').onclick = renderChats;
+  wireBottomNav();
   document.getElementById('changePhoto').onclick = () => document.getElementById('avatarInput').click();
   document.getElementById('avatarInput').addEventListener('change', onAvatarPicked);
   document.getElementById('saveName').onclick = saveName;
   document.getElementById('savePass').onclick = savePassword;
+  document.getElementById('logoutBtn').onclick = logout;
   document.getElementById('deleteAccount').onclick = deleteAccount;
   // selector de tema
   const actual = temaGuardado();
@@ -707,6 +934,8 @@ async function saveName() {
   const { error } = await sb.from('profiles').update({ display_name: name }).eq('id', currentUser.id);
   if (error) return profileMsg('Error: ' + error.message, false);
   currentProfile.display_name = name;
+  const pn = document.querySelector('.profile-name');
+  if (pn) pn.textContent = name;
   profileMsg('Nombre actualizado ✓');
 }
 
@@ -744,16 +973,24 @@ async function deleteAccount() {
 
 // === CHAT (1-a-1 y GRUPO) ===
 let activeChatName = '';
+let chatSubDefault = '';   // subtítulo normal del encabezado ("toca para ver info", miembros…)
 
 // Construye el HTML común del chat (header + mensajes + compositor con emojis)
-function chatShell(titleHtml, withClear, conLlamadas) {
+function chatShell({ avatar, titulo, sub, conLlamadas }) {
   return `
-    <div class="header" id="chatHeader">
-      ${svgBtn('back', 'backBtn', 'link')}
-      ${titleHtml}
-      ${conLlamadas ? svgBtn('phone', 'callAudioBtn', 'link', 'Llamar') + svgBtn('video', 'callVideoBtn', 'link', 'Videollamada') : ''}
-      ${svgBtn('search', 'searchBtn', 'link', 'Buscar')}
-      ${withClear ? svgBtn('trash', 'clearBtn', 'link', 'Limpiar conversación') : ''}
+    <div class="header chat-header" id="chatHeader">
+      <div class="chat-head-info" id="peerHead">
+        ${svgBtn('back', 'backBtn', 'link back-btn')}
+        ${avatar}
+        <div class="chat-head-text">
+          <span class="chat-title">${esc(titulo)}</span>
+          <span class="chat-sub" id="chatSub">${esc(sub || '')}</span>
+        </div>
+      </div>
+      <div class="header-actions">
+        ${conLlamadas ? svgBtn('video', 'callVideoBtn', 'link', 'Videollamada') + svgBtn('phone', 'callAudioBtn', 'link', 'Llamar') : ''}
+        ${svgBtn('more', 'chatMenuBtn', 'link', 'Más opciones')}
+      </div>
     </div>
     <div class="header action-header hidden" id="actionHeader">
       ${svgBtn('close', 'actClose', 'link', 'Cerrar')}
@@ -765,39 +1002,43 @@ function chatShell(titleHtml, withClear, conLlamadas) {
       ${svgBtn('trash', 'actDelete', 'link danger-ico', 'Eliminar')}
     </div>
     <div id="searchBar" class="search-bar hidden">
-      <input id="searchInput" placeholder="Buscar en la conversación…" autocomplete="off">
+      ${svgBtn('back', 'searchClose', 'link')}
+      <input id="searchInput" placeholder="Buscar…" autocomplete="off">
       <span id="searchCount" class="search-count"></span>
-      <button class="link" id="searchPrev" title="Anterior">▲</button>
-      <button class="link" id="searchNext" title="Siguiente">▼</button>
-      ${svgBtn('close', 'searchClose', 'link')}
+      <button class="link" id="searchPrev" title="Anterior" type="button">▲</button>
+      <button class="link" id="searchNext" title="Siguiente" type="button">▼</button>
     </div>
     <div class="messages-wrap">
       <div class="day-float hidden" id="dayFloat"><span></span></div>
       <div class="messages" id="messages"></div>
     </div>
-    <div id="emojiPanel" class="emoji-panel hidden">
-      <div class="ep-tabs" id="epTabs">
-        ${EMOJI_CATS.map(c => `<button class="ep-tab" data-cat="${c.id}" title="${esc(c.label)}">${c.ico === 'sticker' ? ICON.sticker : c.ico}</button>`).join('')}
-      </div>
-      <div class="ep-body" id="epBody"></div>
-    </div>
     <div id="filePreview" class="file-preview hidden"></div>
-    <div id="attachMenu" class="attach-menu hidden">
-      <button class="attach-opt" data-act="gallery"><span class="ao-ico ao-gallery">${ICON.images}</span><span>Galería</span></button>
-      <button class="attach-opt" data-act="camera"><span class="ao-ico ao-camera">${ICON.camera}</span><span>Cámara</span></button>
-      <button class="attach-opt" data-act="contact"><span class="ao-ico ao-contact">${ICON.user}</span><span>Contacto</span></button>
-      <button class="attach-opt" data-act="document"><span class="ao-ico ao-doc">${ICON.file}</span><span>Documento</span></button>
-    </div>
     <div class="composer">
-      ${svgBtn('emoji', 'emojiBtn', 'icon-btn', 'Emojis')}
-      ${svgBtn('attach', 'attachBtn', 'icon-btn', 'Adjuntar')}
+      <div class="composer-pill">
+        ${svgBtn('emoji', 'emojiBtn', 'icon-btn', 'Emojis y stickers')}
+        <input id="msgInput" placeholder="Mensaje" autocomplete="off">
+        ${svgBtn('attach', 'attachBtn', 'icon-btn', 'Adjuntar')}
+        ${svgBtn('camera', 'cameraBtn', 'icon-btn', 'Cámara')}
+      </div>
       <input id="fileInputGallery" type="file" accept="image/*,video/*" multiple hidden>
       <input id="fileInputCamera" type="file" accept="image/*" capture="environment" hidden>
       <input id="fileInputDoc" type="file" multiple hidden>
+      <input id="fileInputAudio" type="file" accept="audio/*" multiple hidden>
       <input id="stickerInput" type="file" accept="image/*" hidden>
-      <input id="msgInput" placeholder="Mensaje..." autocomplete="off">
-      ${svgBtn('mic', 'micBtn', 'icon-btn', 'Mantén presionado para grabar')}
-      ${svgBtn('send', 'sendBtn', 'icon-btn send-btn', 'Enviar')}
+      ${svgBtn('mic', 'micBtn', 'icon-btn send-btn', 'Mantén presionado para grabar')}
+      ${svgBtn('send', 'sendBtn', 'icon-btn send-btn hidden', 'Enviar')}
+    </div>
+    <div id="emojiPanel" class="emoji-panel hidden">
+      <div class="ep-tabs" id="epTabs">
+        ${EMOJI_CATS.map(c => `<button class="ep-tab" data-cat="${c.id}" title="${esc(c.label)}" type="button">${c.ico}</button>`).join('')}
+      </div>
+      <div class="ep-body" id="epBody"></div>
+      <div class="ep-bottom">
+        <button class="ep-mode active" data-mode="emoji" title="Emojis" type="button">${ICON.emoji}</button>
+        <button class="ep-mode" data-mode="stickers" title="Stickers" type="button">${ICON.sticker}</button>
+        <span class="ep-spacer"></span>
+        <button class="ep-backspace" id="epBackspace" title="Borrar" type="button">${ICON.backspace}</button>
+      </div>
     </div>
     <div id="recIndicator" class="rec-indicator hidden">
       <span class="rec-dot"></span>
@@ -813,16 +1054,16 @@ function leerRecientes() {
 function guardarReciente(e) {
   const rec = leerRecientes().filter(x => x !== e);
   rec.unshift(e);
-  localStorage.setItem(RECIENTES_KEY, JSON.stringify(rec.slice(0, 32)));
+  try { localStorage.setItem(RECIENTES_KEY, JSON.stringify(rec.slice(0, 32))); } catch (_) {}
 }
 function mostrarCategoriaEmoji(catId) {
   const body = document.getElementById('epBody');
   if (!body) return;
   document.querySelectorAll('.ep-tab').forEach(t => t.classList.toggle('active', t.dataset.cat === catId));
-  if (catId === 'stickers') { renderStickers(); return; }
   const cat = EMOJI_CATS.find(c => c.id === catId);
   const lista = catId === 'recent' ? leerRecientes() : (cat?.list || '').split(' ').filter(Boolean);
   if (!lista.length) {
+    body.className = 'ep-body';
     body.innerHTML = '<p class="ep-empty">Aún no hay emojis recientes.</p>';
     return;
   }
@@ -841,15 +1082,94 @@ function insertarEmoji(e) {
   input.focus();
   input.setSelectionRange(pos, pos);
   guardarReciente(e);
+  actualizarBotonEnviar();
+}
+// Borra el último carácter (o la selección) del input, como la tecla ⌫ del teclado de emojis
+function borrarUltimoCaracter() {
+  const input = document.getElementById('msgInput');
+  if (!input) return;
+  const start = input.selectionStart ?? input.value.length;
+  const end = input.selectionEnd ?? input.value.length;
+  let pos = start;
+  if (start !== end) {
+    input.value = input.value.slice(0, start) + input.value.slice(end);
+  } else if (start > 0) {
+    const antes = Array.from(input.value.slice(0, start));
+    antes.pop();
+    const nuevo = antes.join('');
+    input.value = nuevo + input.value.slice(start);
+    pos = nuevo.length;
+  }
+  input.focus();
+  input.setSelectionRange(pos, pos);
+  actualizarBotonEnviar();
+}
+// Cambia entre Emojis y Stickers dentro del panel
+function mostrarModoPanel(modo) {
+  const panel = document.getElementById('emojiPanel');
+  if (!panel) return;
+  panel.dataset.mode = modo;
+  panel.querySelectorAll('.ep-mode').forEach(b => b.classList.toggle('active', b.dataset.mode === modo));
+  document.getElementById('epTabs')?.classList.toggle('hidden', modo !== 'emoji');
+  document.getElementById('epBackspace')?.classList.toggle('hidden', modo !== 'emoji');
+  if (modo === 'stickers') { renderStickers(); return; }
+  const activa = document.querySelector('.ep-tab.active')?.dataset.cat;
+  mostrarCategoriaEmoji(activa || (leerRecientes().length ? 'recent' : 'caras'));
+}
+
+// Muestra "enviar" cuando hay algo que mandar y "micrófono" cuando no (como WhatsApp)
+function actualizarBotonEnviar() {
+  const input = document.getElementById('msgInput');
+  const send = document.getElementById('sendBtn');
+  const mic = document.getElementById('micBtn');
+  if (!input || !send || !mic) return;
+  const hay = input.value.trim().length > 0 || pendingFiles.length > 0 || !!editandoMsg;
+  send.classList.toggle('hidden', !hay);
+  mic.classList.toggle('hidden', hay);
+}
+
+// Aviso breve en pantalla (en vez de alert)
+function toast(texto) {
+  document.getElementById('toast')?.remove();
+  const t = document.createElement('div');
+  t.id = 'toast'; t.className = 'toast'; t.textContent = texto;
+  document.body.appendChild(t);
+  setTimeout(() => t.classList.add('show'), 10);
+  setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 300); }, 2200);
 }
 
 // === STICKERS ===
 // Los stickers se guardan en el bucket 'attachments' bajo <uid>/stickers/ y
 // se registran en la tabla 'stickers' (owner_id, path). Se envían como
-// mensaje con attachment_type = 'sticker'.
+// mensaje con attachment_type = 'sticker'. Recientes y favoritos viven en
+// este dispositivo (localStorage), como en WhatsApp.
 let misStickers = null;          // caché [{id, path}]
 let modoEditarStickers = false;
 const stickerUrlCache = {};      // path -> { url, exp }
+const STICKER_REC_KEY = 'stickerRecientes';
+const STICKER_FAV_KEY = 'stickerFavoritos';
+const STICKER_EMOJI_SUBIDOS_KEY = 'stickerEmojiSubidos';
+// Pack integrado: emojis grandes que se convierten en sticker al elegirlos
+const STICKER_EMOJI_PACK = ['😂','🥰','😍','😎','🤣','😭','😡','🥺','🤔','😴','🥳','😱','🤯','😇','🙄','😏','🤗','😘','🤪','🫠','👍','👎','👏','🙏','💪','👋','🤝','🫶','❤️','💔','🔥','🎉','✨','💯','✅','❌','🎂','🍕','☕','🌹','🐶','🐱','🦄','🌞','🌈','⭐','🎁','🏆'];
+
+function leerLista(key) { try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch (_) { return []; } }
+function guardarLista(key, arr) { try { localStorage.setItem(key, JSON.stringify(arr)); } catch (_) {} }
+function registrarStickerReciente(path) {
+  const l = leerLista(STICKER_REC_KEY).filter(p => p !== path);
+  l.unshift(path);
+  guardarLista(STICKER_REC_KEY, l.slice(0, 24));
+}
+function esFavorito(path) { return leerLista(STICKER_FAV_KEY).includes(path); }
+function toggleFavorito(path) {
+  let l = leerLista(STICKER_FAV_KEY);
+  if (l.includes(path)) l = l.filter(p => p !== path); else l.unshift(path);
+  guardarLista(STICKER_FAV_KEY, l.slice(0, 60));
+  return l.includes(path);
+}
+function quitarStickerLocal(path) {
+  guardarLista(STICKER_REC_KEY, leerLista(STICKER_REC_KEY).filter(p => p !== path));
+  guardarLista(STICKER_FAV_KEY, leerLista(STICKER_FAV_KEY).filter(p => p !== path));
+}
 
 async function urlSticker(path) {
   const c = stickerUrlCache[path];
@@ -858,6 +1178,29 @@ async function urlSticker(path) {
   if (!data?.signedUrl) return null;
   stickerUrlCache[path] = { url: data.signedUrl, exp: Date.now() + 50 * 60 * 1000 };
   return data.signedUrl;
+}
+// Varias URLs firmadas de una vez (una sola petición)
+async function urlsStickers(paths) {
+  const out = {};
+  const faltan = [];
+  for (const p of paths) {
+    const c = stickerUrlCache[p];
+    if (c && c.exp > Date.now()) out[p] = c.url; else faltan.push(p);
+  }
+  if (faltan.length) {
+    try {
+      const { data } = await sb.storage.from('attachments').createSignedUrls(faltan, 3600);
+      for (const r of (data || [])) {
+        if (r.signedUrl && r.path) {
+          out[r.path] = r.signedUrl;
+          stickerUrlCache[r.path] = { url: r.signedUrl, exp: Date.now() + 50 * 60 * 1000 };
+        }
+      }
+    } catch (_) {
+      for (const p of faltan) out[p] = await urlSticker(p);
+    }
+  }
+  return out;
 }
 
 async function cargarMisStickers(force) {
@@ -872,75 +1215,230 @@ async function renderStickers() {
   if (!body) return;
   body.className = 'ep-body ep-stickers';
   body.innerHTML = '<p class="ep-empty">Cargando stickers…</p>';
-  const lista = await cargarMisStickers();
-  const head = `<div class="st-head">
-    <button id="stickerAdd" class="st-add" type="button">${ICON.plus}<span>Crear sticker</span></button>
-    ${lista.length ? `<button id="stickerEdit" class="link" type="button">${modoEditarStickers ? 'Listo' : 'Editar'}</button>` : ''}
+  const mios = await cargarMisStickers();
+  if (!document.getElementById('epBody') || body.className !== 'ep-body ep-stickers') return; // cambió de modo mientras cargaba
+  const recientes = leerLista(STICKER_REC_KEY);
+  const favs = leerLista(STICKER_FAV_KEY);
+  const item = (path, extra = '') =>
+    `<div class="sticker-item" data-path="${esc(path)}" ${extra}><img alt="" loading="lazy" draggable="false"></div>`;
+  const seccion = (titulo, htmlItems) =>
+    `<div class="st-section"><div class="st-section-title">${esc(titulo)}</div><div class="st-grid">${htmlItems}</div></div>`;
+
+  let html = `<div class="st-head">
+    <button id="stickerAdd" class="st-add" type="button">${ICON.plus}<span>Crear</span></button>
+    <span class="st-title">Stickers</span>
+    ${mios.length ? `<button id="stickerEdit" class="link st-edit" type="button">${modoEditarStickers ? 'Listo' : 'Editar'}</button>` : ''}
   </div>`;
-  if (!lista.length) {
-    body.innerHTML = head + '<p class="ep-empty">Aún no tienes stickers. Toca "Crear sticker" y elige una imagen.</p>';
-    return;
-  }
-  body.innerHTML = head + `<div class="st-grid">${lista.map(s =>
-    `<div class="sticker-item" data-id="${s.id}" data-path="${esc(s.path)}">
-       <img alt="" loading="lazy">
-       ${modoEditarStickers ? `<button class="sticker-del" data-id="${s.id}" type="button" title="Quitar">✕</button>` : ''}
-     </div>`).join('')}</div>`;
-  // cargar imágenes (URLs firmadas)
-  for (const item of body.querySelectorAll('.sticker-item')) {
-    const url = await urlSticker(item.dataset.path);
-    const img = item.querySelector('img');
-    if (url && img) img.src = url;
+  if (recientes.length) html += seccion('Recientes', recientes.map(p => item(p)).join(''));
+  if (favs.length) html += seccion('Favoritos', favs.map(p => item(p)).join(''));
+  html += seccion('Mis stickers', mios.length
+    ? mios.map(s => item(s.path, `data-id="${s.id}" ${modoEditarStickers ? 'data-edit="1"' : ''}`)
+        .replace('</div>', modoEditarStickers ? `<button class="sticker-del" data-id="${s.id}" type="button" title="Quitar">✕</button></div>` : '</div>')).join('')
+    : `<p class="ep-empty st-empty">Aún no tienes stickers.<br>Toca <b>Crear</b> y elige una foto, o guarda los que te envíen.</p>`);
+  html += seccion('Emojis', STICKER_EMOJI_PACK.map(e => `<button class="sticker-emoji" type="button" data-e="${e}">${e}</button>`).join(''));
+  body.innerHTML = html;
+
+  // cargar imágenes (URLs firmadas en lote)
+  const items = [...body.querySelectorAll('.sticker-item')];
+  const paths = [...new Set(items.map(i => i.dataset.path))];
+  const urls = await urlsStickers(paths);
+  for (const it of items) {
+    const url = urls[it.dataset.path];
+    const img = it.querySelector('img');
+    if (url && img) img.src = url; else it.classList.add('broken');
   }
 }
 
-// Convierte una imagen elegida en sticker 512x512 (WebP) y lo guarda
-async function crearStickerDesdeImagen(e) {
+// Elegir imagen -> abrir el editor de stickers
+function crearStickerDesdeImagen(e) {
   const file = e.target.files && e.target.files[0];
   e.target.value = '';
   if (!file) return;
+  if (!file.type.startsWith('image/')) { toast('Elige una imagen'); return; }
+  abrirEditorSticker(file);
+}
+
+// Editor de sticker: encuadre cuadrado (arrastrar + zoom) y texto opcional
+function abrirEditorSticker(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    const img = new Image();
+    img.onload = () => montarEditorSticker(img);
+    img.onerror = () => toast('Imagen no válida');
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function montarEditorSticker(img) {
+  const SIZE = Math.min(280, Math.floor(window.innerWidth * 0.78));
+  const OUT = 512;
+  const overlay = document.createElement('div');
+  overlay.className = 'crop-overlay';
+  overlay.innerHTML = `
+    <div class="crop-box sticker-box">
+      <p class="crop-title">Nuevo sticker</p>
+      <div class="crop-stage sticker-stage" style="width:${SIZE}px;height:${SIZE}px;">
+        <canvas id="stCanvas" width="${SIZE}" height="${SIZE}"></canvas>
+      </div>
+      <input id="stText" placeholder="Texto (opcional)" maxlength="40" autocomplete="off">
+      <input id="stZoom" type="range" min="1" max="4" step="0.01" value="1">
+      <div class="crop-actions">
+        <button class="secondary" id="stCancel" type="button">Cancelar</button>
+        <button id="stSave" type="button">Guardar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+
+  const canvas = document.getElementById('stCanvas');
+  const ctx = canvas.getContext('2d');
+  const textInput = document.getElementById('stText');
+  const baseScale = Math.max(SIZE / img.width, SIZE / img.height);
+  let zoom = 1, scale = baseScale;
+  let ox = (SIZE - img.width * scale) / 2, oy = (SIZE - img.height * scale) / 2;
+
+  function clamp() {
+    scale = baseScale * zoom;
+    const w = img.width * scale, h = img.height * scale;
+    if (ox > 0) ox = 0; if (oy > 0) oy = 0;
+    if (ox < SIZE - w) ox = SIZE - w; if (oy < SIZE - h) oy = SIZE - h;
+  }
+  function draw() {
+    clamp();
+    ctx.clearRect(0, 0, SIZE, SIZE);
+    ctx.drawImage(img, ox, oy, img.width * scale, img.height * scale);
+    dibujarTextoSticker(ctx, textInput.value, SIZE);
+  }
+  draw();
+
+  let dragging = false, lastX = 0, lastY = 0;
+  const start = (x, y) => { dragging = true; lastX = x; lastY = y; };
+  const move = (x, y) => { if (!dragging) return; ox += x - lastX; oy += y - lastY; lastX = x; lastY = y; draw(); };
+  const end = () => { dragging = false; };
+  canvas.addEventListener('mousedown', e => start(e.clientX, e.clientY));
+  const onMove = e => move(e.clientX, e.clientY);
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', end);
+  let pinchDist = 0, pinchZoom = 1;
+  const dist = t => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+  canvas.addEventListener('touchstart', e => {
+    if (e.touches.length === 1) start(e.touches[0].clientX, e.touches[0].clientY);
+    else if (e.touches.length === 2) { pinchDist = dist(e.touches); pinchZoom = zoom; }
+  }, { passive: false });
+  canvas.addEventListener('touchmove', e => {
+    e.preventDefault();
+    if (e.touches.length === 1) move(e.touches[0].clientX, e.touches[0].clientY);
+    else if (e.touches.length === 2) {
+      zoom = Math.min(4, Math.max(1, pinchZoom * (dist(e.touches) / pinchDist)));
+      document.getElementById('stZoom').value = zoom;
+      draw();
+    }
+  }, { passive: false });
+  canvas.addEventListener('touchend', end);
+  document.getElementById('stZoom').addEventListener('input', e => {
+    const cx = SIZE / 2, cy = SIZE / 2;
+    const imgCx = (cx - ox) / scale, imgCy = (cy - oy) / scale;
+    zoom = parseFloat(e.target.value);
+    scale = baseScale * zoom;
+    ox = cx - imgCx * scale; oy = cy - imgCy * scale;
+    draw();
+  });
+  textInput.addEventListener('input', draw);
+
+  const cerrar = () => { overlay.remove(); window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', end); };
+  document.getElementById('stCancel').onclick = cerrar;
+  document.getElementById('stSave').onclick = () => {
+    const out = document.createElement('canvas');
+    out.width = OUT; out.height = OUT;
+    const octx = out.getContext('2d');
+    const ratio = OUT / SIZE;
+    octx.drawImage(img, ox * ratio, oy * ratio, img.width * scale * ratio, img.height * scale * ratio);
+    dibujarTextoSticker(octx, textInput.value, OUT);
+    const listo = (blob) => { cerrar(); if (blob) subirSticker(blob); else toast('No se pudo procesar la imagen'); };
+    out.toBlob(b => b ? listo(b) : out.toBlob(listo, 'image/png'), 'image/webp', 0.9);
+  };
+}
+
+// Texto estilo "meme" (blanco con borde negro) en la parte inferior del sticker
+function dibujarTextoSticker(ctx, texto, S) {
+  texto = (texto || '').trim();
+  if (!texto) return;
+  const fs = Math.round(S * 0.12);
+  ctx.save();
+  ctx.font = `900 ${fs}px "Arial Black", Impact, "Segoe UI", sans-serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  ctx.lineJoin = 'round'; ctx.lineWidth = Math.max(2, fs * 0.16);
+  ctx.strokeStyle = '#000'; ctx.fillStyle = '#fff';
+  // partir en líneas para que quepa
+  const palabras = texto.toUpperCase().split(/\s+/);
+  const lineas = [];
+  let actual = '';
+  for (const p of palabras) {
+    const prueba = actual ? actual + ' ' + p : p;
+    if (ctx.measureText(prueba).width > S * 0.92 && actual) { lineas.push(actual); actual = p; }
+    else actual = prueba;
+  }
+  if (actual) lineas.push(actual);
+  let y = S - fs * 0.45;
+  for (let i = lineas.length - 1; i >= 0; i--) {
+    ctx.strokeText(lineas[i], S / 2, y);
+    ctx.fillText(lineas[i], S / 2, y);
+    y -= fs * 1.1;
+  }
+  ctx.restore();
+}
+
+// Sube el sticker (webp 512x512), lo registra y abre el panel para verlo
+async function subirSticker(blob) {
   try {
-    const blob = await imagenASticker(file);
     const path = `${currentUser.id}/stickers/${Date.now()}.webp`;
     const { error: upErr } = await sb.storage.from('attachments').upload(path, blob, { contentType: blob.type || 'image/webp' });
     if (upErr) throw upErr;
     const { error: insErr } = await sb.from('stickers').insert({ owner_id: currentUser.id, path });
     if (insErr) throw insErr;
     await cargarMisStickers(true);
-    renderStickers();
+    toast('Sticker creado ✓');
+    const panel = document.getElementById('emojiPanel');
+    if (panel) { panel.classList.remove('hidden'); mostrarModoPanel('stickers'); }
   } catch (err) {
     alert('No se pudo crear el sticker: ' + (err.message || err));
   }
 }
 
-// Escala la imagen a 512x512 manteniendo proporción (fondo transparente)
-function imagenASticker(file) {
+// Convierte un emoji del pack integrado en sticker (imagen 512x512)
+function emojiASticker(e) {
   return new Promise((resolve, reject) => {
-    const img = new Image();
-    const url = URL.createObjectURL(file);
-    img.onload = () => {
-      URL.revokeObjectURL(url);
-      const S = 512;
-      const c = document.createElement('canvas');
-      c.width = S; c.height = S;
-      const ctx = c.getContext('2d');
-      const r = Math.min(S / img.width, S / img.height);
-      const w = Math.round(img.width * r), h = Math.round(img.height * r);
-      ctx.drawImage(img, (S - w) / 2, (S - h) / 2, w, h);
-      c.toBlob(b => {
-        if (b) resolve(b);
-        else c.toBlob(b2 => b2 ? resolve(b2) : reject(new Error('No se pudo procesar la imagen')), 'image/png');
-      }, 'image/webp', 0.9);
-    };
-    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Imagen no válida')); };
-    img.src = url;
+    const S = 512;
+    const c = document.createElement('canvas');
+    c.width = S; c.height = S;
+    const ctx = c.getContext('2d');
+    ctx.font = `${Math.round(S * 0.72)}px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Twemoji Mozilla", sans-serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(e, S / 2, S / 2 + S * 0.04);
+    c.toBlob(b => b ? resolve(b) : reject(new Error('No se pudo generar el sticker')), 'image/webp', 0.92);
   });
+}
+async function enviarStickerEmoji(e) {
+  const nombre = [...e].map(ch => ch.codePointAt(0).toString(16)).join('-');
+  const path = `${currentUser.id}/stickers/emoji-${nombre}.webp`;
+  const subidos = leerLista(STICKER_EMOJI_SUBIDOS_KEY);
+  if (!subidos.includes(path)) {
+    try {
+      const blob = await emojiASticker(e);
+      const { error } = await sb.storage.from('attachments').upload(path, blob, { contentType: 'image/webp' });
+      if (error && !/exist|duplicate|409/i.test(error.message || '')) throw error;
+      subidos.push(path);
+      guardarLista(STICKER_EMOJI_SUBIDOS_KEY, subidos);
+    } catch (err) {
+      alert('No se pudo enviar el sticker: ' + (err.message || err));
+      return;
+    }
+  }
+  enviarSticker(path);
 }
 
 async function enviarSticker(path) {
   if (!activeChat) return;
-  const panel = document.getElementById('emojiPanel');
-  if (panel) panel.classList.add('hidden');
   const row = {
     sender_id: currentUser.id, content: null,
     attachment_path: path, attachment_name: 'sticker.webp',
@@ -952,6 +1450,10 @@ async function enviarSticker(path) {
   if (error) { alert('No se pudo enviar el sticker: ' + error.message); return; }
   if (inserted) pintarMensajePropio(inserted);
   cancelarRespuesta();
+  registrarStickerReciente(path);
+  // refrescar la fila de "Recientes" si el panel sigue abierto en stickers
+  const panel = document.getElementById('emojiPanel');
+  if (panel && !panel.classList.contains('hidden') && panel.dataset.mode === 'stickers') renderStickers();
 }
 
 async function borrarSticker(id) {
@@ -960,84 +1462,137 @@ async function borrarSticker(id) {
   // borrar el archivo solo si es mío (si lo guardé de otro, la ruta es ajena)
   if (s && s.path.startsWith(currentUser.id + '/')) {
     try { await sb.storage.from('attachments').remove([s.path]); } catch (_) {}
+    quitarStickerLocal(s.path);
   }
   await cargarMisStickers(true);
+  if (!misStickers.length) modoEditarStickers = false;
   renderStickers();
 }
 
 // Guardar en mi colección un sticker que recibí
 async function guardarStickerRecibido(path) {
   const lista = await cargarMisStickers();
-  if (lista.some(s => s.path === path)) { alert('Ese sticker ya está en tu colección.'); return; }
+  if (lista.some(s => s.path === path)) { toast('Ese sticker ya está en tu colección'); return; }
   const { error } = await sb.from('stickers').insert({ owner_id: currentUser.id, path });
   if (error) { alert('No se pudo guardar: ' + error.message); return; }
   await cargarMisStickers(true);
-  alert('Sticker guardado en tu colección ✓');
+  toast('Sticker guardado en tu colección ✓');
 }
 
-function wireComposer() {
-  document.getElementById('sendBtn').onclick = sendMessage;
-  // Menú de adjuntos tipo WhatsApp
-  const menu = document.getElementById('attachMenu');
-  document.getElementById('attachBtn').onclick = (ev) => {
-    ev.stopPropagation();
-    menu.classList.toggle('hidden');
+// Hoja de opciones al tocar un sticker del chat (favorito, guardar, responder, reenviar)
+async function abrirMenuSticker(msgId, path) {
+  const m = msgCache[msgId];
+  const mios = await cargarMisStickers();
+  const enMios = mios.some(s => s.path === path);
+  const fav = esFavorito(path);
+  const url = await urlSticker(path);
+  const ov = document.createElement('div');
+  ov.className = 'sheet-overlay overlay-bottom';
+  ov.innerHTML = `
+    <div class="sheet sheet-bottom">
+      <div class="sheet-head"><h3>Sticker</h3><button class="sheet-close" type="button">${ICON.close}</button></div>
+      <div class="sheet-body sticker-sheet">
+        <div class="sticker-big">${url ? `<img src="${esc(url)}" alt="">` : ''}</div>
+        <button class="file-act" id="stFav" type="button"><span class="fa-ico">${fav ? ICON.starFill : ICON.star}</span><span>${fav ? 'Quitar de favoritos' : 'Agregar a favoritos'}</span></button>
+        ${!enMios ? `<button class="file-act" id="stSaveMine" type="button"><span class="fa-ico">${ICON.download}</span><span>Guardar en mis stickers</span></button>` : ''}
+        ${m && !modoSeleccion ? `<button class="file-act" id="stReply" type="button"><span class="fa-ico">${ICON.reply}</span><span>Responder</span></button>
+        <button class="file-act" id="stFwd" type="button"><span class="fa-ico">${ICON.forward}</span><span>Reenviar</span></button>` : ''}
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+  const cerrar = () => ov.remove();
+  ov.querySelector('.sheet-close').onclick = cerrar;
+  ov.onclick = (e) => { if (e.target === ov) cerrar(); };
+  document.getElementById('stFav').onclick = () => {
+    const ahora = toggleFavorito(path);
+    cerrar();
+    toast(ahora ? 'Agregado a favoritos ★' : 'Quitado de favoritos');
   };
-  // cerrar el menú al tocar fuera
-  document.addEventListener('click', (ev) => {
-    if (!menu.classList.contains('hidden') &&
-        !menu.contains(ev.target) &&
-        ev.target.id !== 'attachBtn' &&
-        !ev.target.closest('#attachBtn')) {
-      menu.classList.add('hidden');
-    }
-  });
-  menu.querySelectorAll('.attach-opt').forEach(b => {
+  const save = document.getElementById('stSaveMine');
+  if (save) save.onclick = () => { cerrar(); guardarStickerRecibido(path); };
+  const rep = document.getElementById('stReply');
+  if (rep) rep.onclick = () => { cerrar(); iniciarRespuesta(m); };
+  const fwd = document.getElementById('stFwd');
+  if (fwd) fwd.onclick = () => { cerrar(); abrirReenviar(m); };
+}
+
+// Hoja de adjuntos tipo WhatsApp (Documento, Cámara, Galería, Audio, Contacto, Sticker)
+function abrirMenuAdjuntos() {
+  const ops = [
+    { act: 'document', label: 'Documento', icon: 'file',    color: '#7F66FF' },
+    { act: 'camera',   label: 'Cámara',    icon: 'camera',  color: '#FF2E74' },
+    { act: 'gallery',  label: 'Galería',   icon: 'images',  color: '#BF59CF' },
+    { act: 'audio',    label: 'Audio',     icon: 'music',   color: '#F96533' },
+    { act: 'contact',  label: 'Contacto',  icon: 'user',    color: '#009DE2' },
+    { act: 'sticker',  label: 'Sticker',   icon: 'sticker', color: '#00A884' },
+  ];
+  const ov = document.createElement('div');
+  ov.className = 'sheet-overlay overlay-bottom';
+  ov.innerHTML = `
+    <div class="sheet sheet-bottom attach-sheet">
+      <div class="attach-grid">
+        ${ops.map(o => `<button class="attach-opt" data-act="${o.act}" type="button">
+          <span class="ao-ico" style="background:${o.color}">${ICON[o.icon]}</span><span>${o.label}</span></button>`).join('')}
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+  const cerrar = () => ov.remove();
+  ov.onclick = (e) => { if (e.target === ov) cerrar(); };
+  ov.querySelectorAll('.attach-opt').forEach(b => {
     b.onclick = () => {
       const act = b.dataset.act;
-      menu.classList.add('hidden');
+      cerrar();
       if (act === 'gallery') document.getElementById('fileInputGallery').click();
       else if (act === 'camera') document.getElementById('fileInputCamera').click();
       else if (act === 'document') document.getElementById('fileInputDoc').click();
+      else if (act === 'audio') document.getElementById('fileInputAudio').click();
       else if (act === 'contact') elegirContacto();
+      else if (act === 'sticker') document.getElementById('stickerInput').click();
     };
   });
-  document.getElementById('fileInputGallery').addEventListener('change', onFilesPicked);
-  document.getElementById('fileInputCamera').addEventListener('change', onFilesPicked);
-  document.getElementById('fileInputDoc').addEventListener('change', onFilesPicked);
-  document.getElementById('msgInput').addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(); });
-  // Emojis y stickers (panel con pestañas)
+}
+
+function wireComposer() {
+  const input = document.getElementById('msgInput');
+  document.getElementById('sendBtn').onclick = sendMessage;
+  document.getElementById('attachBtn').onclick = abrirMenuAdjuntos;
+  document.getElementById('cameraBtn').onclick = () => document.getElementById('fileInputCamera').click();
+  for (const id of ['fileInputGallery', 'fileInputCamera', 'fileInputDoc', 'fileInputAudio']) {
+    document.getElementById(id).addEventListener('change', onFilesPicked);
+  }
+  document.getElementById('stickerInput').addEventListener('change', crearStickerDesdeImagen);
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(); });
+  // "Está escribiendo…" + alternar mic/enviar
+  input.addEventListener('input', () => { emitirEscribiendo(); actualizarBotonEnviar(); });
+
+  // Panel de emojis / stickers
   const panel = document.getElementById('emojiPanel');
   document.getElementById('emojiBtn').onclick = () => {
-    panel.classList.toggle('hidden');
-    if (!panel.classList.contains('hidden') && !panel.dataset.init) {
-      panel.dataset.init = '1';
-      // primera apertura: recientes si hay, si no, caras
-      const rec = leerRecientes();
-      mostrarCategoriaEmoji(rec.length ? 'recent' : 'caras');
-    }
+    const abrir = panel.classList.contains('hidden');
+    panel.classList.toggle('hidden', !abrir);
+    if (abrir) mostrarModoPanel(panel.dataset.mode || 'emoji');
   };
   document.getElementById('epTabs').addEventListener('click', (ev) => {
     const tab = ev.target.closest('.ep-tab');
     if (tab) mostrarCategoriaEmoji(tab.dataset.cat);
   });
+  panel.querySelectorAll('.ep-mode').forEach(b => b.onclick = () => mostrarModoPanel(b.dataset.mode));
+  document.getElementById('epBackspace').onclick = borrarUltimoCaracter;
   document.getElementById('epBody').addEventListener('click', (ev) => {
     const e = ev.target.closest('.emoji');
     if (e) { insertarEmoji(e.dataset.e); return; }
-    const st = ev.target.closest('.sticker-item');
-    if (st) { enviarSticker(st.dataset.path, st.dataset.id); return; }
-    if (ev.target.closest('#stickerAdd')) { document.getElementById('stickerInput').click(); return; }
-    if (ev.target.closest('#stickerEdit')) { modoEditarStickers = !modoEditarStickers; renderStickers(); return; }
     const del = ev.target.closest('.sticker-del');
     if (del) { ev.stopPropagation(); borrarSticker(del.dataset.id); return; }
+    const st = ev.target.closest('.sticker-item');
+    if (st) { if (!st.dataset.edit && !st.classList.contains('broken')) enviarSticker(st.dataset.path); return; }
+    const se = ev.target.closest('.sticker-emoji');
+    if (se) { enviarStickerEmoji(se.dataset.e); return; }
+    if (ev.target.closest('#stickerAdd')) { document.getElementById('stickerInput').click(); return; }
+    if (ev.target.closest('#stickerEdit')) { modoEditarStickers = !modoEditarStickers; renderStickers(); return; }
   });
-  document.getElementById('stickerInput').addEventListener('change', crearStickerDesdeImagen);
-  // Búsqueda en conversación
-  document.getElementById('searchBtn').onclick = abrirBusqueda;
-  // "Está escribiendo…": emite señal al teclear (máx 1 cada 2s)
-  document.getElementById('msgInput').addEventListener('input', emitirEscribiendo);
   // Notas de voz: mantener presionado el micrófono
   wireMicrofono();
+  actualizarBotonEnviar();
 }
 
 // === NOTAS DE VOZ ===
@@ -1196,24 +1751,55 @@ function emitirEscribiendo() {
   }).catch(() => {}); // si falla, no romper
 }
 
+let typingActivo = false;
 function mostrarEscribiendo(nombre) {
-  let el = document.getElementById('typingInd');
-  if (!el) {
-    el = document.createElement('div');
-    el.id = 'typingInd';
-    el.className = 'typing-ind';
-    const box = document.getElementById('messages');
-    box?.parentNode.insertBefore(el, box.nextSibling);
-  }
-  el.textContent = activeIsGroup ? `${nombre} está escribiendo…` : 'escribiendo…';
-  el.classList.remove('hidden');
+  const sub = document.getElementById('chatSub');
+  if (!sub) return;
+  typingActivo = true;
+  sub.textContent = activeIsGroup ? `${nombre} está escribiendo…` : 'escribiendo…';
+  sub.classList.add('typing');
   clearTimeout(typingHideTimer);
-  typingHideTimer = setTimeout(() => el?.classList.add('hidden'), 3000);
+  typingHideTimer = setTimeout(() => {
+    typingActivo = false;
+    sub.classList.remove('typing');
+    actualizarSubtituloChat();
+  }, 3000);
+}
+
+// === PRESENCIA ("en línea") ===
+// Canal compartido de presencia: cada usuario conectado se anuncia con su id.
+let presenceChannel = null;
+let onlineIds = new Set();
+function iniciarPresencia() {
+  if (presenceChannel || !currentUser) return;
+  try {
+    presenceChannel = sb.channel('online-users', { config: { presence: { key: currentUser.id } } });
+    presenceChannel
+      .on('presence', { event: 'sync' }, () => {
+        onlineIds = new Set(Object.keys(presenceChannel.presenceState() || {}));
+        actualizarSubtituloChat();
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          try { await presenceChannel.track({ online_at: new Date().toISOString() }); } catch (_) {}
+        }
+      });
+  } catch (e) { console.warn('Presencia:', e); }
+}
+// Subtítulo del chat 1-a-1: "en línea" si el otro está conectado; si no, el texto normal
+function actualizarSubtituloChat() {
+  const sub = document.getElementById('chatSub');
+  if (!sub || !activeChat || typingActivo) return;
+  if (activeIsGroup) { sub.textContent = chatSubDefault; return; }
+  const online = onlineIds.has(activeChat);
+  sub.textContent = online ? 'en línea' : chatSubDefault;
+  sub.classList.toggle('online', online);
 }
 
 function abrirBusqueda() {
   const bar = document.getElementById('searchBar');
   bar.classList.remove('hidden');
+  document.getElementById('chatHeader')?.classList.add('hidden');
   const input = document.getElementById('searchInput');
   input.value = '';
   input.focus();
@@ -1225,6 +1811,7 @@ function abrirBusqueda() {
 
 function cerrarBusqueda() {
   document.getElementById('searchBar').classList.add('hidden');
+  document.getElementById('chatHeader')?.classList.remove('hidden');
   limpiarResaltado();
   searchMatches = []; searchIdx = -1;
   document.getElementById('searchCount').textContent = '';
@@ -1286,22 +1873,27 @@ async function openChat(otherId, otherName, otherAvatar) {
   activeChatName = otherName;
   activeIsGroup = false;
   pendingFiles = []; replyingTo = null; editandoMsg = null; searchMatches = []; searchIdx = -1; modoSeleccion = false; seleccionados.clear();
+  typingActivo = false;
   if (otherAvatar === undefined) {
     const { data } = await sb.from('profiles').select('avatar_url, avatar_version').eq('id', otherId).single();
     otherAvatar = avatarUrl(data);
   }
-  const avatarHtml = otherAvatar
-    ? `<img class="avatar-img chat-av" src="${esc(otherAvatar)}" alt="">`
-    : `<div class="avatar chat-av">${esc((otherName||'?')[0])}</div>`;
-  app.innerHTML = chatShell(`<div class="chat-head-info" id="peerHead">${avatarHtml}<span class="chat-title">${esc(otherName)}</span></div>`, true, true);
-  document.getElementById('backBtn').onclick = () => { unsubscribe(); renderChats(); };
-  document.getElementById('clearBtn').onclick = limpiarConversacion;
+  chatSubDefault = 'toca para ver info';
+  app.innerHTML = chatShell({ avatar: avatarHtml(otherAvatar, otherName, 'chat-av'), titulo: otherName, sub: chatSubDefault, conLlamadas: true });
+  document.getElementById('backBtn').onclick = (e) => { e.stopPropagation(); unsubscribe(); renderChats(); };
   document.getElementById('peerHead').onclick = () => verPerfilUsuario(otherId, otherName, otherAvatar);
   document.getElementById('callAudioBtn').onclick = () => iniciarLlamada(otherId, otherName, otherAvatar, 'audio');
   document.getElementById('callVideoBtn').onclick = () => iniciarLlamada(otherId, otherName, otherAvatar, 'video');
+  document.getElementById('chatMenuBtn').onclick = (ev) => abrirMenuPopup(ev.currentTarget, [
+    { label: 'Ver contacto', icon: 'user', onClick: () => verPerfilUsuario(otherId, otherName, otherAvatar) },
+    { label: 'Fotos compartidas', icon: 'images', onClick: () => verGaleria(otherId, otherName) },
+    { label: 'Buscar', icon: 'search', onClick: abrirBusqueda },
+    { label: 'Limpiar chat', icon: 'trash', danger: true, onClick: limpiarConversacion },
+  ]);
   wireComposer();
   await loadMessages();
   subscribe();
+  actualizarSubtituloChat();
 }
 
 async function openGroup(groupId, groupName, groupAvatar) {
@@ -1309,6 +1901,7 @@ async function openGroup(groupId, groupName, groupAvatar) {
   activeChatName = groupName;
   activeIsGroup = true;
   pendingFiles = []; replyingTo = null; editandoMsg = null; searchMatches = []; searchIdx = -1; modoSeleccion = false; seleccionados.clear();
+  typingActivo = false;
   // cargar nombres de miembros para mostrar autores
   memberNames = {};
   const { data: members } = await sb.from('group_members').select('user_id').eq('group_id', groupId);
@@ -1317,14 +1910,20 @@ async function openGroup(groupId, groupName, groupAvatar) {
     const { data: profs } = await sb.from('profiles').select('id, display_name').in('id', ids);
     for (const p of profs || []) memberNames[p.id] = p.display_name;
   }
-  const avatarHtml = groupAvatar
-    ? `<img class="avatar-img chat-av" src="${esc(groupAvatar)}" alt="">`
-    : `<div class="avatar chat-av group-av">${esc((groupName||'?')[0])}</div>`;
-  app.innerHTML = chatShell(
-    `${avatarHtml}<span class="chat-title">${esc(groupName)}</span>
-     <button class="link" id="groupInfoBtn" title="Info del grupo">${ICON.group}</button>`, false);
-  document.getElementById('backBtn').onclick = () => { unsubscribe(); renderChats(); };
-  document.getElementById('groupInfoBtn').onclick = () => renderGroupInfo(groupId, groupName);
+  if (groupAvatar === undefined) {
+    const { data: g } = await sb.from('groups').select('avatar_url, avatar_version').eq('id', groupId).single();
+    groupAvatar = avatarUrl(g);
+  }
+  // subtítulo: "Tú, Ana, Luis…" como en WhatsApp
+  const otros = Object.entries(memberNames).filter(([id]) => id !== currentUser.id).map(([, n]) => n);
+  chatSubDefault = ['Tú', ...otros].join(', ');
+  app.innerHTML = chatShell({ avatar: avatarHtml(groupAvatar, groupName, 'chat-av group-av'), titulo: groupName, sub: chatSubDefault, conLlamadas: false });
+  document.getElementById('backBtn').onclick = (e) => { e.stopPropagation(); unsubscribe(); renderChats(); };
+  document.getElementById('peerHead').onclick = () => renderGroupInfo(groupId, groupName);
+  document.getElementById('chatMenuBtn').onclick = (ev) => abrirMenuPopup(ev.currentTarget, [
+    { label: 'Info del grupo', icon: 'group', onClick: () => renderGroupInfo(groupId, groupName) },
+    { label: 'Buscar', icon: 'search', onClick: abrirBusqueda },
+  ]);
   wireComposer();
   await loadMessages();
   subscribe();
@@ -1369,7 +1968,7 @@ async function renderGroupInfo(groupId, groupName) {
       <p id="giMsg" class="ok"></p>
     </div>`;
 
-  document.getElementById('backBtn').onclick = () => openGroup(groupId, g.name, undefined);
+  document.getElementById('backBtn').onclick = () => openGroup(groupId, g.name, avatarUrl(g));
   document.getElementById('saveGroupName').onclick = () => guardarNombreGrupo(groupId);
   document.getElementById('changeGroupPhoto').onclick = () => document.getElementById('groupAvatarInput').click();
   document.getElementById('groupAvatarInput').addEventListener('change', (e) => onGroupAvatarPicked(e, groupId));
@@ -1471,6 +2070,7 @@ async function loadMessages() {
       diaPrevio = dia;
     }
     box.insertAdjacentHTML('beforeend', renderBubble(m));
+    aplicarCola(box.lastElementChild);
   }
   box.scrollTop = box.scrollHeight;
   hydrateAttachments(box);
@@ -1496,6 +2096,7 @@ function appendMensaje(box, m) {
     box.insertAdjacentHTML('beforeend', separadorDiaHtml(m.created_at));
   }
   box.insertAdjacentHTML('beforeend', renderBubble(m));
+  aplicarCola(box.lastElementChild);
 }
 
 // === ETIQUETA DE DÍA FLOTANTE (al hacer scroll, estilo WhatsApp) ===
@@ -1518,7 +2119,10 @@ function actualizarDiaFlotante() {
 function onScrollDia() {
   posicionarFloat();
   const float = document.getElementById('dayFloat');
-  if (!float) return;
+  const box = document.getElementById('messages');
+  if (!float || !box) return;
+  // arriba del todo ya se ve el primer separador: no duplicarlo
+  if (box.scrollTop < 24) { float.classList.add('hidden'); clearTimeout(ocultarFloatTimer); return; }
   // mostrar mientras se hace scroll, ocultar tras una pausa
   float.classList.remove('hidden');
   clearTimeout(ocultarFloatTimer);
@@ -1594,8 +2198,8 @@ function renderBubble(m) {
 
   // Mensaje eliminado: muestra placeholder, sin contenido
   if (m.deleted_at) {
-    return `<div class="bubble ${mine ? 'mine' : 'theirs'} deleted" data-id="${m.id}">
-      <div class="text"><em>🚫 Mensaje eliminado</em></div></div>`;
+    return `<div class="bubble ${mine ? 'mine' : 'theirs'} deleted" data-id="${m.id}" data-sender="${m.sender_id}">
+      <div class="text"><em>🚫 ${mine ? 'Eliminaste este mensaje' : 'Este mensaje fue eliminado'}</em></div></div>`;
   }
 
   let inner = '';
@@ -1609,7 +2213,7 @@ function renderBubble(m) {
   // En grupos, mostrar el autor encima (solo si no es mío)
   if (activeIsGroup && !mine) {
     const autor = memberNames[m.sender_id] || 'Alguien';
-    inner += `<div class="author">${esc(autor)}</div>`;
+    inner += `<div class="author" style="color:${colorAutor(m.sender_id)}">${esc(autor)}</div>`;
   }
   if (m.attachment_path) {
     const type = m.attachment_type || '';
@@ -1634,7 +2238,7 @@ function renderBubble(m) {
         <button class="voice-speed" type="button" title="Velocidad">1x</button>
       </div>${fwd}</div>`;
     } else {
-      inner += `<div class="attach-wrap"><a class="attach-file" data-path="${esc(m.attachment_path)}" data-name="${esc(m.attachment_name || 'archivo')}" href="#"><span class="file-ico">${ICON.file}</span> ${esc(m.attachment_name || 'archivo')} <small>${formatSize(m.attachment_size)}</small></a>${fwd}</div>`;
+        inner += `<div class="attach-wrap"><a class="attach-file" data-path="${esc(m.attachment_path)}" data-name="${esc(m.attachment_name || 'archivo')}" href="#"><span class="file-ico">${ICON.file}</span><span class="file-info"><span class="file-name">${esc(m.attachment_name || 'archivo')}</span><small>${formatSize(m.attachment_size)}</small></span></a>${fwd}</div>`;
     }
   }
   if (m.content) inner += `<div class="text">${linkify(m.content)}</div>`;
@@ -1648,7 +2252,23 @@ function renderBubble(m) {
   inner += `<div class="meta">${meta}</div>`;
 
   const esSticker = m.attachment_type === 'sticker' ? ' sticker-bubble' : '';
-  return `<div class="bubble ${mine ? 'mine' : 'theirs'}${esSticker}" data-id="${m.id}">${inner}<button class="bubble-menu-btn" title="Acciones">${ICON.forward}</button></div>`;
+  return `<div class="bubble ${mine ? 'mine' : 'theirs'}${esSticker}" data-id="${m.id}" data-sender="${m.sender_id}">${inner}<button class="bubble-menu-btn" title="Acciones" type="button">${ICON.forward}</button></div>`;
+}
+
+// Color estable por autor (nombres en grupos, como WhatsApp)
+const AUTHOR_COLORS = ['#E542A3', '#00A884', '#F5A623', '#6BCBEF', '#FA6533', '#B38BFA', '#35CD96', '#D9A300', '#59B4E0', '#E86A7B'];
+function colorAutor(id) {
+  let h = 0;
+  for (const c of String(id || '')) h = (h * 31 + c.charCodeAt(0)) | 0;
+  return AUTHOR_COLORS[Math.abs(h) % AUTHOR_COLORS.length];
+}
+
+// "Cola" de la burbuja solo en el primer mensaje de una racha del mismo autor
+function aplicarCola(el) {
+  if (!el || !el.classList.contains('bubble')) return;
+  const prev = el.previousElementSibling;
+  const cola = !prev || !prev.classList.contains('bubble') || prev.dataset.sender !== el.dataset.sender;
+  el.classList.toggle('tail', cola);
 }
 
 // Doble palomita SVG
@@ -1690,7 +2310,7 @@ function previewTexto(m) {
   if (m.deleted_at) return 'Mensaje eliminado';
   if (m.content) return m.content;
   const t = m.attachment_type || '';
-  if (t === 'sticker') return '🩷 Sticker';
+  if (t === 'sticker') return '🎟️ Sticker';
   if (t.startsWith('image/')) return '📷 Foto';
   if (t.startsWith('audio/') || /voz/i.test(m.attachment_name || '')) return '🎤 Nota de voz';
   if (t.startsWith('video/')) return '🎥 Video';
@@ -1900,11 +2520,11 @@ function actualizarBarraSeleccion() {
   const bar = document.getElementById('selBar');
   if (!bar) return;
   bar.innerHTML = `
-    <button class="link" id="selCancel">✕</button>
-    <span class="sel-count">${seleccionados.size} seleccionado(s)</span>
-    <button class="link" id="selCopy" title="Copiar">📋</button>
-    <button class="link" id="selForward" title="Reenviar">↪️</button>
-    <button class="link" id="selDelete" title="Eliminar">🗑️</button>`;
+    <button class="link" id="selCancel" type="button">${ICON.close}</button>
+    <span class="sel-count">${seleccionados.size}</span>
+    <button class="link" id="selCopy" title="Copiar" type="button">${ICON.copy}</button>
+    <button class="link" id="selForward" title="Reenviar" type="button">${ICON.forward}</button>
+    <button class="link" id="selDelete" title="Eliminar" type="button">${ICON.trash}</button>`;
   document.getElementById('selCancel').onclick = salirModoSeleccion;
   document.getElementById('selCopy').onclick = copiarSeleccionados;
   document.getElementById('selForward').onclick = reenviarSeleccionados;
@@ -1925,9 +2545,9 @@ async function copiarSeleccionados() {
     .join('\n');
   try {
     await navigator.clipboard.writeText(txt);
-    alert('Copiado al portapapeles ✓');
+    toast('Copiado al portapapeles ✓');
   } catch (_) {
-    alert('No se pudo copiar en este navegador.');
+    toast('No se pudo copiar en este navegador');
   }
   salirModoSeleccion();
 }
@@ -2117,6 +2737,7 @@ function editarMensaje(m) {
   const input = document.getElementById('msgInput');
   if (input) { input.value = m.content || ''; input.focus(); }
   mostrarBarraEdicion();
+  actualizarBotonEnviar();
 }
 
 function mostrarBarraEdicion() {
@@ -2142,6 +2763,7 @@ function cancelarEdicion() {
   document.getElementById('editBar')?.remove();
   const input = document.getElementById('msgInput');
   if (input) input.value = '';
+  actualizarBotonEnviar();
 }
 
 async function guardarEdicion() {
@@ -2203,9 +2825,7 @@ async function borrarMensaje(m) {
 
 // --- RESPONDER ---
 function iniciarRespuesta(m) {
-  const preview = m.content
-    ? m.content.slice(0, 80)
-    : (m.attachment_type?.startsWith('image/') ? '📷 Foto' : '📎 Archivo');
+  const preview = m.content ? m.content.slice(0, 80) : previewTexto(m);
   const author = (m.sender_id === currentUser.id)
     ? 'Tú'
     : (memberNames[m.sender_id] || activeChatName || '');
@@ -2228,7 +2848,7 @@ function mostrarBarraRespuesta() {
       <span class="reply-bar-author">${esc(replyingTo.author)}</span>
       <span class="reply-bar-text">${esc(replyingTo.preview)}</span>
     </div>
-    <button id="cancelReply" class="link">✕</button>`;
+    <button id="cancelReply" class="link" type="button">${ICON.close}</button>`;
   document.getElementById('cancelReply').onclick = cancelarRespuesta;
 }
 
@@ -2351,13 +2971,14 @@ async function hydrateAttachments(box) {
     const path = el.dataset.path;
     const url = await urlSticker(path);
     if (!url) { el.innerHTML = '<span class="loading">No disponible</span>'; continue; }
-    el.innerHTML = `<img src="${url}" alt="sticker" loading="lazy">`;
-    // tocar un sticker recibido → guardarlo en mi colección
-    if (el.dataset.mine !== '1') {
-      el.querySelector('img').onclick = () => {
-        if (confirm('¿Guardar este sticker en tu colección?')) guardarStickerRecibido(path);
-      };
-    }
+    el.innerHTML = `<img src="${url}" alt="sticker" loading="lazy" draggable="false">`;
+    // tocar un sticker → favoritos / guardar / responder / reenviar
+    const msgId = parseInt(el.closest('.bubble')?.dataset.id);
+    el.querySelector('img').onclick = (ev) => {
+      if (modoSeleccion) return;
+      ev.stopPropagation();
+      abrirMenuSticker(msgId, path);
+    };
   }
   for (const el of box.querySelectorAll('.attach-img')) {
     const path = el.dataset.path;
@@ -2466,6 +3087,7 @@ function onFilesPicked(e) {
 function renderPreviewAdjuntos() {
   const preview = document.getElementById('filePreview');
   if (!preview) return;
+  actualizarBotonEnviar();
   if (!pendingFiles.length) {
     preview.classList.add('hidden');
     preview.innerHTML = '';
@@ -2553,8 +3175,7 @@ async function sendMessage() {
   input.value = '';
   clearPendingFiles();
   cancelarRespuesta();
-  const panel = document.getElementById('emojiPanel');
-  if (panel) panel.classList.add('hidden');
+  actualizarBotonEnviar();
 
   try {
     // Enviar cada adjunto como su propio mensaje (como WhatsApp)
@@ -2661,6 +3282,7 @@ function subscribe() {  // Nombre de canal COMPARTIDO y CORTO. Concatenar dos UU
         const tmp = document.createElement('div');
         tmp.innerHTML = renderBubble(m);
         const nuevo = tmp.firstElementChild;
+        if (old.classList.contains('tail')) nuevo.classList.add('tail');
         old.replaceWith(nuevo);
         const box = document.getElementById('messages');
         hydrateAttachments(box);
@@ -2685,7 +3307,7 @@ function subscribe() {  // Nombre de canal COMPARTIDO y CORTO. Concatenar dos UU
 function unsubscribe() {
   if (channel) { sb.removeChannel(channel); channel = null; }
   channelReady = false;
-  document.getElementById('typingInd')?.remove();
+  typingActivo = false;
   clearTimeout(typingHideTimer);
 }
 
