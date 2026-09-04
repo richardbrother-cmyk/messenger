@@ -745,14 +745,14 @@ button.link:hover { background: none; opacity: .8; }
 
 /* Editor de sticker */
 .sticker-stage { background: var(--surface-2); }
-.sticker-stage canvas {
+.crop-stage.sticker-stage canvas {
   display: block; cursor: grab;
   background-color: #cfd3d6;
   background-image: linear-gradient(45deg, #9aa0a4 25%, transparent 25%, transparent 75%, #9aa0a4 75%),
                     linear-gradient(45deg, #9aa0a4 25%, transparent 25%, transparent 75%, #9aa0a4 75%);
   background-size: 20px 20px; background-position: 0 0, 10px 10px;
 }
-.sticker-stage canvas:active { cursor: grabbing; }
+.crop-stage.sticker-stage canvas:active { cursor: grabbing; }
 .sticker-box #stText { width: 100%; }
 
 /* === Grupos, miembros, secciones === */
@@ -1091,3 +1091,27 @@ button.link:hover { background: none; opacity: .8; }
 .bubble .attach-wrap:has(.attach-img) { display: block; }
 /* Los stickers no llevan flecha de reenvío rápido */
 .sticker-bubble .obj-forward { display: none !important; }
+
+/* Herramientas del editor de stickers (encuadrar / recortar / quitar fondo) */
+.st-tools { display: flex; gap: .3rem; width: 100%; justify-content: center; }
+.st-tool {
+  flex: 1 1 0; min-width: 0;
+  display: inline-flex; flex-direction: column; align-items: center; gap: .2rem;
+  background: var(--surface-2); color: var(--text-dim); border: 1px solid transparent;
+  padding: .45rem .2rem; border-radius: var(--r-md); font-size: .66rem; font-weight: 600; white-space: nowrap;
+}
+.st-tool svg { width: 20px; height: 20px; }
+.st-tool:hover { background: var(--surface-3); color: var(--text); }
+.st-tool.active { background: var(--green-soft); color: var(--green-text); border-color: var(--green); }
+.st-tool:disabled { opacity: .4; cursor: default; }
+.st-hint { font-size: .76rem; color: var(--text-dim); text-align: center; margin: -.3rem 0 0; min-height: 1.2em; }
+.sticker-stage.lasso canvas { cursor: crosshair; }
+.st-busy {
+  position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .6rem;
+  background: rgba(11,20,26,.55); color: #fff; font-size: .85rem; font-weight: 600; backdrop-filter: blur(2px);
+}
+.st-spinner {
+  width: 32px; height: 32px; border-radius: 50%; border: 3px solid rgba(255,255,255,.3); border-top-color: #fff;
+  animation: girar .8s linear infinite;
+}
+@keyframes girar { to { transform: rotate(360deg); } }
