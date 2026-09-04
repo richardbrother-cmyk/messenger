@@ -1132,6 +1132,12 @@ function actualizarBotonEnviar() {
   mic.classList.toggle('hidden', hay);
 }
 
+// Respuesta háptica (Android; iOS no lo soporta y se ignora)
+const VIBRA = { toque: 25, listo: [30, 50, 30], error: 90 };
+function vibrar(patron) {
+  try { if (navigator.vibrate) navigator.vibrate(patron); } catch (_) {}
+}
+
 // Aviso breve en pantalla (en vez de alert)
 function toast(texto) {
   document.getElementById('toast')?.remove();
@@ -1395,8 +1401,10 @@ function montarEditorSticker(imgOriginal) {
         mask = m; lassoPts = [];
         actualizarFuente();
         setTool('move');
+        vibrar(VIBRA.listo);
       } catch (err) {
         console.warn('Quitar fondo:', err);
+        vibrar(VIBRA.error);
         toast('No se pudo quitar el fondo automáticamente. Prueba a recortar con el dedo.');
       } finally { ocupado(false); }
       return;
@@ -1421,7 +1429,7 @@ function montarEditorSticker(imgOriginal) {
     const org = fuente._origen || { x: 0, y: 0 };
     const ix = (p.x - ox) / scale + org.x, iy = (p.y - oy) / scale + org.y;
     if (ix < 0 || iy < 0 || ix >= img.width || iy >= img.height) return;
-    if (navigator.vibrate) navigator.vibrate(25);
+    vibrar(VIBRA.toque);
     const marca = document.createElement('div');
     marca.className = 'st-touch';
     marca.style.left = `${(p.x / SIZE) * 100}%`; marca.style.top = `${(p.y / SIZE) * 100}%`;
@@ -1429,12 +1437,14 @@ function montarEditorSticker(imgOriginal) {
     ocupado(true, 'Recortando…');
     try {
       const m = await mascaraObjeto(img, ix / img.width, iy / img.height);
-      if (!m) { toast('No se reconoció ningún objeto ahí. Prueba con el lazo.'); return; }
+      if (!m) { vibrar(VIBRA.error); toast('No se reconoció ningún objeto ahí. Prueba con el lazo.'); return; }
       mask = m; lassoPts = [];
       actualizarFuente();
       setTool('move');
+      vibrar(VIBRA.listo);
     } catch (err) {
       console.warn('Recorte de objeto:', err);
+      vibrar(VIBRA.error);
       toast('No se pudo recortar automáticamente. Prueba con el lazo.');
     } finally { ocupado(false); marca.remove(); }
   }
@@ -1486,6 +1496,7 @@ function montarEditorSticker(imgOriginal) {
     mask = suavizarMascara(nueva);
     actualizarFuente();
     setTool('move');
+    vibrar(VIBRA.listo);
   }
 
   canvas.addEventListener('mousedown', e => { e.preventDefault(); inicio(e); });
