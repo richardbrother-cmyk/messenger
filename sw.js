@@ -24,6 +24,14 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const url = e.request.url;
   if (url.includes('supabase.co')) return;
+  // Modelo y motor de "quitar fondo" (MediaPipe): caché primero, son archivos grandes que no cambian.
+  if (url.includes('tasks-vision') || url.includes('mediapipe-models')) {
+    e.respondWith(caches.match(e.request).then(hit => hit || fetch(e.request).then(resp => {
+      if (resp.ok) { const copia = resp.clone(); caches.open(CACHE).then(c => c.put(e.request, copia)); }
+      return resp;
+    })));
+    return;
+  }
   // El código de la app SIEMPRE de la red (nunca caché), para que no quede viejo.
   if (url.includes('app.js') || url.includes('styles.css') || url.endsWith('/') || url.includes('index.html')) {
     e.respondWith(fetch(e.request, { cache: 'no-store' }).catch(() => caches.match(e.request)));

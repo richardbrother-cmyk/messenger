@@ -123,6 +123,10 @@ const ICON = {
   text: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>',
   download: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>',
   lock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
+  move: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="5 9 2 12 5 15"/><polyline points="9 5 12 2 15 5"/><polyline points="15 19 12 22 9 19"/><polyline points="19 9 22 12 19 15"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="12" y1="2" x2="12" y2="22"/></svg>',
+  scissors: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>',
+  wand: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4V2M15 16v-2M8 9h2M20 9h2M17.8 11.8L19 13M15 9h.01M17.8 6.2L19 5M3 21l9-9M12.2 6.2L11 5"/></svg>',
+  undo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>',
   moon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>',
 };
 function svgBtn(name, id, cls, title) {
@@ -1270,17 +1274,28 @@ function abrirEditorSticker(file) {
   reader.readAsDataURL(file);
 }
 
-function montarEditorSticker(img) {
+function montarEditorSticker(imgOriginal) {
   const SIZE = Math.min(280, Math.floor(window.innerWidth * 0.78));
   const OUT = 512;
+  // Trabajar con una copia reducida (máx. 1024 px): más rápido y suficiente para 512x512
+  const img = reducirImagen(imgOriginal, 1024);
+
   const overlay = document.createElement('div');
   overlay.className = 'crop-overlay';
   overlay.innerHTML = `
     <div class="crop-box sticker-box">
       <p class="crop-title">Nuevo sticker</p>
+      <div class="st-tools">
+        <button class="st-tool active" data-tool="move" type="button">${ICON.move}<span>Encuadrar</span></button>
+        <button class="st-tool" data-tool="lasso" type="button">${ICON.scissors}<span>Recortar</span></button>
+        <button class="st-tool" data-tool="auto" type="button">${ICON.wand}<span>Quitar fondo</span></button>
+        <button class="st-tool" data-tool="reset" type="button" disabled>${ICON.undo}<span>Deshacer</span></button>
+      </div>
       <div class="crop-stage sticker-stage" style="width:${SIZE}px;height:${SIZE}px;">
         <canvas id="stCanvas" width="${SIZE}" height="${SIZE}"></canvas>
+        <div class="st-busy hidden" id="stBusy"><span class="st-spinner"></span><span id="stBusyText">Quitando fondo…</span></div>
       </div>
+      <p class="st-hint" id="stHint">Arrastra para encuadrar · pellizca o usa la barra para acercar</p>
       <input id="stText" placeholder="Texto (opcional)" maxlength="40" autocomplete="off">
       <input id="stZoom" type="range" min="1" max="4" step="0.01" value="1">
       <div class="crop-actions">
@@ -1293,49 +1308,177 @@ function montarEditorSticker(img) {
   const canvas = document.getElementById('stCanvas');
   const ctx = canvas.getContext('2d');
   const textInput = document.getElementById('stText');
-  const baseScale = Math.max(SIZE / img.width, SIZE / img.height);
-  let zoom = 1, scale = baseScale;
-  let ox = (SIZE - img.width * scale) / 2, oy = (SIZE - img.height * scale) / 2;
+  const zoomInput = document.getElementById('stZoom');
+  const hint = document.getElementById('stHint');
+  const busy = document.getElementById('stBusy');
+  const stage = overlay.querySelector('.sticker-stage');
 
+  // --- Estado ---
+  let tool = 'move';
+  let mask = null;        // canvas (tamaño de img) con alfa = zona que se conserva; null = sin recorte
+  let fuente = img;       // lo que se dibuja (img o el recorte con borde blanco)
+  let baseScale = 1, zoom = 1, scale = 1, ox = 0, oy = 0;
+  let lassoPts = [];      // puntos del lazo en coordenadas del lienzo
+  let dibujandoLazo = false;
+
+  function encuadrar(modo) {
+    // 'cover' llena el cuadro (foto completa); 'contain' muestra todo el recorte
+    baseScale = modo === 'cover'
+      ? Math.max(SIZE / fuente.width, SIZE / fuente.height)
+      : Math.min(SIZE / fuente.width, SIZE / fuente.height);
+    zoom = 1; zoomInput.value = 1;
+    scale = baseScale;
+    ox = (SIZE - fuente.width * scale) / 2;
+    oy = (SIZE - fuente.height * scale) / 2;
+  }
   function clamp() {
     scale = baseScale * zoom;
-    const w = img.width * scale, h = img.height * scale;
-    if (ox > 0) ox = 0; if (oy > 0) oy = 0;
-    if (ox < SIZE - w) ox = SIZE - w; if (oy < SIZE - h) oy = SIZE - h;
+    const w = fuente.width * scale, h = fuente.height * scale;
+    const minX = Math.min(0, SIZE - w), maxX = Math.max(0, SIZE - w);
+    const minY = Math.min(0, SIZE - h), maxY = Math.max(0, SIZE - h);
+    ox = Math.max(minX, Math.min(maxX, ox));
+    oy = Math.max(minY, Math.min(maxY, oy));
   }
   function draw() {
     clamp();
     ctx.clearRect(0, 0, SIZE, SIZE);
-    ctx.drawImage(img, ox, oy, img.width * scale, img.height * scale);
+    ctx.drawImage(fuente, ox, oy, fuente.width * scale, fuente.height * scale);
     dibujarTextoSticker(ctx, textInput.value, SIZE);
+    if (lassoPts.length > 1) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(lassoPts[0].x, lassoPts[0].y);
+      for (const p of lassoPts) ctx.lineTo(p.x, p.y);
+      if (!dibujandoLazo) ctx.closePath();
+      ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,.6)'; ctx.stroke();
+      ctx.lineWidth = 2; ctx.setLineDash([6, 5]); ctx.strokeStyle = '#fff'; ctx.stroke();
+      ctx.restore();
+    }
   }
+  // Recalcula lo que se dibuja a partir de la máscara y reencuadra
+  function actualizarFuente() {
+    if (!mask) { fuente = img; encuadrar('cover'); }
+    else {
+      const recorte = aplicarMascaraSticker(img, mask);
+      fuente = recorte ? conBordeSticker(recorte) : img;
+      encuadrar('contain');
+    }
+    overlay.querySelector('[data-tool="reset"]').disabled = !mask;
+    draw();
+  }
+  function setTool(t) {
+    tool = t;
+    overlay.querySelectorAll('.st-tool').forEach(b => b.classList.toggle('active', b.dataset.tool === t));
+    stage.classList.toggle('lasso', t === 'lasso');
+    hint.textContent = t === 'lasso'
+      ? 'Dibuja el contorno con el dedo: se conserva lo de dentro'
+      : 'Arrastra para encuadrar · pellizca o usa la barra para acercar';
+  }
+  function ocupado(si, texto) {
+    busy.classList.toggle('hidden', !si);
+    if (texto) document.getElementById('stBusyText').textContent = texto;
+    overlay.querySelectorAll('.st-tool, #stSave').forEach(b => b.disabled = si);
+    if (!si) overlay.querySelector('[data-tool="reset"]').disabled = !mask;
+  }
+
+  encuadrar('cover');
   draw();
 
+  // --- Herramientas ---
+  overlay.querySelectorAll('.st-tool').forEach(b => b.onclick = async () => {
+    const t = b.dataset.tool;
+    if (t === 'reset') { mask = null; lassoPts = []; actualizarFuente(); setTool('move'); return; }
+    if (t === 'auto') {
+      ocupado(true, 'Quitando fondo…');
+      try {
+        const m = await quitarFondoAuto(img);
+        mask = m; lassoPts = [];
+        actualizarFuente();
+        setTool('move');
+      } catch (err) {
+        console.warn('Quitar fondo:', err);
+        toast('No se pudo quitar el fondo automáticamente. Prueba a recortar con el dedo.');
+      } finally { ocupado(false); }
+      return;
+    }
+    setTool(t);
+  });
+
+  // --- Gestos sobre el lienzo ---
+  const pos = (e) => {
+    const r = canvas.getBoundingClientRect();
+    const t = e.touches ? e.touches[0] : e;
+    return { x: (t.clientX - r.left) * (SIZE / r.width), y: (t.clientY - r.top) * (SIZE / r.height) };
+  };
   let dragging = false, lastX = 0, lastY = 0;
-  const start = (x, y) => { dragging = true; lastX = x; lastY = y; };
-  const move = (x, y) => { if (!dragging) return; ox += x - lastX; oy += y - lastY; lastX = x; lastY = y; draw(); };
-  const end = () => { dragging = false; };
-  canvas.addEventListener('mousedown', e => start(e.clientX, e.clientY));
-  const onMove = e => move(e.clientX, e.clientY);
-  window.addEventListener('mousemove', onMove);
-  window.addEventListener('mouseup', end);
   let pinchDist = 0, pinchZoom = 1;
   const dist = t => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+
+  function inicio(e) {
+    const p = pos(e);
+    if (tool === 'lasso') { dibujandoLazo = true; lassoPts = [p]; draw(); return; }
+    dragging = true; lastX = p.x; lastY = p.y;
+  }
+  function mover(e) {
+    const p = pos(e);
+    if (tool === 'lasso') {
+      if (!dibujandoLazo) return;
+      const u = lassoPts[lassoPts.length - 1];
+      if (Math.hypot(p.x - u.x, p.y - u.y) > 2) { lassoPts.push(p); draw(); }
+      return;
+    }
+    if (!dragging) return;
+    ox += p.x - lastX; oy += p.y - lastY; lastX = p.x; lastY = p.y; draw();
+  }
+  function fin() {
+    dragging = false;
+    if (tool === 'lasso' && dibujandoLazo) {
+      dibujandoLazo = false;
+      if (lassoPts.length >= 3) aplicarLazo();
+      lassoPts = [];
+      draw();
+    }
+  }
+  // Convierte el lazo (coordenadas del lienzo) a coordenadas de la imagen y lo aplica a la máscara
+  function aplicarLazo() {
+    // origen de 'fuente' respecto a la imagen original (el recorte se ajusta a su caja + borde)
+    const org = fuente._origen || { x: 0, y: 0 };
+    const poly = lassoPts.map(p => ({ x: (p.x - ox) / scale + org.x, y: (p.y - oy) / scale + org.y }));
+    const nueva = document.createElement('canvas');
+    nueva.width = img.width; nueva.height = img.height;
+    const mctx = nueva.getContext('2d');
+    mctx.fillStyle = '#fff';
+    mctx.beginPath();
+    mctx.moveTo(poly[0].x, poly[0].y);
+    for (const p of poly) mctx.lineTo(p.x, p.y);
+    mctx.closePath();
+    mctx.fill();
+    if (mask) { mctx.globalCompositeOperation = 'destination-in'; mctx.drawImage(mask, 0, 0); }
+    mask = suavizarMascara(nueva);
+    actualizarFuente();
+    setTool('move');
+  }
+
+  canvas.addEventListener('mousedown', e => { e.preventDefault(); inicio(e); });
+  const onMove = e => mover(e);
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', fin);
   canvas.addEventListener('touchstart', e => {
-    if (e.touches.length === 1) start(e.touches[0].clientX, e.touches[0].clientY);
-    else if (e.touches.length === 2) { pinchDist = dist(e.touches); pinchZoom = zoom; }
+    e.preventDefault();
+    if (e.touches.length === 1) inicio(e);
+    else if (e.touches.length === 2 && tool !== 'lasso') { dragging = false; pinchDist = dist(e.touches); pinchZoom = zoom; }
   }, { passive: false });
   canvas.addEventListener('touchmove', e => {
     e.preventDefault();
-    if (e.touches.length === 1) move(e.touches[0].clientX, e.touches[0].clientY);
-    else if (e.touches.length === 2) {
+    if (e.touches.length === 1) mover(e);
+    else if (e.touches.length === 2 && tool !== 'lasso') {
       zoom = Math.min(4, Math.max(1, pinchZoom * (dist(e.touches) / pinchDist)));
-      document.getElementById('stZoom').value = zoom;
+      zoomInput.value = zoom;
       draw();
     }
   }, { passive: false });
-  canvas.addEventListener('touchend', end);
-  document.getElementById('stZoom').addEventListener('input', e => {
+  canvas.addEventListener('touchend', fin);
+  zoomInput.addEventListener('input', e => {
     const cx = SIZE / 2, cy = SIZE / 2;
     const imgCx = (cx - ox) / scale, imgCy = (cy - oy) / scale;
     zoom = parseFloat(e.target.value);
@@ -1345,18 +1488,203 @@ function montarEditorSticker(img) {
   });
   textInput.addEventListener('input', draw);
 
-  const cerrar = () => { overlay.remove(); window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', end); };
+  const cerrar = () => { overlay.remove(); window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', fin); };
   document.getElementById('stCancel').onclick = cerrar;
   document.getElementById('stSave').onclick = () => {
     const out = document.createElement('canvas');
     out.width = OUT; out.height = OUT;
     const octx = out.getContext('2d');
     const ratio = OUT / SIZE;
-    octx.drawImage(img, ox * ratio, oy * ratio, img.width * scale * ratio, img.height * scale * ratio);
+    octx.drawImage(fuente, ox * ratio, oy * ratio, fuente.width * scale * ratio, fuente.height * scale * ratio);
     dibujarTextoSticker(octx, textInput.value, OUT);
     const listo = (blob) => { cerrar(); if (blob) subirSticker(blob); else toast('No se pudo procesar la imagen'); };
     out.toBlob(b => b ? listo(b) : out.toBlob(listo, 'image/png'), 'image/webp', 0.9);
   };
+}
+
+// Reduce una imagen a un canvas de como máximo `max` px por lado
+function reducirImagen(img, max) {
+  const r = Math.min(1, max / Math.max(img.width, img.height));
+  const c = document.createElement('canvas');
+  c.width = Math.max(1, Math.round(img.width * r));
+  c.height = Math.max(1, Math.round(img.height * r));
+  c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+  return c;
+}
+
+// Aplica la máscara (alfa) a la imagen y recorta a la caja del contenido.
+// Devuelve un canvas con _origen = posición de ese canvas dentro de la imagen.
+function aplicarMascaraSticker(img, mask) {
+  const c = document.createElement('canvas');
+  c.width = img.width; c.height = img.height;
+  const x = c.getContext('2d');
+  x.drawImage(img, 0, 0);
+  x.globalCompositeOperation = 'destination-in';
+  x.drawImage(mask, 0, 0, img.width, img.height);
+  // caja del contenido visible
+  const d = x.getImageData(0, 0, c.width, c.height).data;
+  let minX = c.width, minY = c.height, maxX = -1, maxY = -1;
+  for (let y = 0; y < c.height; y++) {
+    for (let xx = 0; xx < c.width; xx++) {
+      if (d[(y * c.width + xx) * 4 + 3] > 16) {
+        if (xx < minX) minX = xx; if (xx > maxX) maxX = xx;
+        if (y < minY) minY = y; if (y > maxY) maxY = y;
+      }
+    }
+  }
+  if (maxX < 0) return null;   // máscara vacía
+  const out = document.createElement('canvas');
+  out.width = maxX - minX + 1; out.height = maxY - minY + 1;
+  out.getContext('2d').drawImage(c, minX, minY, out.width, out.height, 0, 0, out.width, out.height);
+  out._origen = { x: minX, y: minY };
+  return out;
+}
+
+// Borde blanco alrededor del recorte (como los stickers de WhatsApp)
+function conBordeSticker(recorte) {
+  const r = Math.max(3, Math.round(Math.max(recorte.width, recorte.height) * 0.025));
+  const out = document.createElement('canvas');
+  out.width = recorte.width + r * 2; out.height = recorte.height + r * 2;
+  const x = out.getContext('2d');
+  // silueta blanca: la forma desplazada en todas direcciones
+  for (let i = 0; i < 16; i++) {
+    const a = (i / 16) * Math.PI * 2;
+    x.drawImage(recorte, r + Math.cos(a) * r, r + Math.sin(a) * r);
+  }
+  x.globalCompositeOperation = 'source-in';
+  x.fillStyle = '#fff';
+  x.fillRect(0, 0, out.width, out.height);
+  x.globalCompositeOperation = 'source-over';
+  x.drawImage(recorte, r, r);
+  out._origen = { x: recorte._origen.x - r, y: recorte._origen.y - r };
+  return out;
+}
+
+// Suaviza el borde de la máscara (pluma de ~1 px)
+function suavizarMascara(mask) {
+  const c = document.createElement('canvas');
+  c.width = mask.width; c.height = mask.height;
+  const x = c.getContext('2d');
+  try { x.filter = 'blur(0.6px)'; } catch (_) {}
+  x.drawImage(mask, 0, 0);
+  return c;
+}
+
+// === QUITAR FONDO AUTOMÁTICO ===
+// 1) Segmentación con IA en el navegador (MediaPipe, modelo de personas, ~250 KB).
+// 2) Si no se puede cargar o no detecta a nadie, relleno desde los bordes (fondos lisos).
+const MP_BASE = window.MP_BASE || 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.21';
+const MP_MODEL = window.MP_MODEL || 'https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_segmenter/float16/latest/selfie_segmenter.tflite';
+let segmentadorPromesa = null;
+function cargarSegmentador() {
+  if (!segmentadorPromesa) {
+    // si en 25 s no cargó (sin red / red lenta), se usa el método de relleno
+    const limite = new Promise((_, rej) => setTimeout(() => rej(new Error('tiempo agotado cargando el modelo')), 25000));
+    segmentadorPromesa = Promise.race([limite, (async () => {
+      const vision = await import(`${MP_BASE}/vision_bundle.mjs`);
+      const files = await vision.FilesetResolver.forVisionTasks(`${MP_BASE}/wasm`);
+      return vision.ImageSegmenter.createFromOptions(files, {
+        baseOptions: { modelAssetPath: MP_MODEL },
+        runningMode: 'IMAGE', outputCategoryMask: false, outputConfidenceMasks: true,
+      });
+    })()]).catch(err => { segmentadorPromesa = null; throw err; });
+  }
+  return segmentadorPromesa;
+}
+
+async function quitarFondoAuto(img) {
+  let mask = null;
+  try {
+    mask = await mascaraIA(img);
+  } catch (err) {
+    console.warn('Segmentación IA no disponible:', err);
+  }
+  if (!mask) mask = mascaraRelleno(img);
+  if (!mask) throw new Error('sin resultado');
+  return suavizarMascara(mask);
+}
+
+// Máscara con IA. Devuelve null si no detecta nada útil.
+async function mascaraIA(img) {
+  const seg = await cargarSegmentador();
+  const entrada = reducirImagen(img, 512);
+  const res = seg.segment(entrada);
+  const masks = res.confidenceMasks || [];
+  let mejor = null, mejorBorde = Infinity;
+  for (const m of masks) {
+    const a = m.getAsFloat32Array();
+    const w = m.width, h = m.height;
+    // la persona casi no toca los bordes; el fondo sí
+    let suma = 0, n = 0;
+    for (let x = 0; x < w; x++) { suma += a[x] + a[(h - 1) * w + x]; n += 2; }
+    for (let y = 0; y < h; y++) { suma += a[y * w] + a[y * w + w - 1]; n += 2; }
+    const borde = suma / n;
+    if (borde < mejorBorde) { mejorBorde = borde; mejor = { a, w, h }; }
+  }
+  try { res.close && res.close(); } catch (_) {}
+  if (!mejor) return null;
+  const { a, w, h } = mejor;
+  const invertir = masks.length === 1 && mejorBorde > 0.5;   // una sola máscara y es el fondo
+  let cubierto = 0;
+  const id = new ImageData(w, h);
+  for (let i = 0; i < w * h; i++) {
+    let v = invertir ? 1 - a[i] : a[i];
+    v = v < 0.35 ? 0 : v > 0.65 ? 1 : (v - 0.35) / 0.3;   // contraste en el borde
+    const p = i * 4;
+    id.data[p] = id.data[p + 1] = id.data[p + 2] = 255;
+    id.data[p + 3] = Math.round(v * 255);
+    if (v > 0.5) cubierto++;
+  }
+  console.info('[sticker] IA: máscaras', masks.length, 'cobertura', Math.round(100 * cubierto / (w * h)) + '%');
+  if (cubierto / (w * h) < 0.02) return null;   // no hay persona: usar el otro método
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  c.getContext('2d').putImageData(id, 0, 0);
+  return c;
+}
+
+// Máscara por relleno desde los bordes: quita todo lo que se parece al color
+// del borde (fondos lisos, paredes, cielo...). Devuelve null si borraría casi todo.
+function mascaraRelleno(img, tol = 34) {
+  const src = reducirImagen(img, 400);
+  const w = src.width, h = src.height;
+  const d = src.getContext('2d').getImageData(0, 0, w, h).data;
+  const fondo = new Uint8Array(w * h);
+  const cola = new Int32Array(w * h);
+  const tol2 = tol * tol;
+  const semilla = (i) => {
+    if (fondo[i]) return;
+    const r0 = d[i * 4], g0 = d[i * 4 + 1], b0 = d[i * 4 + 2];
+    let head = 0, tail = 0;
+    cola[tail++] = i; fondo[i] = 1;
+    while (head < tail) {
+      const j = cola[head++];
+      const x = j % w, y = (j / w) | 0;
+      const vecinos = [j - 1, j + 1, j - w, j + w];
+      for (let k = 0; k < 4; k++) {
+        const v = vecinos[k];
+        if (v < 0 || v >= w * h || fondo[v]) continue;
+        if ((k === 0 && x === 0) || (k === 1 && x === w - 1)) continue;
+        const dr = d[v * 4] - r0, dg = d[v * 4 + 1] - g0, db = d[v * 4 + 2] - b0;
+        if (dr * dr + dg * dg + db * db <= tol2) { fondo[v] = 1; cola[tail++] = v; }
+      }
+    }
+  };
+  for (let x = 0; x < w; x++) { semilla(x); semilla((h - 1) * w + x); }
+  for (let y = 0; y < h; y++) { semilla(y * w); semilla(y * w + w - 1); }
+  let quedan = 0;
+  const id = new ImageData(w, h);
+  for (let i = 0; i < w * h; i++) {
+    const p = i * 4;
+    id.data[p] = id.data[p + 1] = id.data[p + 2] = 255;
+    id.data[p + 3] = fondo[i] ? 0 : 255;
+    if (!fondo[i]) quedan++;
+  }
+  if (quedan / (w * h) < 0.02) return null;
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  c.getContext('2d').putImageData(id, 0, 0);
+  return c;
 }
 
 // Texto estilo "meme" (blanco con borde negro) en la parte inferior del sticker
