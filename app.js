@@ -1295,7 +1295,7 @@ function montarEditorSticker(imgOriginal) {
         <canvas id="stCanvas" width="${SIZE}" height="${SIZE}"></canvas>
         <div class="st-busy hidden" id="stBusy"><span class="st-spinner"></span><span id="stBusyText">Quitando fondo…</span></div>
       </div>
-      <p class="st-hint" id="stHint">Arrastra para encuadrar · pellizca o usa la barra para acercar</p>
+      <p class="st-hint" id="stHint">Mantén presionado sobre algo para recortarlo · arrastra para encuadrar</p>
       <input id="stText" placeholder="Texto (opcional)" maxlength="40" autocomplete="off">
       <input id="stZoom" type="range" min="1" max="4" step="0.01" value="1">
       <div class="crop-actions">
@@ -1372,7 +1372,7 @@ function montarEditorSticker(imgOriginal) {
     stage.classList.toggle('lasso', t === 'lasso');
     hint.textContent = t === 'lasso'
       ? 'Dibuja el contorno con el dedo: se conserva lo de dentro'
-      : 'Arrastra para encuadrar · pellizca o usa la barra para acercar';
+      : 'Mantén presionado sobre algo para recortarlo · arrastra para encuadrar';
   }
   function ocupado(si, texto) {
     busy.classList.toggle('hidden', !si);
@@ -1414,10 +1414,37 @@ function montarEditorSticker(imgOriginal) {
   let pinchDist = 0, pinchZoom = 1;
   const dist = t => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
 
+  // Pulsación larga (como en WhatsApp / Google Fotos / Galaxy): recorta el objeto tocado
+  let pressTimer = null, pressPt = null;
+  function cancelarPress() { if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; } }
+  async function recortarObjetoEn(p) {
+    const org = fuente._origen || { x: 0, y: 0 };
+    const ix = (p.x - ox) / scale + org.x, iy = (p.y - oy) / scale + org.y;
+    if (ix < 0 || iy < 0 || ix >= img.width || iy >= img.height) return;
+    if (navigator.vibrate) navigator.vibrate(25);
+    const marca = document.createElement('div');
+    marca.className = 'st-touch';
+    marca.style.left = `${(p.x / SIZE) * 100}%`; marca.style.top = `${(p.y / SIZE) * 100}%`;
+    stage.appendChild(marca);
+    ocupado(true, 'Recortando…');
+    try {
+      const m = await mascaraObjeto(img, ix / img.width, iy / img.height);
+      if (!m) { toast('No se reconoció ningún objeto ahí. Prueba con el lazo.'); return; }
+      mask = m; lassoPts = [];
+      actualizarFuente();
+      setTool('move');
+    } catch (err) {
+      console.warn('Recorte de objeto:', err);
+      toast('No se pudo recortar automáticamente. Prueba con el lazo.');
+    } finally { ocupado(false); marca.remove(); }
+  }
+
   function inicio(e) {
     const p = pos(e);
     if (tool === 'lasso') { dibujandoLazo = true; lassoPts = [p]; draw(); return; }
     dragging = true; lastX = p.x; lastY = p.y;
+    pressPt = p; cancelarPress();
+    pressTimer = setTimeout(() => { pressTimer = null; dragging = false; recortarObjetoEn(p); }, 450);
   }
   function mover(e) {
     const p = pos(e);
@@ -1427,10 +1454,12 @@ function montarEditorSticker(imgOriginal) {
       if (Math.hypot(p.x - u.x, p.y - u.y) > 2) { lassoPts.push(p); draw(); }
       return;
     }
+    if (pressTimer && pressPt && Math.hypot(p.x - pressPt.x, p.y - pressPt.y) > 8) cancelarPress();
     if (!dragging) return;
     ox += p.x - lastX; oy += p.y - lastY; lastX = p.x; lastY = p.y; draw();
   }
   function fin() {
+    cancelarPress();
     dragging = false;
     if (tool === 'lasso' && dibujandoLazo) {
       dibujandoLazo = false;
@@ -1466,8 +1495,9 @@ function montarEditorSticker(imgOriginal) {
   canvas.addEventListener('touchstart', e => {
     e.preventDefault();
     if (e.touches.length === 1) inicio(e);
-    else if (e.touches.length === 2 && tool !== 'lasso') { dragging = false; pinchDist = dist(e.touches); pinchZoom = zoom; }
+    else if (e.touches.length === 2 && tool !== 'lasso') { cancelarPress(); dragging = false; pinchDist = dist(e.touches); pinchZoom = zoom; }
   }, { passive: false });
+  canvas.addEventListener('contextmenu', e => e.preventDefault());
   canvas.addEventListener('touchmove', e => {
     e.preventDefault();
     if (e.touches.length === 1) mover(e);
@@ -1575,14 +1605,86 @@ function suavizarMascara(mask) {
 // 2) Si no se puede cargar o no detecta a nadie, relleno desde los bordes (fondos lisos).
 const MP_BASE = window.MP_BASE || 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.21';
 const MP_MODEL = window.MP_MODEL || 'https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_segmenter/float16/latest/selfie_segmenter.tflite';
+// Modelo "Magic Touch" (~6 MB): devuelve la silueta del objeto que hay en el punto tocado
+const MP_MAGIC = window.MP_MAGIC || 'https://storage.googleapis.com/mediapipe-models/interactive_segmenter/magic_touch/float32/latest/magic_touch.tflite';
 let segmentadorPromesa = null;
+let segInteractivoPromesa = null;
+let visionPromesa = null;
+function cargarVision() {
+  if (!visionPromesa) {
+    visionPromesa = (async () => {
+      const vision = await import(`${MP_BASE}/vision_bundle.mjs`);
+      const files = await vision.FilesetResolver.forVisionTasks(`${MP_BASE}/wasm`);
+      return { vision, files };
+    })().catch(err => { visionPromesa = null; throw err; });
+  }
+  return visionPromesa;
+}
+function cargarSegmentadorInteractivo() {
+  if (!segInteractivoPromesa) {
+    const limite = new Promise((_, rej) => setTimeout(() => rej(new Error('tiempo agotado cargando el modelo')), 40000));
+    segInteractivoPromesa = Promise.race([limite, (async () => {
+      const { vision, files } = await cargarVision();
+      return vision.InteractiveSegmenter.createFromOptions(files, {
+        baseOptions: { modelAssetPath: MP_MAGIC },
+        outputCategoryMask: false, outputConfidenceMasks: true,
+      });
+    })()]).catch(err => { segInteractivoPromesa = null; throw err; });
+  }
+  return segInteractivoPromesa;
+}
+
+// Máscara del objeto que hay en el punto (nx, ny) normalizado [0..1]. null si no hay nada.
+async function mascaraObjeto(img, nx, ny) {
+  const seg = await cargarSegmentadorInteractivo();
+  const entrada = reducirImagen(img, 512);
+  let elegido = null, mejorValor = -1, total = 0;
+  // Con callback, las máscaras solo son válidas dentro de él: copiar los datos ahí mismo
+  const procesar = (res) => {
+    const masks = res.confidenceMasks || [];
+    total = masks.length;
+    for (const m of masks) {
+      const a = m.getAsFloat32Array();
+      const w = m.width, h = m.height;
+      const px = Math.min(w - 1, Math.round(nx * w)), py = Math.min(h - 1, Math.round(ny * h));
+      const v = a[py * w + px];
+      if (v > mejorValor) { mejorValor = v; elegido = { a: Float32Array.from(a), w, h }; }
+    }
+    try { res.close && res.close(); } catch (_) {}
+  };
+  const ret = seg.segment(entrada, { keypoint: { x: nx, y: ny } }, procesar);
+  if (ret && !elegido) procesar(ret);
+  if (!elegido) return null;
+  // una sola máscara y el punto tocado sale "bajo": la máscara es del fondo, invertir
+  const invertir = total === 1 && mejorValor < 0.5;
+  const r = mascaraDesdeConfianza(elegido.a, elegido.w, elegido.h, invertir);
+  console.info('[sticker] objeto: máscaras', total, 'confianza', mejorValor.toFixed(2), 'cobertura', Math.round(r.cobertura * 100) + '%');
+  return r.cobertura > 0.004 ? r.canvas : null;
+}
+
+// Convierte un mapa de confianza [0..1] en un canvas de máscara (alfa), con contraste en el borde
+function mascaraDesdeConfianza(a, w, h, invertir) {
+  let cubierto = 0;
+  const id = new ImageData(w, h);
+  for (let i = 0; i < w * h; i++) {
+    let v = invertir ? 1 - a[i] : a[i];
+    v = v < 0.35 ? 0 : v > 0.65 ? 1 : (v - 0.35) / 0.3;
+    const p = i * 4;
+    id.data[p] = id.data[p + 1] = id.data[p + 2] = 255;
+    id.data[p + 3] = Math.round(v * 255);
+    if (v > 0.5) cubierto++;
+  }
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  c.getContext('2d').putImageData(id, 0, 0);
+  return { canvas: c, cobertura: cubierto / (w * h) };
+}
 function cargarSegmentador() {
   if (!segmentadorPromesa) {
     // si en 25 s no cargó (sin red / red lenta), se usa el método de relleno
     const limite = new Promise((_, rej) => setTimeout(() => rej(new Error('tiempo agotado cargando el modelo')), 25000));
     segmentadorPromesa = Promise.race([limite, (async () => {
-      const vision = await import(`${MP_BASE}/vision_bundle.mjs`);
-      const files = await vision.FilesetResolver.forVisionTasks(`${MP_BASE}/wasm`);
+      const { vision, files } = await cargarVision();
       return vision.ImageSegmenter.createFromOptions(files, {
         baseOptions: { modelAssetPath: MP_MODEL },
         runningMode: 'IMAGE', outputCategoryMask: false, outputConfidenceMasks: true,
@@ -1625,22 +1727,9 @@ async function mascaraIA(img) {
   if (!mejor) return null;
   const { a, w, h } = mejor;
   const invertir = masks.length === 1 && mejorBorde > 0.5;   // una sola máscara y es el fondo
-  let cubierto = 0;
-  const id = new ImageData(w, h);
-  for (let i = 0; i < w * h; i++) {
-    let v = invertir ? 1 - a[i] : a[i];
-    v = v < 0.35 ? 0 : v > 0.65 ? 1 : (v - 0.35) / 0.3;   // contraste en el borde
-    const p = i * 4;
-    id.data[p] = id.data[p + 1] = id.data[p + 2] = 255;
-    id.data[p + 3] = Math.round(v * 255);
-    if (v > 0.5) cubierto++;
-  }
-  console.info('[sticker] IA: máscaras', masks.length, 'cobertura', Math.round(100 * cubierto / (w * h)) + '%');
-  if (cubierto / (w * h) < 0.02) return null;   // no hay persona: usar el otro método
-  const c = document.createElement('canvas');
-  c.width = w; c.height = h;
-  c.getContext('2d').putImageData(id, 0, 0);
-  return c;
+  const r = mascaraDesdeConfianza(a, w, h, invertir);
+  console.info('[sticker] IA: máscaras', masks.length, 'cobertura', Math.round(r.cobertura * 100) + '%');
+  return r.cobertura < 0.02 ? null : r.canvas;   // no hay persona: usar el otro método
 }
 
 // Máscara por relleno desde los bordes: quita todo lo que se parece al color

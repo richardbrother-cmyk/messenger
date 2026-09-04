@@ -1115,3 +1115,11 @@ button.link:hover { background: none; opacity: .8; }
   animation: girar .8s linear infinite;
 }
 @keyframes girar { to { transform: rotate(360deg); } }
+/* Marca del punto tocado mientras se recorta el objeto */
+.st-touch {
+  position: absolute; width: 44px; height: 44px; margin: -22px 0 0 -22px; border-radius: 50%;
+  border: 3px solid #fff; box-shadow: 0 0 0 3px rgba(0,168,132,.7); pointer-events: none; z-index: 3;
+  animation: latido .9s ease-in-out infinite;
+}
+@keyframes latido { 0%,100% { transform: scale(1); opacity: .9; } 50% { transform: scale(1.35); opacity: .5; } }
+.sticker-stage { -webkit-touch-callout: none; user-select: none; }
