@@ -2,7 +2,8 @@
 //  FAMILIA CHAT — sw.js  (v8: app.js siempre de la red, sin caché viejo)
 //  Reemplaza tu sw.js por este.
 // ============================================================
-const CACHE = 'familia-chat-v10';
+const CACHE = 'familia-chat-v11';
+const SHARE_CACHE = 'share-inbox';   // contenido recibido con "Compartir" desde otras apps
 // Solo cacheamos lo estático que casi no cambia. El CÓDIGO (app.js, styles.css,
 // index.html) NO se precachea: siempre se baja fresco de la red, para evitar
 // que el service worker sirva versiones viejas.
@@ -16,7 +17,7 @@ self.addEventListener('install', e => {
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
+      Promise.all(keys.filter(k => k !== CACHE && k !== SHARE_CACHE).map(k => caches.delete(k)))
     ).then(() => self.clients.claim())
   );
 });
@@ -24,6 +25,31 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const url = e.request.url;
   if (url.includes('supabase.co')) return;
+  // === Destino de "Compartir" (Web Share Target): otra app nos manda texto/archivos ===
+  if (url.includes('share-target')) {
+    if (e.request.method === 'POST') {
+      e.respondWith((async () => {
+        try {
+          const fd = await e.request.formData();
+          const texto = ['title', 'text', 'url'].map(k => fd.get(k)).filter(v => typeof v === 'string' && v.trim()).join('\n');
+          const cache = await caches.open(SHARE_CACHE);
+          const meta = [];
+          const archivos = fd.getAll('files');
+          for (let i = 0; i < archivos.length; i++) {
+            const f = archivos[i];
+            if (!f || typeof f === 'string' || !f.size) continue;
+            await cache.put(`/share-inbox/${i}`, new Response(f, { headers: { 'Content-Type': f.type || 'application/octet-stream' } }));
+            meta.push({ i, name: f.name || `archivo-${i}`, type: f.type || 'application/octet-stream', size: f.size });
+          }
+          await cache.put('/share-inbox/meta', new Response(JSON.stringify({ texto, archivos: meta }), { headers: { 'Content-Type': 'application/json' } }));
+        } catch (err) { console.warn('share-target:', err); }
+        return Response.redirect('./index.html?share=1', 303);
+      })());
+    } else {
+      e.respondWith(Response.redirect('./index.html', 303));
+    }
+    return;
+  }
   // Modelo y motor de "quitar fondo" (MediaPipe): caché primero, son archivos grandes que no cambian.
   if (url.includes('tasks-vision') || url.includes('mediapipe-models')) {
     e.respondWith(caches.match(e.request).then(hit => hit || fetch(e.request).then(resp => {

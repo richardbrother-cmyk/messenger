@@ -1123,3 +1123,19 @@ button.link:hover { background: none; opacity: .8; }
 }
 @keyframes latido { 0%,100% { transform: scale(1); opacity: .9; } 50% { transform: scale(1.35); opacity: .5; } }
 .sticker-stage { -webkit-touch-callout: none; user-select: none; }
+
+/* Barra del visor de imagen (compartir / descargar / cerrar) */
+.img-full-bar { position: absolute; top: .6rem; right: .6rem; display: flex; gap: .2rem; }
+.img-full-overlay button.img-full-btn { color: #fff; min-width: 44px; min-height: 44px; border-radius: 50%; background: rgba(0,0,0,.35); }
+.img-full-btn:hover { background: rgba(255,255,255,.18); opacity: 1; }
+.img-full-btn svg { width: 22px; height: 22px; }
+.img-full-close { position: static; }
+
+/* Hoja "Compartir con…" (contenido recibido de otra app) */
+.share-resumen {
+  display: flex; align-items: center; gap: .6rem; margin: .2rem .6rem .4rem;
+  padding: .6rem .8rem; background: var(--surface-3); border-radius: var(--r-md);
+  font-size: .85rem; color: var(--text-dim);
+}
+.share-resumen svg { width: 18px; height: 18px; flex-shrink: 0; color: var(--green-text); }
+.share-resumen span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

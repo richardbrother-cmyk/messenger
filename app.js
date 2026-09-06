@@ -127,6 +127,7 @@ const ICON = {
   scissors: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>',
   wand: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4V2M15 16v-2M8 9h2M20 9h2M17.8 11.8L19 13M15 9h.01M17.8 6.2L19 5M3 21l9-9M12.2 6.2L11 5"/></svg>',
   undo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>',
+  share: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/><line x1="15.4" y1="6.5" x2="8.6" y2="10.5"/></svg>',
   moon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>',
 };
 function svgBtn(name, id, cls, title) {
@@ -220,6 +221,11 @@ function abrirChatDesdeURL() {
     if (callerId) recuperarLlamadaPendiente(callerId, callerName);
     return;
   }
+  if (params.get('share') === '1') {
+    history.replaceState({}, '', location.pathname);
+    recibirCompartido();
+    return;
+  }
   const chatId = params.get('chat');
   const chatName = params.get('name');
   const callId = params.get('call');
@@ -268,6 +274,83 @@ async function recuperarLlamadaPendiente(callerId, callerName) {
   }
 }
 
+// === RECIBIR "COMPARTIR" DESDE OTRAS APPS (Web Share Target) ===
+// El service worker guarda el texto/archivos en la caché 'share-inbox' y abre
+// la app con ?share=1. Aquí se lee, se elige el chat destino y se deja listo
+// en el compositor para enviar.
+let compartidoPendiente = null;   // { texto, files } a la espera de sesión
+async function leerCompartido() {
+  if (!('caches' in window)) return null;
+  try {
+    const cache = await caches.open('share-inbox');
+    const metaResp = await cache.match('/share-inbox/meta');
+    if (!metaResp) return null;
+    const meta = await metaResp.json();
+    const files = [];
+    for (const a of (meta.archivos || [])) {
+      const r = await cache.match(`/share-inbox/${a.i}`);
+      if (!r) continue;
+      const blob = await r.blob();
+      files.push(new File([blob], a.name, { type: a.type || blob.type }));
+    }
+    // limpiar la bandeja
+    const keys = await cache.keys();
+    await Promise.all(keys.map(k => cache.delete(k)));
+    if (!meta.texto && !files.length) return null;
+    return { texto: meta.texto || '', files };
+  } catch (err) { console.warn('No se pudo leer lo compartido:', err); return null; }
+}
+async function recibirCompartido() {
+  const datos = await leerCompartido();
+  if (!datos) return;
+  if (!currentUser) { compartidoPendiente = datos; return; }
+  abrirElegirDestinoCompartido(datos);
+}
+// Hoja "Compartir con…": contactos y grupos
+async function abrirElegirDestinoCompartido(datos) {
+  const { data: profiles } = await sb.from('profiles').select('*').neq('id', currentUser.id).order('display_name');
+  const { data: myMem } = await sb.from('group_members').select('group_id').eq('user_id', currentUser.id);
+  const gids = (myMem || []).map(x => x.group_id);
+  let groups = [];
+  if (gids.length) { const { data } = await sb.from('groups').select('*').in('id', gids).order('name'); groups = data || []; }
+  const n = datos.files.length;
+  const resumen = [n ? `${n} archivo${n > 1 ? 's' : ''}` : '', datos.texto ? `“${datos.texto.slice(0, 60)}${datos.texto.length > 60 ? '…' : ''}”` : ''].filter(Boolean).join(' · ');
+  const ov = document.createElement('div');
+  ov.className = 'sheet-overlay overlay-bottom';
+  ov.innerHTML = `
+    <div class="sheet sheet-bottom">
+      <div class="sheet-head"><h3>Compartir con…</h3><button class="sheet-close" type="button">${ICON.close}</button></div>
+      <div class="sheet-body">
+        <p class="share-resumen">${ICON.share}<span>${esc(resumen)}</span></p>
+        ${groups.length ? '<div class="section-head"><span>Grupos</span></div>' : ''}
+        ${groups.map(g => `<button class="contact-pick" data-type="group" data-id="${g.id}" data-name="${esc(g.name || '')}" data-avatar="${esc(avatarUrl(g))}" type="button">
+            ${avatarHtml(avatarUrl(g), g.name, 'sm group-av')}<span class="cp-name">${esc(g.name)}</span></button>`).join('')}
+        <div class="section-head"><span>Contactos</span></div>
+        ${(profiles || []).map(p => `<button class="contact-pick" data-type="user" data-id="${p.id}" data-name="${esc(p.display_name || p.username || 'Usuario')}" data-avatar="${esc(avatarUrl(p))}" type="button">
+            ${avatarHtml(avatarUrl(p), p.display_name, 'sm')}<span class="cp-name">${esc(p.display_name || p.username || 'Usuario')}</span></button>`).join('') || '<p class="empty small">Aún no hay otros usuarios.</p>'}
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+  const cerrar = () => ov.remove();
+  ov.querySelector('.sheet-close').onclick = cerrar;
+  ov.onclick = (e) => { if (e.target === ov) cerrar(); };
+  ov.querySelectorAll('.contact-pick').forEach(b => {
+    b.onclick = async () => {
+      cerrar();
+      if (b.dataset.type === 'group') await openGroup(b.dataset.id, b.dataset.name, b.dataset.avatar);
+      else await openChat(b.dataset.id, b.dataset.name, b.dataset.avatar);
+      // dejar el contenido listo en el compositor (el usuario revisa y pulsa enviar)
+      const validos = datos.files.filter(f => f.size <= MAX_FILE_BYTES).slice(0, MAX_ADJUNTOS);
+      if (validos.length < datos.files.length) toast('Algunos archivos superan 10 MB y no se adjuntaron');
+      pendingFiles = validos;
+      renderPreviewAdjuntos();
+      const input = document.getElementById('msgInput');
+      if (input) { input.value = datos.texto; input.focus(); }
+      actualizarBotonEnviar();
+    };
+  });
+}
+
 // === AUTH ===
 async function init() {
   const { data } = await sb.auth.getSession();
@@ -282,6 +365,10 @@ async function init() {
     abrirChatDesdeURL();
   } else {
     renderAuth();
+    if (new URLSearchParams(location.search).get('share') === '1') {
+      history.replaceState({}, '', location.pathname);
+      recibirCompartido();   // se guarda hasta que inicie sesión
+    }
   }
 }
 
@@ -329,6 +416,7 @@ async function login() {
   iniciarInbox();   // escuchar llamadas entrantes
   iniciarPresencia();
   if (pendingChat) { abrirChatPorId(pendingChat.id, pendingChat.name); pendingChat = null; }
+  if (compartidoPendiente) { const d = compartidoPendiente; compartidoPendiente = null; abrirElegirDestinoCompartido(d); }
 }
 
 async function logout() { await sb.auth.signOut(); location.reload(); }
@@ -1001,6 +1089,7 @@ function chatShell({ avatar, titulo, sub, conLlamadas }) {
       <span class="action-spacer"></span>
       ${svgBtn('reply', 'actReply', 'link', 'Responder')}
       ${svgBtn('forward', 'actForward', 'link', 'Reenviar')}
+      ${svgBtn('share', 'actShare', 'link', 'Compartir')}
       ${svgBtn('edit', 'actEdit', 'link', 'Editar')}
       ${svgBtn('select', 'actSelect', 'link', 'Seleccionar')}
       ${svgBtn('trash', 'actDelete', 'link danger-ico', 'Eliminar')}
@@ -1925,6 +2014,7 @@ async function abrirMenuSticker(msgId, path) {
         ${!enMios ? `<button class="file-act" id="stSaveMine" type="button"><span class="fa-ico">${ICON.download}</span><span>Guardar en mis stickers</span></button>` : ''}
         ${m && !modoSeleccion ? `<button class="file-act" id="stReply" type="button"><span class="fa-ico">${ICON.reply}</span><span>Responder</span></button>
         <button class="file-act" id="stFwd" type="button"><span class="fa-ico">${ICON.forward}</span><span>Reenviar</span></button>` : ''}
+        <button class="file-act" id="stShare" type="button"><span class="fa-ico">${ICON.share}</span><span>Compartir</span></button>
       </div>
     </div>`;
   document.body.appendChild(ov);
@@ -1942,6 +2032,7 @@ async function abrirMenuSticker(msgId, path) {
   if (rep) rep.onclick = () => { cerrar(); iniciarRespuesta(m); };
   const fwd = document.getElementById('stFwd');
   if (fwd) fwd.onclick = () => { cerrar(); abrirReenviar(m); };
+  document.getElementById('stShare').onclick = () => { cerrar(); compartirArchivos([{ path, nombre: 'sticker.webp', tipo: 'image/webp' }]); };
 }
 
 // Hoja de adjuntos tipo WhatsApp (Documento, Cámara, Galería, Audio, Contacto, Sticker)
@@ -2865,6 +2956,7 @@ function activarAcciones(msgId, el) {
     document.getElementById('actClose').onclick = cerrarAcciones;
     document.getElementById('actReply').onclick = () => { cerrarAcciones(); iniciarRespuesta(m); };
     document.getElementById('actForward').onclick = () => { cerrarAcciones(); abrirReenviar(m); };
+    document.getElementById('actShare').onclick = () => { cerrarAcciones(); compartirMensajes([m]); };
     if (editBtn) editBtn.onclick = () => { cerrarAcciones(); editarMensaje(m); };
     document.getElementById('actSelect').onclick = () => { cerrarAcciones(); entrarModoSeleccion(m.id); };
     document.getElementById('actDelete').onclick = () => { cerrarAcciones(); borrarMensaje(m); };
@@ -2952,10 +3044,12 @@ function actualizarBarraSeleccion() {
     <span class="sel-count">${seleccionados.size}</span>
     <button class="link" id="selCopy" title="Copiar" type="button">${ICON.copy}</button>
     <button class="link" id="selForward" title="Reenviar" type="button">${ICON.forward}</button>
+    <button class="link" id="selShare" title="Compartir" type="button">${ICON.share}</button>
     <button class="link" id="selDelete" title="Eliminar" type="button">${ICON.trash}</button>`;
   document.getElementById('selCancel').onclick = salirModoSeleccion;
   document.getElementById('selCopy').onclick = copiarSeleccionados;
   document.getElementById('selForward').onclick = reenviarSeleccionados;
+  document.getElementById('selShare').onclick = () => { const msgs = mensajesSeleccionados(); salirModoSeleccion(); compartirMensajes(msgs); };
   document.getElementById('selDelete').onclick = eliminarSeleccionados;
 }
 
@@ -3352,7 +3446,7 @@ async function reenviarMensaje(m, destType, destId) {
 }
 
 // Menú al tocar un archivo adjunto: Abrir o Descargar
-function abrirMenuArchivo(path, nombre) {
+function abrirMenuArchivo(path, nombre, tipo) {
   const ov = document.createElement('div');
   ov.className = 'sheet-overlay overlay-bottom';
   ov.innerHTML = `
@@ -3360,7 +3454,8 @@ function abrirMenuArchivo(path, nombre) {
       <div class="sheet-head"><h3>${esc(nombre)}</h3><button class="sheet-close">✕</button></div>
       <div class="sheet-body">
         <button class="file-act" id="fileOpen"><span class="fa-ico">${ICON.file}</span><span>Abrir</span></button>
-        <button class="file-act" id="fileDownload"><span class="fa-ico">${ICON.attach}</span><span>Descargar</span></button>
+        <button class="file-act" id="fileDownload"><span class="fa-ico">${ICON.download}</span><span>Descargar</span></button>
+        <button class="file-act" id="fileShare"><span class="fa-ico">${ICON.share}</span><span>Compartir</span></button>
       </div>
     </div>`;
   document.body.appendChild(ov);
@@ -3374,6 +3469,7 @@ function abrirMenuArchivo(path, nombre) {
     if (data?.signedUrl) window.open(data.signedUrl, '_blank', 'noopener');
     else alert('No se pudo abrir el archivo.');
   };
+  document.getElementById('fileShare').onclick = () => { cerrar(); compartirArchivos([{ path, nombre, tipo }]); };
   document.getElementById('fileDownload').onclick = async () => {
     cerrar();
     // URL firmada con descarga forzada (el navegador lo baja en vez de mostrarlo)
@@ -3409,11 +3505,17 @@ async function hydrateAttachments(box) {
     };
   }
   for (const el of box.querySelectorAll('.attach-img')) {
+    if (el.dataset.ready) continue;
+    el.dataset.ready = '1';
     const path = el.dataset.path;
     const { data } = await sb.storage.from('attachments').createSignedUrl(path, 3600);
     if (data?.signedUrl) {
       el.innerHTML = `<img src="${data.signedUrl}" alt="adjunto" loading="lazy">`;
-      el.querySelector('img').onclick = () => window.open(data.signedUrl, '_blank');
+      const m = msgCache[el.closest('.bubble')?.dataset.id];
+      el.querySelector('img').onclick = () => {
+        if (modoSeleccion) return;
+        verImagenCompleta(data.signedUrl, { path, nombre: m?.attachment_name || 'foto.jpg', tipo: m?.attachment_type });
+      };
     } else { el.innerHTML = '<span class="loading">No disponible</span>'; }
   }
   for (const el of box.querySelectorAll('.attach-file')) {
@@ -3421,9 +3523,10 @@ async function hydrateAttachments(box) {
     el.dataset.ready = '1';
     const path = el.dataset.path;
     const nombre = el.dataset.name || 'archivo';
+    const tipo = msgCache[el.closest('.bubble')?.dataset.id]?.attachment_type;
     el.addEventListener('click', (ev) => {
       ev.preventDefault();
-      abrirMenuArchivo(path, nombre);
+      abrirMenuArchivo(path, nombre, tipo);
     });
   }
   // Notas de voz: reproductor con onda, tiempo y velocidad
@@ -3836,14 +3939,101 @@ async function verPerfilUsuario(otherId, otherName, otherAvatar) {
 }
 
 // Muestra una imagen a pantalla completa (reusable)
-function verImagenCompleta(url) {
+function verImagenCompleta(url, archivo) {
   if (!url) return;
   const ov = document.createElement('div');
   ov.className = 'img-full-overlay';
-  ov.innerHTML = `<img src="${esc(url)}" alt=""><button class="link img-full-close">${ICON.close}</button>`;
+  ov.innerHTML = `<img src="${esc(url)}" alt="">
+    <div class="img-full-bar">
+      ${archivo ? `<button class="link img-full-btn" id="imgShare" title="Compartir" type="button">${ICON.share}</button>
+                   <button class="link img-full-btn" id="imgDownload" title="Descargar" type="button">${ICON.download}</button>` : ''}
+      <button class="link img-full-btn img-full-close" type="button">${ICON.close}</button>
+    </div>`;
   document.body.appendChild(ov);
   const close = () => ov.remove();
-  ov.onclick = close;
+  ov.onclick = (e) => { if (!e.target.closest('.img-full-bar')) close(); };
+  ov.querySelector('.img-full-close').onclick = close;
+  if (archivo) {
+    document.getElementById('imgShare').onclick = () => { close(); compartirArchivos([archivo]); };
+    document.getElementById('imgDownload').onclick = () => { close(); descargarArchivo(archivo.path, archivo.nombre); };
+  }
+}
+
+// === COMPARTIR A OTRAS APPS (hoja nativa del sistema) ===
+// Usa la Web Share API. Si no está disponible (escritorio), copia el texto o descarga el archivo.
+function puedeCompartir() { return typeof navigator.share === 'function'; }
+
+async function compartirTexto(texto) {
+  if (!texto) return;
+  if (puedeCompartir()) {
+    try { await navigator.share({ text: texto }); return; }
+    catch (err) { if (err.name === 'AbortError') return; }
+  }
+  try { await navigator.clipboard.writeText(texto); toast('Texto copiado al portapapeles'); }
+  catch (_) { toast('No se pudo compartir en este navegador'); }
+}
+
+// archivos: [{ path, nombre, tipo }] del bucket 'attachments'; texto opcional que acompaña
+async function compartirArchivos(archivos, texto) {
+  toast('Preparando…');
+  const files = [];
+  for (const a of archivos) {
+    try {
+      const { data: blob } = await sb.storage.from('attachments').download(a.path);
+      if (!blob) continue;
+      const tipo = a.tipo === 'sticker' ? 'image/webp' : (a.tipo || blob.type || 'application/octet-stream');
+      let nombre = (a.nombre || 'archivo').replace(/[\\/:*?"<>|]/g, '_');
+      if (!/\.[a-z0-9]{2,5}$/i.test(nombre)) nombre += extensionPorTipo(tipo);
+      files.push(new File([blob], nombre, { type: tipo }));
+    } catch (err) { console.warn('No se pudo descargar para compartir:', err); }
+  }
+  if (!files.length) { toast('No se pudo obtener el archivo'); return; }
+  if (puedeCompartir() && navigator.canShare && navigator.canShare({ files })) {
+    try { await navigator.share({ files, text: texto || undefined }); return; }
+    catch (err) { if (err.name === 'AbortError') return; console.warn('share:', err); }
+  }
+  // sin hoja nativa: descargar (uno por uno)
+  for (const f of files) {
+    const url = URL.createObjectURL(f);
+    const el = document.createElement('a');
+    el.href = url; el.download = f.name;
+    document.body.appendChild(el); el.click(); el.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  }
+  toast(files.length > 1 ? 'Archivos descargados' : 'Archivo descargado');
+}
+
+function extensionPorTipo(tipo) {
+  const t = (tipo || '').toLowerCase();
+  if (t.includes('webp')) return '.webp';
+  if (t.includes('jpeg') || t.includes('jpg')) return '.jpg';
+  if (t.includes('png')) return '.png';
+  if (t.includes('gif')) return '.gif';
+  if (t.includes('mp4')) return t.startsWith('audio') ? '.m4a' : '.mp4';
+  if (t.includes('webm')) return '.webm';
+  if (t.includes('pdf')) return '.pdf';
+  return '';
+}
+
+// Comparte uno o varios mensajes: el texto se junta; los adjuntos van como archivos
+async function compartirMensajes(msgs) {
+  const lista = (msgs || []).filter(m => m && !m.deleted_at);
+  if (!lista.length) return;
+  const textos = lista.filter(m => m.content).map(m => m.content);
+  const archivos = lista.filter(m => m.attachment_path).map(m => ({
+    path: m.attachment_path, nombre: m.attachment_name, tipo: m.attachment_type,
+  }));
+  const texto = textos.join('\n');
+  if (archivos.length) await compartirArchivos(archivos, texto);
+  else await compartirTexto(texto);
+}
+
+async function descargarArchivo(path, nombre) {
+  const { data } = await sb.storage.from('attachments').createSignedUrl(path, 3600, { download: nombre });
+  if (!data?.signedUrl) { toast('No se pudo descargar'); return; }
+  const a = document.createElement('a');
+  a.href = data.signedUrl; a.download = nombre;
+  document.body.appendChild(a); a.click(); a.remove();
 }
 
 // ============================================================
