@@ -221,6 +221,11 @@ function abrirChatDesdeURL() {
     if (callerId) recuperarLlamadaPendiente(callerId, callerName);
     return;
   }
+  if (params.get('share') === '1') {
+    history.replaceState({}, '', location.pathname);
+    recibirCompartido();
+    return;
+  }
   const chatId = params.get('chat');
   const chatName = params.get('name');
   const callId = params.get('call');
@@ -269,6 +274,83 @@ async function recuperarLlamadaPendiente(callerId, callerName) {
   }
 }
 
+// === RECIBIR "COMPARTIR" DESDE OTRAS APPS (Web Share Target) ===
+// El service worker guarda el texto/archivos en la caché 'share-inbox' y abre
+// la app con ?share=1. Aquí se lee, se elige el chat destino y se deja listo
+// en el compositor para enviar.
+let compartidoPendiente = null;   // { texto, files } a la espera de sesión
+async function leerCompartido() {
+  if (!('caches' in window)) return null;
+  try {
+    const cache = await caches.open('share-inbox');
+    const metaResp = await cache.match('/share-inbox/meta');
+    if (!metaResp) return null;
+    const meta = await metaResp.json();
+    const files = [];
+    for (const a of (meta.archivos || [])) {
+      const r = await cache.match(`/share-inbox/${a.i}`);
+      if (!r) continue;
+      const blob = await r.blob();
+      files.push(new File([blob], a.name, { type: a.type || blob.type }));
+    }
+    // limpiar la bandeja
+    const keys = await cache.keys();
+    await Promise.all(keys.map(k => cache.delete(k)));
+    if (!meta.texto && !files.length) return null;
+    return { texto: meta.texto || '', files };
+  } catch (err) { console.warn('No se pudo leer lo compartido:', err); return null; }
+}
+async function recibirCompartido() {
+  const datos = await leerCompartido();
+  if (!datos) return;
+  if (!currentUser) { compartidoPendiente = datos; return; }
+  abrirElegirDestinoCompartido(datos);
+}
+// Hoja "Compartir con…": contactos y grupos
+async function abrirElegirDestinoCompartido(datos) {
+  const { data: profiles } = await sb.from('profiles').select('*').neq('id', currentUser.id).order('display_name');
+  const { data: myMem } = await sb.from('group_members').select('group_id').eq('user_id', currentUser.id);
+  const gids = (myMem || []).map(x => x.group_id);
+  let groups = [];
+  if (gids.length) { const { data } = await sb.from('groups').select('*').in('id', gids).order('name'); groups = data || []; }
+  const n = datos.files.length;
+  const resumen = [n ? `${n} archivo${n > 1 ? 's' : ''}` : '', datos.texto ? `“${datos.texto.slice(0, 60)}${datos.texto.length > 60 ? '…' : ''}”` : ''].filter(Boolean).join(' · ');
+  const ov = document.createElement('div');
+  ov.className = 'sheet-overlay overlay-bottom';
+  ov.innerHTML = `
+    <div class="sheet sheet-bottom">
+      <div class="sheet-head"><h3>Compartir con…</h3><button class="sheet-close" type="button">${ICON.close}</button></div>
+      <div class="sheet-body">
+        <p class="share-resumen">${ICON.share}<span>${esc(resumen)}</span></p>
+        ${groups.length ? '<div class="section-head"><span>Grupos</span></div>' : ''}
+        ${groups.map(g => `<button class="contact-pick" data-type="group" data-id="${g.id}" data-name="${esc(g.name || '')}" data-avatar="${esc(avatarUrl(g))}" type="button">
+            ${avatarHtml(avatarUrl(g), g.name, 'sm group-av')}<span class="cp-name">${esc(g.name)}</span></button>`).join('')}
+        <div class="section-head"><span>Contactos</span></div>
+        ${(profiles || []).map(p => `<button class="contact-pick" data-type="user" data-id="${p.id}" data-name="${esc(p.display_name || p.username || 'Usuario')}" data-avatar="${esc(avatarUrl(p))}" type="button">
+            ${avatarHtml(avatarUrl(p), p.display_name, 'sm')}<span class="cp-name">${esc(p.display_name || p.username || 'Usuario')}</span></button>`).join('') || '<p class="empty small">Aún no hay otros usuarios.</p>'}
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+  const cerrar = () => ov.remove();
+  ov.querySelector('.sheet-close').onclick = cerrar;
+  ov.onclick = (e) => { if (e.target === ov) cerrar(); };
+  ov.querySelectorAll('.contact-pick').forEach(b => {
+    b.onclick = async () => {
+      cerrar();
+      if (b.dataset.type === 'group') await openGroup(b.dataset.id, b.dataset.name, b.dataset.avatar);
+      else await openChat(b.dataset.id, b.dataset.name, b.dataset.avatar);
+      // dejar el contenido listo en el compositor (el usuario revisa y pulsa enviar)
+      const validos = datos.files.filter(f => f.size <= MAX_FILE_BYTES).slice(0, MAX_ADJUNTOS);
+      if (validos.length < datos.files.length) toast('Algunos archivos superan 10 MB y no se adjuntaron');
+      pendingFiles = validos;
+      renderPreviewAdjuntos();
+      const input = document.getElementById('msgInput');
+      if (input) { input.value = datos.texto; input.focus(); }
+      actualizarBotonEnviar();
+    };
+  });
+}
+
 // === AUTH ===
 async function init() {
   const { data } = await sb.auth.getSession();
@@ -283,6 +365,10 @@ async function init() {
     abrirChatDesdeURL();
   } else {
     renderAuth();
+    if (new URLSearchParams(location.search).get('share') === '1') {
+      history.replaceState({}, '', location.pathname);
+      recibirCompartido();   // se guarda hasta que inicie sesión
+    }
   }
 }
 
@@ -330,6 +416,7 @@ async function login() {
   iniciarInbox();   // escuchar llamadas entrantes
   iniciarPresencia();
   if (pendingChat) { abrirChatPorId(pendingChat.id, pendingChat.name); pendingChat = null; }
+  if (compartidoPendiente) { const d = compartidoPendiente; compartidoPendiente = null; abrirElegirDestinoCompartido(d); }
 }
 
 async function logout() { await sb.auth.signOut(); location.reload(); }

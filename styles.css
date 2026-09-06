@@ -1130,3 +1130,12 @@ button.link:hover { background: none; opacity: .8; }
 .img-full-btn:hover { background: rgba(255,255,255,.18); opacity: 1; }
 .img-full-btn svg { width: 22px; height: 22px; }
 .img-full-close { position: static; }
+
+/* Hoja "Compartir con…" (contenido recibido de otra app) */
+.share-resumen {
+  display: flex; align-items: center; gap: .6rem; margin: .2rem .6rem .4rem;
+  padding: .6rem .8rem; background: var(--surface-3); border-radius: var(--r-md);
+  font-size: .85rem; color: var(--text-dim);
+}
+.share-resumen svg { width: 18px; height: 18px; flex-shrink: 0; color: var(--green-text); }
+.share-resumen span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
