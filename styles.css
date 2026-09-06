@@ -1126,7 +1126,7 @@ button.link:hover { background: none; opacity: .8; }
 
 /* Barra del visor de imagen (compartir / descargar / cerrar) */
 .img-full-bar { position: absolute; top: .6rem; right: .6rem; display: flex; gap: .2rem; }
-.img-full-btn { color: #fff; min-width: 44px; min-height: 44px; border-radius: 50%; background: rgba(0,0,0,.35); }
+.img-full-overlay button.img-full-btn { color: #fff; min-width: 44px; min-height: 44px; border-radius: 50%; background: rgba(0,0,0,.35); }
 .img-full-btn:hover { background: rgba(255,255,255,.18); opacity: 1; }
 .img-full-btn svg { width: 22px; height: 22px; }
 .img-full-close { position: static; }
