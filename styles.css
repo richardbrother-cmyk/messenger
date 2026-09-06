@@ -1123,3 +1123,10 @@ button.link:hover { background: none; opacity: .8; }
 }
 @keyframes latido { 0%,100% { transform: scale(1); opacity: .9; } 50% { transform: scale(1.35); opacity: .5; } }
 .sticker-stage { -webkit-touch-callout: none; user-select: none; }
+
+/* Barra del visor de imagen (compartir / descargar / cerrar) */
+.img-full-bar { position: absolute; top: .6rem; right: .6rem; display: flex; gap: .2rem; }
+.img-full-btn { color: #fff; min-width: 44px; min-height: 44px; border-radius: 50%; background: rgba(0,0,0,.35); }
+.img-full-btn:hover { background: rgba(255,255,255,.18); opacity: 1; }
+.img-full-btn svg { width: 22px; height: 22px; }
+.img-full-close { position: static; }
